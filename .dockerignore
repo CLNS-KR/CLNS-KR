@@ -1,0 +1,37 @@
+# 이미지에 절대 들어가면 안 되는 것들 (API 키·로컬 캐시·개발 산출물)
+.env
+.env.*
+!.env.example
+.git
+.gitignore
+.github
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+*.egg-info/
+
+# 로컬 전용 산출물
+tool-results/
+browser/
+snapshots/
+*.snapshot.json
+*.db
+*.sqlite
+*.sqlite3
+*.sqlite-wal
+*.sqlite-shm
+
+# 배포에 필요한 리콜 로컬 인덱스만 예외로 포함한다(공공데이터 가공물, 이용허락범위 제한 없음)
+!data/recalls.sqlite
+
+# 원본 CSV는 이미지에 넣지 않는다(인덱스에 적재 완료)
+data/raw/
+
+# 문서·테스트·도구는 런타임에 필요 없다
+*.md
+src/tests/
+src/tools/
