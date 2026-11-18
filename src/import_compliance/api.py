@@ -6,6 +6,16 @@ from typing import Any, Callable, Dict, List, Optional
 
 from . import usage
 from .corpus import load_corpus, normalize
+from .standards import (
+    ASSESSMENT_STATUS_ORDER,
+    DEFAULT_DESTINATION,
+    DEFAULT_JURISDICTION,
+    REGULATION_TAGS,
+    SCHEMA_VERSION,
+    apply_geography,
+    apply_status,
+    testset_meta,
+)
 from .engine import assess
 from .models import VERDICT_LABEL_EN, VERDICT_LABEL_KO, VERDICT_SEVERITY
 from .policy import PAID_TIER_NOTICE_KO, SCOPE_LIMITS_KO, TIER_BOUNDARIES
@@ -16,6 +26,9 @@ CACHE_TTL_HOURS = 24 * 7
 
 
 def _envelope(tool: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+    # 모든 툴 응답에 같은 표준 필드(schema_version·destination·jurisdiction·origin)를
+    # 보장한다. 이미 계산된 값(assess 결과 등)은 덮어쓰지 않는다.
+    apply_geography(payload)
     return {"tool": tool, "ok": True, "result": payload}
 
 
@@ -352,6 +365,8 @@ def tool_assess_import_case(args: Dict[str, Any], store: Store, client_id: str, 
             if store is not None:  # 판정을 올렸으면 저장된 사본도 같은 결론으로 맞춘다
                 store.update_assessment(str(result.get("assessment_id") or ""),
                                         str(result["verdict"]["code"]), result)
+    # 실시간 조회로 verdict 가 올라갔으면 표준 판정 상태도 함께 맞춘다.
+    apply_status(result)
     return _envelope("assess_import_case", result)
 
 
@@ -405,6 +420,7 @@ def tool_lookup_hs_requirements(args: Dict[str, Any], store: Store, client_id: s
                 "관세청 실시간 조회에 실패해 요건 목록을 제시하지 못했습니다(" 
                 f"코드 {live_block.get('code') or 'n/a'}). 판정은 코퍼스·법령 근거만으로 이루어졌습니다."
             )
+    apply_status(result)
     return _envelope("lookup_hs_requirements", result)
 
 
@@ -610,6 +626,7 @@ def tool_explain_trap(args: Dict[str, Any], store: Store, client_id: str, tier: 
 def tool_get_service_meta(args: Dict[str, Any], store: Store, client_id: str, tier: str,
                           live: Any = None) -> Dict[str, Any]:
     corpus = load_corpus()
+    testset = testset_meta()
     return _envelope("get_service_meta", {
         "service": "CLNS",
         "service_subtitle_en": "PRODUCT COMPLIANCE INTELLIGENCE · KOREA",
@@ -619,6 +636,12 @@ def tool_get_service_meta(args: Dict[str, Any], store: Store, client_id: str, ti
         "stage": "무료 베타 · 결제창 없음",
         "corpus": {"version": corpus.version, "verified_on": corpus.verified_on, "cases": len(corpus.traps)},
         "verdict_levels": ["check_likely", "info_needed", "low_risk"],
+        "schema_version": SCHEMA_VERSION,
+        "assessment_status_levels": list(ASSESSMENT_STATUS_ORDER),
+        "destination": DEFAULT_DESTINATION,
+        "jurisdiction": DEFAULT_JURISDICTION,
+        "regulation_tags": REGULATION_TAGS,
+        "testset": testset,
         "tiers": TIER_BOUNDARIES,
         "free_tier": {"monthly_calls": FREE_MONTHLY_CALLS, "used": store.quota_used(client_id)},
         "paid_notice_ko": PAID_TIER_NOTICE_KO,

@@ -4,6 +4,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
+from .standards import tags_for_case
+
 
 @dataclass(frozen=True)
 class LegalBasis:
@@ -49,6 +51,8 @@ class Trap:
     next_steps: List[str]
     notes: str = ""
     fact_rules: List[Dict[str, Any]] = field(default_factory=list)
+    strong_signals: List[str] = field(default_factory=list)
+    exclude_signals: List[str] = field(default_factory=list)
 
     @classmethod
     def from_dict(cls, raw: Dict[str, Any]) -> "Trap":
@@ -74,6 +78,8 @@ class Trap:
                 for b in raw.get("legal_basis", [])
             ],
             signals=list(engine.get("signals", [])),
+            strong_signals=list(engine.get("strong_signals", [])),
+            exclude_signals=list(engine.get("exclude_signals", [])),
             required_inputs=[
                 RequiredInput(
                     field=r["field"],
@@ -104,6 +110,7 @@ class Finding:
             "title": self.trap.title,
             "issue_ko": self.trap.issue_ko,
             "category": self.trap.category,
+            "regulation_tags": tags_for_case(self.trap.id),
             "verdict": self.verdict,
             "verdict_label_ko": VERDICT_LABEL_KO[self.verdict],
             "verdict_label_en": VERDICT_LABEL_EN[self.verdict],

@@ -34,6 +34,12 @@ jobs:
           PYTHONPATH: ${{ github.workspace }}/src
         run: python -m import_compliance.cli --check-corpus
 
+      - name: Testset self-check (--check-testset)
+        working-directory: src
+        env:
+          PYTHONPATH: ${{ github.workspace }}/src
+        run: python -m import_compliance.cli --check-testset
+
       - name: Unit + HTTP + pSEO + MCP tests
         working-directory: src
         env:

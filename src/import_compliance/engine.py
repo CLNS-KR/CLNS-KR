@@ -16,6 +16,15 @@ from .policy import (
     TIER_BOUNDARIES,
     find_conclusive_phrasing,
 )
+from .standards import (
+    apply_status,
+    detect_origin,
+    geography,
+    missing_information,
+    missing_information_detail,
+    normalize_origin,
+    tags_for_findings,
+)
 from .store import SourceGateway, Store, iso, now_kst
 
 KST = timezone(timedelta(hours=9))
@@ -62,6 +71,19 @@ def _infer_facts(query: str, facts: Optional[Dict[str, Any]]) -> Dict[str, Any]:
         if "어댑터" in norm or "아답터" in norm or "충전기" in norm:
             out["ac_plug"] = "unknown"
 
+    # 원산지는 국가명이 확인될 때만 ISO 코드로 채운다(추측 금지).
+    if not any(key in out for key in ("origin", "origin_country", "made_in", "country_of_origin")):
+        origin = detect_origin(norm)
+        if origin:
+            out["origin"] = origin
+    else:
+        for key in ("origin", "origin_country", "made_in", "country_of_origin"):
+            if key in out:
+                code = normalize_origin(out[key])
+                if code:
+                    out["origin"] = code
+                break
+
     return out
 
 
@@ -106,17 +128,36 @@ def _apply_fact_rules(rules: List[Dict[str, Any]], facts: Dict[str, Any]) -> Opt
     return None
 
 
-def _match_traps(corpus: Corpus, norm: str) -> List[Tuple[Trap, List[str]]]:
-    """1차 신호 3개 중 하나가 맞거나, 신호가 2개 이상 맞을 때만 채택한다.
+# 어느 함정에나 붙는 범용 단어. 이것들만 2개 맞아도 케이스로 채택하지 않는다
+# (예: '직구'+'반입'만으로 의약품 함정이 걸리던 오탐 방지).
+GENERIC_SIGNALS = frozenset({
+    "판매", "되팔", "유통", "구매대행", "배송대행", "직구", "반입",
+    "수입신고", "자가소비", "자가사용", "직접구매", "부품", "수입", "판매용",
+})
 
-    '판매'·'부품' 같은 범용 단어 하나로 엉뚱한 케이스가 걸리는 것을 막기 위한 장치다.
+
+def _match_traps(corpus: Corpus, norm: str) -> List[Tuple[Trap, List[str]]]:
+    """아래 중 하나면 채택한다.
+
+    1. **강한 신호**(품목을 특정하는 단어: 충전기·젖병·세정제·세관장확인 등) 1개 이상 일치
+    2. 1차 신호(코퍼스 signals 앞 3개) 1개 이상 일치
+    3. 서로 다른 신호 2개 이상 일치
+
+    '판매'·'부품'·'직구' 같은 범용 단어 하나로 엉뚱한 케이스가 걸리는 것을 막으면서,
+    '젖병'·'섬유유연제'처럼 품목을 확정하는 단어 하나는 그대로 인정하기 위한 장치다.
+    strong_signals 가 없는 코퍼스(구버전)는 1차 신호 방식으로 되돌아간다.
     """
     matched: List[Tuple[Trap, List[str]]] = []
     for trap in corpus.traps:
+        if any(normalize(signal) in norm for signal in trap.exclude_signals):
+            continue  # 명시적 제외 문구(예: '식품용'은 식품 함정이 아니다)
         hits = [signal for signal in trap.signals if normalize(signal) in norm]
         primary = [normalize(s) for s in trap.signals[:3]]
+        strong = [normalize(s) for s in (trap.strong_signals or trap.signals[:3])]
         primary_hit = any(sig in norm for sig in primary)
-        if hits and (primary_hit or len(hits) >= 2):
+        strong_hit = any(sig in norm for sig in strong)
+        specific = [h for h in hits if normalize(h) not in GENERIC_SIGNALS]
+        if hits and (strong_hit or primary_hit or len(specific) >= 2):
             matched.append((trap, hits))
     return matched
 
@@ -243,8 +284,15 @@ def assess(
     if cap_note:
         answer["guidance"].append(cap_note)
 
+    finding_dicts = [f.to_dict() for f in findings]
+    geo = geography(query, facts)
     response = {
         "assessment_id": "asm_" + uuid.uuid4().hex[:16],
+        "schema_version": geo["schema_version"],
+        "destination": geo["destination"],
+        "jurisdiction": geo["jurisdiction"],
+        "origin": geo["origin"],
+        "origin_source": geo["origin_source"],
         "engine": {"name": "import-compliance", "version": corpus.version, "corpus_verified_on": corpus.verified_on},
         "query": {"text": query, "facts_resolved": merged},
         "verdict": {
@@ -255,7 +303,10 @@ def assess(
             "note_ko": "판정은 확률적 검토 결과이며, 법적 확정 판단이 아닙니다.",
         },
         "answer": answer,
-        "findings": [f.to_dict() for f in findings],
+        "findings": finding_dicts,
+        "regulation_tags": tags_for_findings(finding_dicts),
+        "missing_information": missing_information(finding_dicts),
+        "missing_information_detail": missing_information_detail(finding_dicts),
         "evidence": _dedupe_basis(findings),
         "data_provenance": {
             "policy": "원본 API 1:1 재전송 금지 · 다기관 결합·정규화 결과만 제공",
@@ -271,6 +322,9 @@ def assess(
             "품목명·HS 10자리·수입 목적·제조국을 입력해 다시 조회",
         ],
     }
+    # 표준 판정 상태(APPLICABLE … UNKNOWN)는 verdict·findings·missing_information
+    # 에서 계산해 붙인다. 기존 verdict 필드는 그대로 둔다(하위 호환).
+    apply_status(response)
     if store is not None:
         store.record_assessment(response["assessment_id"], client_id, tier, query, overall, response)
     return response

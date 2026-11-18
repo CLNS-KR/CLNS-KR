@@ -445,14 +445,15 @@ class LicenseAndCiTest(unittest.TestCase):
         for pattern in anonymous_violations():
             self.assertIsNone(pattern.search(text), pattern.pattern)
 
-    def test_version_bumped_to_0_1_2(self):
+    def test_version_bumped_to_0_1_3(self):
+        # 0.1.3: 100개 대표 테스트셋·표준 판정 상태·공통 스키마(destination/jurisdiction/origin)
         version_text = self.read("src", "import_compliance", "version.py")
-        self.assertIn('__version__ = "0.1.2"', version_text)
+        self.assertIn('__version__ = "0.1.3"', version_text)
         docker = self.read("Dockerfile")
-        self.assertIn('org.opencontainers.image.version="0.1.2"', docker)
+        self.assertIn('org.opencontainers.image.version="0.1.3"', docker)
         from import_compliance import web_ui
 
-        self.assertEqual(web_ui.SERVICE_VERSION, "0.1.2")
+        self.assertEqual(web_ui.SERVICE_VERSION, "0.1.3")
 
     def test_committed_files_have_no_secrets_or_personal_data(self):
         patterns = [

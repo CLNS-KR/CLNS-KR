@@ -19,9 +19,11 @@ Clearance, simplified.
 - 브라우저에서 바로 쓰는 사람용 화면(`GET /`) 포함: 품목명만 넣고 10초 안에 확인 항목·근거 조문·리콜 이력을 본다. 화면은 CLNS Check · CLNS Intelligence · CLNS API & MCP 세 축으로 나뉜다.
 - **품목별 무료 체크 페이지(pSEO) 35개**: `/p/` 인덱스와 `/p/{slug}` — 무선 미니 선풍기·보조배터리·오메가3·선크림·반려동물 사료 등. JS 없이 크롤러가 읽는 서버 렌더 HTML에 H1·대표 HS·세관장확인 요건 표·KC·전파·식약처 항목·핵심 함정·근거·면책·실시간 조회 링크를 담는다(`sitemap.xml` 동적 생성, 얇은 페이지는 `noindex`).
 - **익명 일별 통계**: `GET /v1/stats` — IP·User-Agent 원문·쿠키·개인 식별자를 저장하지 않고 날짜별 경로/툴/`verdict.code`/0건·오류 수만 집계
+- **대표 100개 품목 테스트셋** — 8개 분야(전기·전자 KC / 무선·전파 / 배터리 / 어린이제품 / 식품·건기식 / 화장품 / 생활화학·차량용 방향제 / 의료기기·위생용품) 100건으로 분야별 정확도와 **중대 규제 누락(FN) 0건**을 검증(`--check-testset`)
+- **응답 스키마 0.1.3** — 기존 3단계 `verdict` 위에 표준 5단계 `assessment_status`(APPLICABLE·NOT_APPLICABLE·POTENTIALLY_APPLICABLE·REVIEW_REQUIRED·UNKNOWN), `missing_information`, `destination`·`jurisdiction`·`origin`(ISO), `regulation_tags` 를 추가
 - **MCP 두 가지 전송**: HTTP(`POST /mcp`) + **stdio**(`python -m import_compliance.mcp_stdio`) — 로컬 실행형 MCP 디렉터리(Glama·mcp.so 등) 등록용
 - 무료 클라우드 배포 사본 제공: `Dockerfile`(python:3.12-slim) + `render.yaml`(Render free Web Service)
-- GitHub Actions CI(`.github/workflows/test.yml`) — Python 3.11·3.12 에서 `--check-corpus` + 전체 테스트 자동 실행
+- GitHub Actions CI(`.github/workflows/test.yml`) — Python 3.11·3.12 에서 `--check-corpus` + `--check-testset` + 전체 테스트 자동 실행
 - 라이선스: **MIT** (`LICENSE`, `Copyright (c) 2026 CLNS-KR`)
 
 ## 문서
@@ -34,15 +36,18 @@ Clearance, simplified.
 | `live-api-verification-2026-11-18.json` | 라이브 검증 산출물(정규화 샘플·상태, **키 없음**) |
 | `live-scenario-results-2026-11-18.json` | 대표 3품목 라이브 판정 산출물(응답시간·요건·리콜 포함, **키 없음**) |
 | `04-live-scenario-report-2026-11-18.md` | 대표 3품목 라이브 판정 사람용 리포트 |
+| `05-launch-audit-and-growth-plan.md` | 출시 전 감사·성장 계획 |
+| `06-testset-100-and-schema-0.1.3.md` | 대표 100개 테스트셋·표준 판정 상태·공통 스키마(0.1.3)와 검증 결과 |
 | `.env.example` | 키 템플릿(`.env`는 커밋 금지) |
 | `LICENSE` | MIT 라이선스(`Copyright (c) 2026 CLNS-KR`) |
-| `.github/workflows/test.yml` | CI: `--check-corpus` + 전체 테스트 + stdio MCP 스모크(Python 3.11·3.12) |
+| `.github/workflows/test.yml` | CI: `--check-corpus` + `--check-testset` + 전체 테스트 + stdio MCP 스모크(Python 3.11·3.12) |
 
 ## 실행
 
 ```bash
 cd src
 python3 -m import_compliance.cli --check-corpus
+python3 -m import_compliance.cli --check-testset     # 100건 분야별 정확도·규제 누락 FN
 python3 -m import_compliance.cli "중국산 블루투스 스피커를 수입해 판매하려고 해"
 python3 -m import_compliance.cli "150달러 이하 의류 목록통관"
 python3 -m import_compliance.cli --trap TRAP-15
@@ -149,6 +154,60 @@ MCP 클라이언트 설정 예시(`claude_desktop_config.json` 등):
 
 무료 한도는 브라우저/클라이언트 ID 당 월 250회이며 `get_service_meta` 는 차감되지 않습니다.
 
+### 응답 스키마 0.1.3 — 표준 상태 · 누락 정보 · 공통 필드
+
+기존 3단계 `verdict`(`check_likely`/`info_needed`/`low_risk`)는 **그대로** 두고, 판정 상태·빠진 스펙·지리 정보를 추가했다. 필드만 늘었으므로 기존 클라이언트는 수정 없이 동작한다.
+
+| 필드 | 값 | 설명 |
+|---|---|---|
+| `assessment_status` | `APPLICABLE` · `NOT_APPLICABLE` · `POTENTIALLY_APPLICABLE` · `REVIEW_REQUIRED` · `UNKNOWN` | 표준 판정 상태(`verdict`·findings 수·누락 정보에서 계산) |
+| `missing_information` | `["hs_10_code", "intended_age", ...]` | 판정을 좁히려면 필요한 **표준 스펙명** 목록 |
+| `missing_information_detail` | `[{field, prompt, allowed_values, case_id}]` | 같은 목록의 상세(질문·허용값·케이스) |
+| `destination` | `"KR"` | 통관 목적국 |
+| `jurisdiction` | `"KR"` | 적용 법역(법령 카드가 한국법 기준) |
+| `origin` | `"CN"` · `null` | 원산지 ISO 3166-1 alpha-2. 확인되지 않으면 `null`(추측하지 않음) |
+| `origin_source` | `"query"` · `"facts"` · `null` | 원산지를 어디서 확인했는지 |
+| `regulation_tags` | `["ELECTRICAL_KC", ...]` | 케이스·응답 단위 규제 태그(20종 어휘) |
+| `schema_version` | `"0.1.3"` | 응답 스키마 버전 |
+
+상태와 기존 판정의 대응: `check_likely` → `APPLICABLE`(빠진 스펙이 있으면 `POTENTIALLY_APPLICABLE`), `info_needed` → `REVIEW_REQUIRED`, `low_risk` → `NOT_APPLICABLE`, 쟁점 0건 → `UNKNOWN`. 상태·누락 정보는 판정 툴(assess 계열) 응답에 실리고, 나머지 툴은 공통 지리 필드만 갖는다. 실제 판정은 인증·통관 확정이 아니므로 `verdict.determinative` 는 항상 `false` 다.
+
+```json
+{
+  "schema_version": "0.1.3", "destination": "KR", "jurisdiction": "KR",
+  "origin": "CN", "origin_source": "query",
+  "verdict": {"code": "check_likely", "label_ko": "확인 대상 가능성 높음", "determinative": false},
+  "assessment_status": "POTENTIALLY_APPLICABLE",
+  "assessment_status_label_ko": "적용 가능성 있음",
+  "missing_information": ["rated_power", "ac_plug"],
+  "regulation_tags": ["ELECTRICAL_KC"]
+}
+```
+
+## 대표 100개 품목 테스트셋
+
+`src/testset_100.json` — 8개 분야 100건. 각 케이스는 `domain`(분야) · `expected_verdict`(기대 판정) · `required_findings`(필수 규제 태그)를 가지며, 필수 태그가 응답에서 빠지면 **중대 규제 누락(FN)**으로 센다.
+
+| 분야 | 케이스 | 예 |
+|---|---|---|
+| 전기·전자 KC | 16 | USB-C 65W 충전기, 노트북 어댑터, 에어프라이어 8516.60 |
+| 무선기기·전파법 | 12 | 블루투스 스피커, 와이파이 공유기, 적외선 리모컨(저위험) |
+| 배터리 | 12 | 보조배터리, 전동공구 배터리 팩, 드론 배터리 |
+| 어린이제품 | 12 | PPSU 젖병, 유모차, 카시트, 무선 RC 완구 |
+| 식품·건강기능식품 | 16 | 구매대행 과자, 건강기능식품 광고, 식품용 도마 |
+| 화장품 | 10 | 수딩크림, 선크림(기능성), 향수 |
+| 생활화학제품·차량용 방향제 | 10 | 주방 세정제, 차량용·겔 방향제, 디퓨저 |
+| 의료기기·위생용품 | 12 | 전자혈압계·체온계·생리대 HS 요건, 소액 직구 |
+
+검증 결과: 분야별 판정 정확도 **100%(100/100)**, 중대 규제 누락 **0건**, `NOT_APPLICABLE` 오판 0건(2026-11-18, 네트워크 없이). 의료기기·위생용품 전용 규제 카드는 아직 없어 이 분야는 세관장확인·목록통관 축에서만 검증하며, 그 한계는 응답의 `scope_limits_ko` 에도 표시한다.
+
+```bash
+cd src
+python3 -m import_compliance.cli --check-testset     # 분야별 정확도·FN
+python3 tests/test_testset_100.py                    # 구조·정확도·FN 18건
+python3 tools/build_testset_100.py                   # 테스트셋 재생성
+```
+
 | 경로 | 내용 |
 |---|---|
 | `GET /` | 사람용 웹 UI(CLNS Check · CLNS Intelligence · CLNS API & MCP) |
@@ -162,6 +221,7 @@ MCP 클라이언트 설정 예시(`claude_desktop_config.json` 등):
 | `POST /v1/tools/{tool}` | REST JSON 8종 |
 | `GET /robots.txt`·`/llms.txt`·`/sitemap.xml` | 검색·AI 크롤러용 공개 파일(`sitemap.xml` 은 `/` + `/p/` + 전 품목 URL 동적 생성) |
 | `GET /static/og.png` | 공유 미리보기 이미지(1200×630) |
+| `GET /<확인파일>.html` | 검색엔진 소유확인 파일(`SITE_VERIFICATION_FILES` 로만 열린다. 없으면 404) |
 | `OPTIONS *` | CORS preflight 204. 모든 응답에 `Access-Control-Allow-Origin: *` |
 
 브라우저로 `http://localhost:8787/` 을 열면 사람용 화면(CLNS Check · CLNS Intelligence · CLNS API & MCP)이 나온다.
@@ -175,6 +235,9 @@ MCP 클라이언트 설정 예시(`claude_desktop_config.json` 등):
 | `IMPORT_COMPLIANCE_DB` | `data/app.sqlite` | 작업 SQLite(판정 이력·쿼터·캐시). 없으면 기동 시 생성 |
 | `IMPORT_COMPLIANCE_LIVE` | `0` | `1`이면 `.env` 또는 환경변수의 키로 실API 조회 |
 | `PUBLIC_BASE_URL` | `https://clns-kr.onrender.com` | robots·llms·sitemap·pSEO canonical 의 공개 주소 |
+| `GOOGLE_SITE_VERIFICATION` | – | 구글 서치콘솔 소유확인 토큰 → `<meta name="google-site-verification">` |
+| `NAVER_SITE_VERIFICATION` | – | 네이버 서치어드바이저 소유확인 토큰 → `<meta name="naver-site-verification">` |
+| `SITE_VERIFICATION_FILES` | – | 소유확인 HTML 파일(JSON). 예: `{"google1a2b.html":"google-site-verification: google1a2b.html"}` — 루트 경로로 서빙 |
 | `DATA_GO_KR_SERVICE_KEY` | – | 공공데이터포털 인증키(Decoding) |
 | `LAW_GO_KR_OC` | – | 법제처 OC 값 |
 
@@ -218,10 +281,13 @@ python3 tests/test_recall_index.py # 12 tests (리콜 CSV 파싱·적재·검색
 python3 tests/test_web.py         # 30 tests (브랜드·웹 UI·별칭·환경변수·모듈 엔트리포인트·키 비노출·UI 계약·레거시 브랜드 잔재)
 python3 tests/test_patches_p0_p1.py # 41 tests (MCP JSON-RPC·CORS·크롤러 파일·HS 10자리 판정·식약처 캐시·head 메타·모바일 탭)
 python3 tests/test_pseo_stats.py  # 25 tests (pSEO 35개 페이지·동적 sitemap·익명 카운터·stdio MCP·MIT·CI·시크릿 미포함)
+python3 tests/test_site_verification.py # 11 tests (검색엔진 소유확인 파일 서빙)
+python3 tests/test_testset_100.py # 18 tests (100건 구조·분야별 정확도·중대 규제 누락 FN·결정성)
+python3 tests/test_schema_013.py  # 31 tests (표준 상태 5단계·누락 정보·지리 필드·규제 태그·하위 호환·익명성)
 ```
 
-합계 162건. 네트워크 없이 전부 통과한다(실호출은 `tools/verify_live_apis.py`로 따로 검증).
-CI 에서는 같은 스위트를 `python3 -m unittest discover -s tests` 로 한 번에 돌린다.
+합계 **222건**. 네트워크 없이 전부 통과한다(실호출은 `tools/verify_live_apis.py`로 따로 검증).
+CI 에서는 같은 스위트를 `python3 -m unittest discover -s tests` 로 한 번에 돌리고, 그 앞에 `--check-corpus`·`--check-testset` 자기검증을 둔다.
 
 ## 익명 통계 (`GET /v1/stats`)
 
@@ -258,9 +324,10 @@ MIT — `LICENSE` 참고. 저작권자는 익명 운영 주체 **CLNS-KR** 하�
 ```
 src/
   import_compliance/
-    engine.py     판정 파이프라인(3단계·신선도·가드)
+    engine.py     판정 파이프라인(3단계·표준 상태·신선도·가드·강한 신호 매칭)
     corpus.py     코퍼스 로드·정규화
-    models.py     데이터 모델
+    models.py     데이터 모델(strong_signals·exclude_signals 포함)
+    standards.py  표준 상태 5단계·규제 태그 20종·표준 스펙명·국가코드(ISO)
     policy.py     면책·금지 표현·티어 경계
     store.py      SQLite 캐시·쿼터·폴백·TTL 캐시·실API 게이트웨이·일별 카운터
     live_api.py   공공 API 4종 어댑터(파싱·정규화·재시도·키 리댁션)
@@ -274,7 +341,8 @@ src/
     web_ui.py     사람용 단일 HTML 화면(외부 CDN 0, 인라인 CSS/JS)
     server.py     stdlib HTTP 서버(웹 UI·pSEO·JSON API·MCP·CORS·배포용 환경변수)
     cli.py        CLI·코퍼스 자기검증·`--serve`
-  traps_20.json   함정 20케이스(근거 54건)
+  traps_20.json   함정 20케이스(근거 54건, corpus 1.0.4)
+  testset_100.json 대표 100품목 테스트셋(8분야·필수 규제 태그)
   pseo_items.json 품목 35개 카탈로그 + 관세청 실조회 요건 표(2026-11-18)
   schema.sql      Postgres 이관용 DDL
   tests/
@@ -282,10 +350,11 @@ src/
   tools/run_live_scenarios.py 대표 3품목 라이브 실전 테스트 러너
   tools/refresh_pseo_hs.py    pSEO 카탈로그의 HS 요건 표만 실API로 재적재
   tools/build_corpus_doc.py   문서 자동 생성
+  tools/build_testset_100.py  대표 100개 테스트셋 생성·구조 검증
   tools/make_og_image.py      공유 미리보기 PNG 생성(Pillow, 생성 시점에만)
 static/og.png     1200×630 공유 미리보기(og:image)
 LICENSE           MIT (Copyright (c) 2026 CLNS-KR)
-.github/workflows/test.yml  CI(3.11·3.12, --check-corpus + 전체 테스트 + stdio 스모크)
+.github/workflows/test.yml  CI(3.11·3.12, --check-corpus + --check-testset + 전체 테스트 + stdio 스모크)
 Dockerfile        무료 클라우드 배포 이미지(python:3.12-slim)
 render.yaml       Render Blueprint(free Web Service, 키는 sync:false)
 .dockerignore     .env·캐시·테스트 제외(키가 이미지에 구워지지 않게)

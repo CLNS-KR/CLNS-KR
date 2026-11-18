@@ -10,11 +10,13 @@
 """
 from __future__ import annotations
 
+from . import site_verification
+
 SERVICE_NAME = "CLNS"
 SERVICE_SUBTITLE_EN = "PRODUCT COMPLIANCE INTELLIGENCE · KOREA"
 SERVICE_SUBTITLE_KO = "복잡한 한국 수입 규제를 10초 만에 확인"
 SERVICE_TAGLINE = "Clearance, simplified."
-SERVICE_VERSION = "0.1.2"
+SERVICE_VERSION = "0.1.3"
 
 PAGE_HTML = """<!doctype html>
 <html lang="ko">
@@ -165,6 +167,9 @@ button.ghost{font:inherit; font-size:13.5px; font-weight:600; color:var(--ink-so
 .verdict .lab{font-size:19px; font-weight:800; letter-spacing:-.3px; margin:2px 0 2px; color:var(--ink)}
 .verdict .en{font-size:12px; font-weight:600; color:var(--ink-soft); margin-left:6px}
 .verdict p{margin:6px 0 0; font-size:12.5px; color:var(--ink-soft)}
+.statusrow{margin-top:9px; display:flex; flex-wrap:wrap; gap:6px; align-items:center; font-size:12.5px; color:var(--ink-soft)}
+.statusrow code{font-size:11.5px; font-weight:700; background:var(--info-soft); color:var(--info); padding:2px 6px; border-radius:6px}
+.missrow{margin-top:6px; display:flex; flex-wrap:wrap; gap:6px; align-items:center; font-size:12px; color:var(--ink-soft)}
 .v-check_likely{background:var(--warn-soft); border-color:var(--warn)}
 .v-check_likely .lab{color:var(--warn)}
 .v-info_needed{background:var(--info-soft); border-color:var(--info)}
@@ -474,12 +479,28 @@ footer strong{color:var(--ink)}
   }
 
   // ---------- 조각 렌더 ----------
-  function verdictBlock(v){
+  function verdictBlock(v, result){
     if (!v) return "";
+    var extra = "";
+    result = result || {};
+    var geo = [];
+    if (result.destination) geo.push("목적지 " + result.destination);
+    if (result.jurisdiction) geo.push("법령 " + result.jurisdiction);
+    if (result.origin) geo.push("원산지 " + result.origin);
+    if (result.assessment_status){
+      extra += '<div class="statusrow"><span class="tag">표준 상태</span>' +
+        esc(result.assessment_status_label_ko || result.assessment_status) +
+        ' <code>' + esc(result.assessment_status) + '</code>' +
+        (geo.length ? '<span class="note-inline">' + esc(geo.join(" · ")) + '</span>' : '') + '</div>';
+    }
+    if ((result.missing_information || []).length){
+      extra += '<div class="missrow"><span class="tag info">빠진 정보</span>' +
+        result.missing_information.map(function(m){ return '<code>' + esc(m) + '</code>'; }).join(" ") + '</div>';
+    }
     return '<div class="verdict v-' + esc(v.code) + '">' +
       '<div class="code">종합 판정</div>' +
       '<div class="lab">' + esc(v.label_ko) + '<span class="en">' + esc(v.label_en) + '</span></div>' +
-      '<p>' + esc(v.note_ko) + '</p></div>';
+      '<p>' + esc(v.note_ko) + '</p>' + extra + '</div>';
   }
   function section(title, inner, sub){
     return '<div class="card"><h2>' + esc(title) + '</h2>' +
@@ -714,7 +735,7 @@ footer strong{color:var(--ink)}
       html += '<div class="card">' +
         '<h2>판정 결과</h2>' +
         '<p class="sub">입력한 품목: ' + esc(data.product) + '</p>' +
-        verdictBlock(result.verdict) +
+        verdictBlock(result.verdict, result) +
         provenanceLine(result) +
         '<h3>판정 요지</h3>' + guidanceBlock(result) +
         '<h3>확인 필요 체크리스트</h3>' + checklist(result) +
@@ -789,7 +810,7 @@ footer strong{color:var(--ink)}
       .then(function(result){
         var html = '<div class="card"><h2>HS ' + esc(code) + '</h2>' +
           '<p class="sub">' + esc((result.hs_lookup && result.hs_lookup.note_ko) || "") + '</p>' +
-          verdictBlock(result.verdict) + provenanceLine(result) +
+          verdictBlock(result.verdict, result) + provenanceLine(result) +
           '<h3>세관장확인 요건</h3>' + customsBlock(result.hs_requirements_live, 10) +
           '</div>';
         html += section("쟁점", findingsTable(result.findings));
@@ -863,4 +884,7 @@ def render_page(service_name: str = SERVICE_NAME, version: str = SERVICE_VERSION
     page = PAGE_HTML.replace("__VERSION__", version)
     if service_name != SERVICE_NAME:
         page = page.replace(SERVICE_NAME, service_name)
+    verification = site_verification.meta_tags()
+    if verification:
+        page = page.replace("</head>", verification + "</head>", 1)
     return page

@@ -2,7 +2,7 @@
 title: "02. 일반 AI가 틀리는 한국 수입·유통 함정 20선"
 project: 수입·유통 컴플라이언스 검증 엔진
 checked_on: 2026-11-18
-corpus_version: 1.0.3
+corpus_version: 1.0.4
 ---
 
 # 02. 일반 AI가 틀리는 한국 수입·유통 함정 20선

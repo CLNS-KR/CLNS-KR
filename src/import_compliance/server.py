@@ -37,7 +37,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any, Dict, Optional
 from urllib.parse import urlparse
 
-from . import mcp_http, pseo, static_files, usage
+from . import mcp_http, pseo, site_verification, static_files, usage
 from .api import call_tool, mcp_manifest
 from .live_api import from_environment, register_sources
 from .store import Store
@@ -221,6 +221,8 @@ def make_handler(store: Store, live=None):
                 self._head(200, "text/html; charset=utf-8")
             elif path == "/v1/stats":
                 self._head(200, "application/json; charset=utf-8")
+            elif site_verification.file_body(path) is not None:
+                self._head(200, "text/html; charset=utf-8")
             else:
                 self._head(404, "application/json; charset=utf-8")
 
@@ -280,6 +282,10 @@ def make_handler(store: Store, live=None):
                     days = urlparse(self.path).query
                     self._send_json(200, usage.stats_payload(store, _days_param(days)),
                                     cache="public, max-age=300")
+                elif site_verification.file_body(path) is not None:
+                    # 검색엔진 소유확인용 HTML 파일(환경변수 SITE_VERIFICATION_FILES 로만 열린다).
+                    self._send_text(200, site_verification.file_body(path) or "",
+                                    "text/html; charset=utf-8")
                 elif path.rstrip("/") == "/mcp":
                     # 스트리밍(SSE) GET 은 제공하지 않는다. MCP 스펙이 허용하는 405 로 알린다.
                     self.send_response(405)

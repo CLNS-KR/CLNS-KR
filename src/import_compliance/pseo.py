@@ -24,7 +24,7 @@ from functools import lru_cache
 from html import escape
 from typing import Any, Dict, List, Optional
 
-from . import static_files
+from . import site_verification, static_files
 from .corpus import load_corpus
 from .models import Trap
 
@@ -261,7 +261,7 @@ def _head(title: str, description: str, canonical: str, base: str,
 <meta name="color-scheme" content="light dark">
 <title>{_esc(title)}</title>
 <meta name="description" content="{_esc(description)}">
-{robots}<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%231a4fd6'/%3E%3Ctext x='16' y='23' font-size='19' font-weight='700' fill='white' text-anchor='middle' font-family='sans-serif'%3EC%3C/text%3E%3C/svg%3E">
+{robots}{site_verification.meta_tags()}<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%231a4fd6'/%3E%3Ctext x='16' y='23' font-size='19' font-weight='700' fill='white' text-anchor='middle' font-family='sans-serif'%3EC%3C/text%3E%3C/svg%3E">
 <link rel="canonical" href="{_esc(canonical)}">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="CLNS">

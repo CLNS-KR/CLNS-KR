@@ -7,6 +7,7 @@ import sys
 
 from .api import call_tool, mcp_manifest
 from .corpus import load_corpus
+from .standards import CASE_REGULATION_TAGS, REGULATION_TAGS
 from .engine import assess
 from .live_api import from_environment, register_sources
 from .policy import find_conclusive_phrasing
@@ -42,12 +43,79 @@ def run_corpus_checks() -> int:
     return 0
 
 
+def run_testset_checks() -> int:
+    """대표 100개 테스트셋 자기검증: 구조 + 분야별 정확도 + 중대 규제 누락(FN).
+
+    CI 에서 엔진 회귀를 한 줄로 확인하기 위한 경로다(엔진 전체를 실제로 돌린다).
+    """
+    import os
+
+    path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                        "testset_100.json")
+    problems = []
+    try:
+        with open(path, encoding="utf-8") as handle:
+            testset = json.load(handle)
+    except (FileNotFoundError, OSError, ValueError) as exc:
+        print(f"FAILED testset not readable: {exc}")
+        return 1
+    cases = testset.get("cases") or []
+    if len(cases) != 100:
+        problems.append(f"case count is {len(cases)}, expected 100")
+    corpus_ids = {trap.id for trap in load_corpus().traps}
+    per_domain = {}
+    total_fn = 0
+    mismatched = 0
+    store = Store(":memory:")
+    try:
+        for case in cases:
+            domain = case.get("domain", "?")
+            bucket = per_domain.setdefault(domain, {"cases": 0, "verdict_ok": 0, "fn": 0})
+            bucket["cases"] += 1
+            if not case.get("required_findings"):
+                problems.append(f"{case.get('case_id')}: no required_findings")
+            if case.get("primary_case_id") not in corpus_ids:
+                problems.append(f"{case.get('case_id')}: unknown primary_case_id")
+            for tag in case.get("required_findings") or []:
+                if tag not in REGULATION_TAGS:
+                    problems.append(f"{case.get('case_id')}: unknown tag {tag}")
+            result = assess(case["query"], case.get("facts") or {}, store=store, limit=3)
+            tags = set()
+            for finding in result["findings"]:
+                tags.update(finding.get("regulation_tags") or [])
+            if result["verdict"]["code"] == case.get("expected_verdict"):
+                bucket["verdict_ok"] += 1
+            else:
+                mismatched += 1
+            missing = set(case.get("required_findings") or []) - tags
+            if missing:
+                bucket["fn"] += 1
+                total_fn += 1
+                problems.append(f"{case.get('case_id')}: missing findings {sorted(missing)}")
+    finally:
+        store.close()
+    for domain, bucket in sorted(per_domain.items()):
+        accuracy = bucket["verdict_ok"] / bucket["cases"] if bucket["cases"] else 0
+        print(f"  {domain}: {bucket['verdict_ok']}/{bucket['cases']} "
+              f"({accuracy:.0%}), FN={bucket['fn']}")
+    if problems:
+        print("FAILED")
+        for problem in problems:
+            print(" -", problem)
+        return 1
+    print(f"OK testset_version={testset.get('testset_version')} cases={len(cases)} "
+          f"false_negatives={total_fn} verdict_mismatch={mismatched}")
+    return 0
+
+
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description="import-compliance engine")
     parser.add_argument("query", nargs="*", help="자연어 질의")
     parser.add_argument("--trap", help="함정 케이스 해설 (예: TRAP-06)")
     parser.add_argument("--mcp", action="store_true", help="MCP 툴 매니페스트 출력")
     parser.add_argument("--check-corpus", action="store_true", help="코퍼스 무결성 점검")
+    parser.add_argument("--check-testset", action="store_true",
+                        help="대표 100개 테스트셋 점검(분야별 정확도·규제 누락 FN)")
     parser.add_argument("--full", action="store_true", help="전체 JSON 출력")
     parser.add_argument("--live", action="store_true",
                         help="실API 호출 모드(.env 키 사용). 없으면 코퍼스·캐시만")
@@ -65,6 +133,8 @@ def main(argv=None) -> int:
 
     if args.check_corpus:
         return run_corpus_checks()
+    if args.check_testset:
+        return run_testset_checks()
     if args.mcp:
         print(json.dumps(mcp_manifest(), ensure_ascii=False, indent=2))
         return 0
