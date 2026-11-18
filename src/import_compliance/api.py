@@ -1,12 +1,17 @@
 """API / MCP 툴 8종."""
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Callable, Dict, List, Optional
 
-from .corpus import load_corpus
+from .corpus import load_corpus, normalize
 from .engine import assess
+from .models import VERDICT_LABEL_EN, VERDICT_LABEL_KO, VERDICT_SEVERITY
 from .policy import PAID_TIER_NOTICE_KO, SCOPE_LIMITS_KO, TIER_BOUNDARIES
 from .store import FREE_MONTHLY_CALLS, QuotaExceeded, SourceGateway, Store, iso, now_kst
+
+# 공공데이터 스냅샷 TTL(문서 03 설계값: 7일). 이 시간 안의 캐시는 'cached_fallback'으로 정직하게 표시한다.
+CACHE_TTL_HOURS = 24 * 7
 
 
 def _envelope(tool: str, payload: Dict[str, Any]) -> Dict[str, Any]:
@@ -24,6 +29,73 @@ LIVE_NOTES = {
     ),
     "passthrough_ko": "원본 응답은 내부 캐시에만 보관하며 그대로 재전송하지 않습니다.",
 }
+
+
+def _cache_key(*parts: Any) -> str:
+    """캐시 조회 키(정규화·길이 제한). 원본 입력은 남기지 않는다."""
+    return normalize("|".join("" if part is None else str(part) for part in parts))[:120]
+
+
+def _cached_block(store: Any, source_id: str, key: str,
+                  ttl_hours: float = CACHE_TTL_HOURS) -> Optional[Dict[str, Any]]:
+    """TTL 안의 스냅샷을 블록으로 되살린다. 캐시 히트는 state로 숨기지 않고 표시한다."""
+    if store is None:
+        return None
+    hit = store.get_cached_snapshot(source_id, key, ttl_hours)
+    if hit is None:
+        return None
+    payload, age_hours = hit
+    block = dict(payload)
+    block["state"] = "cached_fallback"
+    block["fresh"] = age_hours <= ttl_hours
+    block["age_hours"] = round(age_hours, 2)
+    block["cache_ttl_hours"] = ttl_hours
+    block["cache_note_ko"] = (
+        f"{ttl_hours / 24:.0f}일 TTL 캐시에서 응답했습니다(원 조회 후 {age_hours:.1f}시간 경과). "
+        "소스별 갱신 주기가 다르므로 최신 값은 소관 기관 원문에서 확인해야 합니다."
+    )
+    return block
+
+
+def _store_block(store: Any, source_id: str, key: str, block: Dict[str, Any]) -> None:
+    if store is None:
+        return
+    store.put_snapshot(source_id, key, block)
+
+
+def _mark_live_provenance(result: Dict[str, Any], source_id: str, *, state: str = "live",
+                          fetched_at: str = "", fresh: bool = True,
+                          age_hours: Optional[float] = None, **extra: Any) -> None:
+    """data_provenance.sources 의 해당 소스 상태를 실호출 결과로 덮어쓴다.
+
+    `engine.assess()` 는 게이트웨이가 아는 소스(세관장확인)만 상태를 만들 수 있어서,
+    assess 이후에 따로 실호출하는 식약처·법령 경로는 '연결 실패'로 남는 모순이 있었다.
+    """
+    provenance = result.get("data_provenance")
+    if not isinstance(provenance, dict):
+        return
+    entry: Dict[str, Any] = {"source_id": source_id, "state": state, "fresh": fresh}
+    if fetched_at:
+        entry["fetched_at"] = fetched_at
+    if age_hours is not None:
+        entry["age_hours"] = age_hours
+    entry.update({key: value for key, value in extra.items() if value is not None})
+    sources = [src for src in (provenance.get("sources") or [])
+               if src.get("source_id") != source_id and src.get("state") != "corpus_only"]
+    sources.append(entry)
+    provenance["sources"] = sources
+
+
+def _raise_verdict(result: Dict[str, Any], code: str) -> None:
+    """판정을 낮추지 않고 최소 등급만 올린다(세관장확인 요건이 조회된 경우)."""
+    verdict = result.get("verdict")
+    if not isinstance(verdict, dict) or code not in VERDICT_SEVERITY:
+        return
+    current = str(verdict.get("code") or "")
+    if VERDICT_SEVERITY[code] > VERDICT_SEVERITY.get(current, 0):
+        verdict["code"] = code
+        verdict["label_ko"] = VERDICT_LABEL_KO[code]
+        verdict["label_en"] = VERDICT_LABEL_EN[code]
 
 
 def _live_error(exc: Exception) -> Dict[str, Any]:
@@ -62,72 +134,100 @@ def _customs_live(live: Any, hs_code: str, direction: str, limit: int = 10) -> O
     }
 
 
-def _mfds_live(live: Any, product_name: str, *, rows: int = 3) -> Optional[Dict[str, Any]]:
-    if live is None or not getattr(live, "has_customs", False) or not product_name:
+def _mfds_live(live: Any, product_name: str, *, store: Any = None,
+               rows: int = 3) -> Optional[Dict[str, Any]]:
+    """식약처 3개 오퍼레이션(제품DB·수입신고·부적합)을 병렬 호출하고 7일 TTL 캐시를 쓴다.
+
+    - 순차 호출 시 9~13초 → 병렬화로 3~4초(실측 근거: 05 문서 1-5절).
+    - 같은 품목 재호출은 스냅샷 캐시로 즉시 응답하되 state='cached_fallback'으로 표시한다.
+    - 게이트는 `has_mfds`(data.go.kr 키 존재)다. 세관장확인 키와 같은 키를 쓰지만 의미를 분리한다.
+    """
+    if live is None or not getattr(live, "has_mfds", False) or not product_name:
         return None
     from .live_api import (
-        LiveApiError,
+        SOURCE_MFDS_PERMIT,
         normalize_mfds_improper_item,
         normalize_mfds_permit_item,
         normalize_mfds_product_item,
     )
 
+    key = _cache_key("mfds", product_name, rows)
+    cached = _cached_block(store, SOURCE_MFDS_PERMIT, key)
+    if cached is not None:
+        return cached
+
     block: Dict[str, Any] = {
         "state": "live",
+        "fresh": True,
+        "age_hours": 0.0,
         "product_name": product_name,
         "source": "식품의약품안전처 수입식품 계열(data.go.kr 15058273·15073949, 이용허락범위 제한 없음)",
         "note_ko": LIVE_NOTES["usage_ko"],
         "zero_note_ko": LIVE_NOTES["zero_ko"],
         "passthrough_ko": LIVE_NOTES["passthrough_ko"],
+        "cache_ttl_hours": CACHE_TTL_HOURS,
     }
-    failures = 0
 
-    try:
+    def _product_db() -> Dict[str, Any]:
         fetch = live.mfds_product_db(product_name=product_name, rows=rows)
-        block["product_db"] = {
+        return {
             "checked_at": fetch.fetched_at,
             "match_count": fetch.total_count if fetch.total_count is not None else len(fetch.items),
             "samples": [normalize_mfds_product_item(item) for item in fetch.items[:rows]],
         }
-    except Exception as exc:  # noqa: BLE001 - 소스별 실패를 따로 표기
-        block["product_db"] = _live_error(exc)
-        failures += 1
 
-    try:
+    def _permit_history() -> Dict[str, Any]:
         fetch = live.mfds_import_permit(product_name=product_name, rows=rows)
-        block["import_permit_history"] = {
+        return {
             "checked_at": fetch.fetched_at,
             "match_count": fetch.total_count if fetch.total_count is not None else len(fetch.items),
             "samples": [normalize_mfds_permit_item(item) for item in fetch.items[:rows]],
         }
-    except Exception as exc:  # noqa: BLE001
-        block["import_permit_history"] = _live_error(exc)
-        failures += 1
 
-    try:
+    def _improper_history() -> Dict[str, Any]:
         fetch = live.mfds_improper(product_name=product_name, rows=rows)
-        block["improper_history"] = {
+        return {
             "checked_at": fetch.fetched_at,
             "match_count": fetch.total_count if fetch.total_count is not None else len(fetch.items),
             "samples": [normalize_mfds_improper_item(item) for item in fetch.items[:rows]],
             "note_ko": "수입식품 검사부적합 검색(15058273 오퍼레이션 2). 0건은 부적합 이력 없음이 아니라 입력 표기·검색 범위 차이일 수 있습니다.",
         }
-    except Exception as exc:  # noqa: BLE001
-        block["improper_history"] = _live_error(exc)
-        failures += 1
+
+    jobs = (
+        ("product_db", _product_db),
+        ("import_permit_history", _permit_history),
+        ("improper_history", _improper_history),
+    )
+    failures = 0
+    with ThreadPoolExecutor(max_workers=len(jobs), thread_name_prefix="mfds") as pool:
+        futures = [(name, pool.submit(func)) for name, func in jobs]
+        for name, future in futures:
+            try:
+                block[name] = future.result()
+            except Exception as exc:  # noqa: BLE001 - 소스별 실패를 따로 표기
+                block[name] = _live_error(exc)
+                failures += 1
 
     if failures == 3:
         block["state"] = "error"
     elif failures:
         block["state"] = "partial"
+    else:
+        # 실패가 섞인 응답은 캐시하지 않는다(다음 호출에서 다시 시도할 수 있게).
+        _store_block(store, SOURCE_MFDS_PERMIT, key, block)
     return block
 
 
 def _law_live(live: Any, law_names: List[str], limit: int = 3,
-              article: str = "") -> Optional[Dict[str, Any]]:
+              article: str = "", store: Any = None) -> Optional[Dict[str, Any]]:
     if live is None or not getattr(live, "has_law", False) or not law_names:
         return None
-    from .live_api import LiveApiError, normalize_law_article, normalize_law_item
+    from .live_api import SOURCE_LAW, LiveApiError, normalize_law_article, normalize_law_item
+
+    key = _cache_key("law", ",".join(law_names[:limit]), article)
+    cached = _cached_block(store, SOURCE_LAW, key)
+    if cached is not None:
+        return cached
 
     out: List[Dict[str, Any]] = []
     errors: List[Dict[str, Any]] = []
@@ -187,7 +287,49 @@ def _law_live(live: Any, law_names: List[str], limit: int = 3,
     }
     if article_block is not None:
         result["article_text"] = article_block
+    if result["state"] == "live":
+        _store_block(store, SOURCE_LAW, key, result)
     return result
+
+
+def _apply_customs_requirements(result: Dict[str, Any], block: Dict[str, Any]) -> None:
+    """HS 10자리 세관장확인 실조회 결과를 종합 판정·안내·provenance 에 반영한다.
+
+    고친 버그: assess 는 요건 목록을 응답에 담지 않고 판정도 올리지 않아, 같은 HS로
+    lookup_hs_requirements 를 부르면 'check_likely' 인데 assess 는 'low_risk' 였다.
+    """
+    answer = result.setdefault("answer", {})
+    guidance = answer.setdefault("guidance", [])
+    state = str(block.get("state") or "")
+    count = int(block.get("requirement_count") or 0)
+    hs_code = block.get("hs_code") or ""
+
+    if state == "live":
+        _mark_live_provenance(result, "customs_requirements", state="live",
+                              fetched_at=str(block.get("checked_at") or ""), fresh=True,
+                              item_count=count)
+        if count > 0:
+            laws = _unique([str(row.get("requirement_law") or "")
+                            for row in (block.get("requirements") or [])])
+            law_hint = f" (주요 요건 법령: {', '.join(laws[:3])})" if laws else ""
+            guidance.append(
+                f"관세청 세관장확인대상물품 API에서 HS {hs_code}에 대한 요건 {count}건이 조회되었습니다{law_hint}. "
+                "요건별 확인 기관·서류는 조회 결과를 참고하되 소관 기관 확인이 필요합니다."
+            )
+            _raise_verdict(result, "check_likely")
+        else:
+            guidance.append(
+                f"관세청 API에서 HS {hs_code}로 조회된 세관장확인 요건이 0건입니다. "
+                "0건은 '요건 없음'이 아니라 '조회되지 않음'이므로 HS 10자리·수입/수출 구분을 다시 확인해야 합니다."
+            )
+        return
+
+    _mark_live_provenance(result, "customs_requirements", state="error", fresh=False,
+                          code=block.get("code"))
+    guidance.append(
+        "관세청 실시간 조회에 실패해 세관장확인 요건 목록을 제시하지 못했습니다"
+        f"(코드 {block.get('code') or 'n/a'}). 판정은 코퍼스·법령 근거만으로 이루어졌습니다."
+    )
 
 
 def tool_assess_import_case(args: Dict[str, Any], store: Store, client_id: str, tier: str,
@@ -198,6 +340,17 @@ def tool_assess_import_case(args: Dict[str, Any], store: Store, client_id: str, 
         raise ValueError("facts_must_be_object")
     result = assess(query, facts, store=store, client_id=client_id, tier=tier,
                     limit=int(args.get("limit", 3)), live=live)
+    # 질의문에서 추론한 HS까지 포함해 10자리면 세관장확인을 실조회해 판정에 반영한다.
+    resolved = (result.get("query") or {}).get("facts_resolved") or {}
+    hs_code = str(resolved.get("hs_code") or "").strip()
+    if len(hs_code) == 10 and hs_code.isdigit():
+        block = _customs_live(live, hs_code, str(resolved.get("direction") or "import"))
+        if block is not None:
+            result["hs_requirements_live"] = block
+            _apply_customs_requirements(result, block)
+            if store is not None:  # 판정을 올렸으면 저장된 사본도 같은 결론으로 맞춘다
+                store.update_assessment(str(result.get("assessment_id") or ""),
+                                        str(result["verdict"]["code"]), result)
     return _envelope("assess_import_case", result)
 
 
@@ -224,6 +377,11 @@ def tool_lookup_hs_requirements(args: Dict[str, Any], store: Store, client_id: s
     live_block = _customs_live(live, hs_code, direction) if len(hs_code) == 10 else None
     if live_block is not None:
         result["hs_requirements_live"] = live_block
+        _mark_live_provenance(result, "customs_requirements",
+                              state=str(live_block.get("state") or "error"),
+                              fetched_at=str(live_block.get("checked_at") or ""),
+                              fresh=bool(live_block.get("fresh", False)),
+                              item_count=live_block.get("requirement_count"))
         if live_block["state"] == "live":
             if live_block["requirement_count"] > 0:
                 result["verdict"]["code"] = "check_likely"
@@ -288,13 +446,27 @@ def tool_check_food_cosmetics(args: Dict[str, Any], store: Store, client_id: str
     }.get(kind, "식품")
     query = f"{product} {kind_kr} 수입 판매 표시 한글표시"
     result = assess(query, facts, store=store, client_id=client_id, tier=tier, limit=3, live=live)
-    live_block = _mfds_live(live, product)
+    live_block = _mfds_live(live, product, store=store)
     if live_block is not None:
         result["food_import_live"] = live_block
-        if live_block["state"] in ("live", "partial"):
+        state = str(live_block.get("state") or "")
+        lookup = live_block.get("import_permit_history") or {}
+        item_count = lookup.get("match_count") if isinstance(lookup, dict) else None
+        # 한 응답이 "live"와 "실시간 소스 연결 실패"를 동시에 말하던 모순을 없앤다.
+        _mark_live_provenance(result, "mfds_import_food", state=state,
+                              fetched_at=str((live_block.get("product_db") or {}).get("checked_at") or ""),
+                              fresh=bool(live_block.get("fresh", state == "live")),
+                              age_hours=live_block.get("age_hours"),
+                              item_count=item_count)
+        if state in ("live", "partial"):
             result["answer"]["guidance"].append(
                 "식약처 수입식품 API에서 제품DB·수입신고 이력을 조회했습니다. "
                 "조회 건수는 신고 이력의 규모를 보여줄 뿐, 이 제품의 요건 적용을 확정하지 않습니다."
+            )
+        elif state == "cached_fallback":
+            result["answer"]["guidance"].append(
+                f"식약처 수입식품 조회는 7일 TTL 캐시에서 제공되었습니다(원 조회 후 {live_block.get('age_hours', 0)}시간 경과). "
+                "최신 값은 식약처 원문에서 확인해야 합니다."
             )
     return _envelope("check_food_cosmetics", result)
 
@@ -397,7 +569,7 @@ def tool_get_legal_basis(args: Dict[str, Any], store: Store, client_id: str, tie
         "checked_at": iso(now_kst()),
     }
     names = _unique([h["law"] for h in hits]) if law else []
-    live_block = _law_live(live, names or ([law] if law else []), article=article)
+    live_block = _law_live(live, names or ([law] if law else []), article=article, store=store)
     if live_block is not None:
         payload["law_live"] = live_block
     return _envelope("get_legal_basis", payload)
@@ -580,9 +752,29 @@ TOOL_INDEX: Dict[str, Dict[str, Any]] = {d["name"]: d for d in TOOL_DEFS}
 
 BILLABLE_TOOLS = {name for name in TOOL_INDEX if name != "get_service_meta"}
 
+# MCP tools/list·서버 카드가 쓰는 툴 정의(스키마는 TOOL_DEFS 한 곳만 고치면 된다).
+TOOL_ANNOTATIONS = {"readOnlyHint": True, "destructiveHint": False, "openWorldHint": True}
+
+
+def mcp_tools() -> List[Dict[str, Any]]:
+    """MCP `tools/list` 응답용 툴 정의(이름·제목·설명·inputSchema·annotations)."""
+    tools: List[Dict[str, Any]] = []
+    for definition in TOOL_DEFS:
+        entry: Dict[str, Any] = {
+            "name": definition["name"],
+            "description": definition["description_ko"],
+            "inputSchema": definition["input_schema"],
+            "annotations": dict(TOOL_ANNOTATIONS),
+        }
+        if definition.get("title_ko"):
+            entry["title"] = definition["title_ko"]
+            entry["annotations"]["title"] = definition["title_ko"]
+        tools.append(entry)
+    return tools
+
 
 def mcp_manifest() -> Dict[str, Any]:
-    """MCP 서버가 그대로 노출할 수 있는 툴 목록."""
+    """`GET /v1/mcp` — 사람이 읽는 툴 매니페스트(JSON-RPC 는 POST /mcp 가 담당)."""
     server_info = {
         "name": "clns",
         "version": "clns/0.1",

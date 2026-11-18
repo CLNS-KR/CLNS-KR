@@ -1,11 +1,22 @@
-"""표준 라이브러리만으로 동작하는 경량 HTTP 서버 (사람용 웹 UI + JSON API).
+"""표준 라이브러리만으로 동작하는 경량 HTTP 서버 (사람용 웹 UI + JSON API + MCP).
 
 배포 환경 대응
 --------------
 - `HOST` (기본 `0.0.0.0`), `PORT` (환경변수 우선, 기본 8787)
 - `IMPORT_COMPLIANCE_DB` (기본 `data/recalls.sqlite` — 리콜 로컬 인덱스가 들어 있는 SQLite)
 - `IMPORT_COMPLIANCE_LIVE=1` 이면 `.env`/환경변수의 공공 API 키로 실시간 조회 모드
+- `PUBLIC_BASE_URL` 로 robots/llms/sitemap 의 공개 주소를 바꿀 수 있다
 - `python -m import_compliance.server` 한 줄로 기동, `--host/--port/--db/--live` 로 덮어쓰기
+
+경로
+----
+- `GET /` 사람용 웹 UI · `GET /healthz`
+- `POST /mcp` · `POST /v1/mcp` MCP JSON-RPC 2.0 (initialize·tools/list·tools/call·ping)
+- `GET /.well-known/mcp/server-card.json` MCP 서버 카드
+- `GET /v1/mcp` 툴 매니페스트(사람이 읽는 JSON) · `GET /v1/meta`
+- `POST /v1/tools/{tool}` REST JSON
+- `GET /robots.txt` · `GET /llms.txt` · `GET /sitemap.xml` · `GET /static/og.png`
+- `OPTIONS *` CORS preflight(204) — 모든 응답에 `Access-Control-Allow-Origin: *`
 
 보안
 ----
@@ -24,6 +35,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any, Dict, Optional
 from urllib.parse import urlparse
 
+from . import mcp_http, static_files
 from .api import call_tool, mcp_manifest
 from .live_api import from_environment, register_sources
 from .store import Store
@@ -47,6 +59,20 @@ SECURITY_HEADERS = {
         "connect-src 'self'; img-src 'self' data:; base-uri 'none'; form-action 'self'"
     ),
 }
+
+# 브라우저 기반 MCP 클라이언트(Glama 플레이그라운드 등)가 바로 붙을 수 있게 모든 응답에 CORS 를 준다.
+# 인증이 없는 공개 읽기 API이므로 `*` 로 열어도 노출되는 비밀이 없다(키는 서버 쪽에만 있다).
+CORS_HEADERS = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET, POST, HEAD, OPTIONS",
+    "Access-Control-Allow-Headers": (
+        "Content-Type, Accept, X-Client-Id, X-Tier, MCP-Protocol-Version, Last-Event-ID"
+    ),
+    "Access-Control-Expose-Headers": "Content-Type",
+    "Access-Control-Max-Age": "86400",
+}
+
+MCP_PATHS = ("/mcp", "/v1/mcp")
 
 
 def project_root() -> str:
@@ -98,16 +124,45 @@ def make_handler(store: Store, live=None):
         def _common_headers(self) -> None:
             for key, value in SECURITY_HEADERS.items():
                 self.send_header(key, value)
+            for key, value in CORS_HEADERS.items():
+                self.send_header(key, value)
 
-        def _send_json(self, status: int, payload: Dict[str, Any]) -> None:
+        def _send_json(self, status: int, payload: Any, cache: str = "no-store") -> None:
             body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
             self.send_response(status)
             self.send_header("Content-Type", "application/json; charset=utf-8")
             self.send_header("Content-Length", str(len(body)))
-            self.send_header("Cache-Control", "no-store")
+            self.send_header("Cache-Control", cache)
             self._common_headers()
             self.end_headers()
             self.wfile.write(body)
+
+        def _send_text(self, status: int, text: str, content_type: str,
+                       cache: str = "public, max-age=3600") -> None:
+            body = text.encode("utf-8")
+            self.send_response(status)
+            self.send_header("Content-Type", content_type)
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Cache-Control", cache)
+            self._common_headers()
+            self.end_headers()
+            self.wfile.write(body)
+
+        def _send_bytes(self, status: int, body: bytes, content_type: str,
+                        cache: str = "public, max-age=86400") -> None:
+            self.send_response(status)
+            self.send_header("Content-Type", content_type)
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Cache-Control", cache)
+            self._common_headers()
+            self.end_headers()
+            self.wfile.write(body)
+
+        def _send_empty(self, status: int) -> None:
+            self.send_response(status)
+            self.send_header("Content-Length", "0")
+            self._common_headers()
+            self.end_headers()
 
         def _send_html(self, status: int, html: str) -> None:
             body = html.encode("utf-8")
@@ -136,8 +191,26 @@ def make_handler(store: Store, live=None):
                 self._head(200, "text/html; charset=utf-8")
             elif path == "/healthz":
                 self._head(200, "application/json; charset=utf-8")
+            elif path == "/robots.txt":
+                self._head(200, "text/plain; charset=utf-8")
+            elif path == "/llms.txt":
+                self._head(200, "text/plain; charset=utf-8")
+            elif path == "/sitemap.xml":
+                self._head(200, "application/xml; charset=utf-8")
+            elif path == "/.well-known/mcp/server-card.json":
+                self._head(200, "application/json; charset=utf-8")
+            elif path == "/static/og.png":
+                self._head(200, "image/png")
             else:
                 self._head(404, "application/json; charset=utf-8")
+
+        def do_OPTIONS(self) -> None:  # noqa: N802
+            """CORS preflight. 브라우저 기반 MCP·API 클라이언트가 본문 없이 호출할 수 있다."""
+            self.send_response(204)
+            self.send_header("Allow", "GET, POST, HEAD, OPTIONS")
+            self.send_header("Content-Length", "0")
+            self._common_headers()
+            self.end_headers()
 
         def do_GET(self) -> None:  # noqa: N802
             path = urlparse(self.path).path
@@ -150,12 +223,35 @@ def make_handler(store: Store, live=None):
                     self.end_headers()
                 elif path == "/healthz":
                     self._send_json(200, {"ok": True, "service": "clns-kr", "live": live is not None})
+                elif path == "/robots.txt":
+                    self._send_text(200, static_files.robots_txt(), "text/plain; charset=utf-8")
+                elif path == "/llms.txt":
+                    self._send_text(200, static_files.llms_txt(), "text/plain; charset=utf-8")
+                elif path == "/sitemap.xml":
+                    self._send_text(200, static_files.sitemap_xml(), "application/xml; charset=utf-8")
+                elif path == "/.well-known/mcp/server-card.json":
+                    self._send_json(200, static_files.server_card(),
+                                    cache="public, max-age=300")
+                elif path == "/static/og.png":
+                    image = static_files.load_og_image()
+                    if image is None:
+                        self._send_json(404, {"ok": False, "error": "not_found"})
+                    else:
+                        self._send_bytes(200, image, "image/png")
                 elif path == "/v1/mcp":
+                    # GET 은 사람이 읽는 매니페스트다. JSON-RPC 는 POST /mcp · POST /v1/mcp 가 담당한다.
                     self._send_json(200, mcp_manifest())
                 elif path == "/v1/meta":
                     self._send_json(200, call_tool("get_service_meta", {}, store,
                                                    client_id=self._client(), tier=self._tier(),
                                                    live=live))
+                elif path.rstrip("/") == "/mcp":
+                    # 스트리밍(SSE) GET 은 제공하지 않는다. MCP 스펙이 허용하는 405 로 알린다.
+                    self.send_response(405)
+                    self.send_header("Allow", "POST, OPTIONS")
+                    self.send_header("Content-Length", "0")
+                    self._common_headers()
+                    self.end_headers()
                 else:
                     self._send_json(404, {"ok": False, "error": "not_found"})
             except Exception:  # noqa: BLE001 - 공개 배포에서 내부 정보를 노출하지 않는다
@@ -163,6 +259,9 @@ def make_handler(store: Store, live=None):
 
         def do_POST(self) -> None:  # noqa: N802
             path = urlparse(self.path).path
+            if path.rstrip("/") in MCP_PATHS:
+                self._handle_mcp()
+                return
             if not path.startswith("/v1/tools/"):
                 self._send_json(404, {"ok": False, "error": "not_found"})
                 return
@@ -193,6 +292,45 @@ def make_handler(store: Store, live=None):
                 self._send_json(500, {"ok": False, "error": "internal_error", "tool": name})
                 return
             self._send_json(200, result)
+
+        # --- MCP (JSON-RPC 2.0) ---------------------------------------------
+        def _handle_mcp(self) -> None:
+            """POST /mcp · POST /v1/mcp — JSON-RPC 2.0 한 건 또는 배치를 처리한다."""
+            try:
+                length = int(self.headers.get("Content-Length", "0") or "0")
+            except ValueError:
+                self._send_json(400, mcp_http.error_response(None, -32600, "invalid_content_length"))
+                return
+            if length > MAX_BODY:
+                self._send_json(413, mcp_http.error_response(None, -32600, "payload_too_large"))
+                return
+            raw = self.rfile.read(length) if length else b""
+            try:
+                payload = json.loads(raw.decode("utf-8")) if raw.strip() else None
+            except (UnicodeDecodeError, json.JSONDecodeError):
+                self._send_json(200, mcp_http.error_response(None, -32700, "parse_error"))
+                return
+            try:
+                options = {"store": store, "client_id": self._client(),
+                           "tier": self._tier(), "live": live}
+                if isinstance(payload, list):
+                    if not payload:
+                        self._send_json(200, mcp_http.error_response(None, -32600, "invalid_request"))
+                        return
+                    out = mcp_http.batch(payload, **options)
+                    if not out:
+                        self._send_empty(202)
+                        return
+                    self._send_json(200, out)
+                    return
+                out = mcp_http.handle(payload, **options)
+            except Exception:  # noqa: BLE001 - 내부 정보를 노출하지 않는다
+                self._send_json(500, mcp_http.error_response(None, -32603, "internal_error"))
+                return
+            if out is None:  # notification → 본문 없이 202
+                self._send_empty(202)
+                return
+            self._send_json(200, out)
 
         # --- 요청 메타 ------------------------------------------------------
         def _client(self) -> str:

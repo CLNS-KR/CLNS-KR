@@ -9,7 +9,7 @@ import sqlite3
 import threading
 import time
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Tuple
 
 KST = timezone(timedelta(hours=9))
 FREE_MONTHLY_CALLS = 250
@@ -124,6 +124,17 @@ def iso(dt: datetime) -> str:
     return dt.isoformat(timespec="seconds")
 
 
+def snapshot_age_hours(stamp: str) -> float:
+    """스냅샷 시각(ISO) ~ 지금(KST) 경과시간(시간). 파싱 불가면 아주 큰 값."""
+    try:
+        then = datetime.fromisoformat(str(stamp))
+    except (TypeError, ValueError):
+        return 1e9
+    if then.tzinfo is None:
+        then = then.replace(tzinfo=KST)
+    return max(0.0, (now_kst() - then).total_seconds() / 3600.0)
+
+
 class Store:
     def __init__(self, path: str = ":memory:") -> None:
         self.path = path
@@ -176,6 +187,28 @@ class Store:
             )
             return cur.fetchone()
 
+    def get_cached_snapshot(self, source_id: str, query_key: str,
+                            ttl_hours: float) -> Optional[Tuple[Dict[str, Any], float]]:
+        """TTL 안에 있는 성공 스냅샷을 (payload, 경과시간)으로 돌려준다.
+
+        TTL 을 넘긴 스냅샷은 버린다(오래된 값을 신선한 값처럼 쓰지 않는다).
+        """
+        if ttl_hours <= 0:
+            return None
+        row = self.latest_snapshot(source_id, query_key)
+        if row is None:
+            return None
+        age_hours = snapshot_age_hours(row["fetched_at"])
+        if age_hours > ttl_hours:
+            return None
+        try:
+            payload = json.loads(row["payload_json"])
+        except (TypeError, ValueError):
+            return None
+        if not isinstance(payload, dict):
+            return None
+        return payload, age_hours
+
     # --- quota ---------------------------------------------------------------
     def quota_used(self, client_id: str, period: Optional[str] = None) -> int:
         period = period or now_kst().strftime("%Y-%m")
@@ -218,6 +251,18 @@ class Store:
         with self._lock:
             row = self.conn.execute("SELECT COUNT(*) AS c FROM assessments").fetchone()
         return int(row["c"])
+
+    def update_assessment(self, assessment_id: str, overall_verdict: str,
+                          response: Dict[str, Any]) -> None:
+        """응답 후처리(세관장확인 요건 반영 등)로 판정이 바뀌면 저장본도 같은 결론으로 맞춘다."""
+        if not assessment_id:
+            return
+        with self._lock:
+            self.conn.execute(
+                "UPDATE assessments SET overall_verdict=?, response_json=? WHERE assessment_id=?",
+                (overall_verdict, json.dumps(response, ensure_ascii=False), assessment_id),
+            )
+            self.conn.commit()
 
 
 class SourceGateway:
@@ -304,10 +349,4 @@ class SourceGateway:
         }
 
     def _age_hours(self, stamp: str) -> float:
-        try:
-            then = datetime.fromisoformat(stamp)
-        except ValueError:
-            return 1e9
-        if then.tzinfo is None:
-            then = then.replace(tzinfo=KST)
-        return max(0.0, (now_kst() - then).total_seconds() / 3600.0)
+        return snapshot_age_hours(stamp)

@@ -7,7 +7,7 @@ FROM python:3.12-slim
 
 LABEL org.opencontainers.image.title="CLNS" \
       org.opencontainers.image.description="PRODUCT COMPLIANCE INTELLIGENCE · KOREA · Korea Import Compliance MCP & API (웹 UI + JSON API)" \
-      org.opencontainers.image.version="0.1.0"
+      org.opencontainers.image.version="0.1.1"
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -24,6 +24,8 @@ RUN adduser --disabled-password --gecos "" --uid 10001 app \
 COPY --chown=app:app src/ /app/src/
 # 리콜 로컬 인덱스(881건, 2026-11-18 적재)를 이미지에 포함한다. 기동 시 작업 DB로 복사된다.
 COPY --chown=app:app data/recalls.sqlite /app/data/recalls.sqlite
+# 공유 미리보기 이미지(1200×630, og:image) — `GET /static/og.png` 로 서빙한다.
+COPY --chown=app:app static/ /app/static/
 
 RUN chown -R app:app /app/data
 USER app

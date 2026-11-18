@@ -66,9 +66,12 @@ class PageTest(unittest.TestCase):
         self.assertIn("<!doctype html>", self.page.lower())
         self.assertIn("lang=\"ko\"", self.page)
         self.assertIn("width=device-width", self.page)
+        # 페이지가 실제로 불러오는 외부 자원(스크립트·스타일시트·이미지)은 없어야 한다.
         self.assertNotRegex(self.page, r'src="(?:https?:)?//')
-        self.assertNotRegex(self.page, r'href="(?:https?:)?//')
         self.assertNotRegex(self.page, r"<link[^>]+stylesheet")
+        self.assertNotRegex(self.page, r"<script[^>]+src=")
+        # canonical·og:url 같은 메타데이터 링크는 자원이 아니므로 허용한다(중복 색인 방지 목적).
+        self.assertRegex(self.page, r'<link rel="canonical" href="https://')
         for token in ("cdn.", "jsdelivr", "unpkg", "googleapis", "googletagmanager"):
             self.assertNotIn(token, self.page.lower())
 

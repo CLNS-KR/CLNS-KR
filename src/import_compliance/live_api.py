@@ -475,6 +475,16 @@ class LiveApiClient:
     # --- 상태 ---------------------------------------------------------------
     @property
     def has_customs(self) -> bool:
+        """관세청 세관장확인대상물품 조회 가능 여부(data.go.kr 서비스키)."""
+        return bool(self._service_key)
+
+    @property
+    def has_mfds(self) -> bool:
+        """식약처 수입식품 계열 조회 가능 여부.
+
+        같은 data.go.kr 서비스키를 쓰지만 의미는 다르므로 따로 둔다. 예전 `_mfds_live()`
+        가 `has_customs` 로 게이트되던 것을 이 속성으로 바꿨다.
+        """
         return bool(self._service_key)
 
     @property
@@ -484,8 +494,8 @@ class LiveApiClient:
     def capabilities(self) -> Dict[str, bool]:
         return {
             "customs_checkpoint": self.has_customs,
-            "mfds_import_permit": self.has_customs,
-            "mfds_product_db": self.has_customs,
+            "mfds_import_permit": self.has_mfds,
+            "mfds_product_db": self.has_mfds,
             "law_search": self.has_law,
         }
 

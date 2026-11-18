@@ -67,17 +67,38 @@ IMPORT_COMPLIANCE_LIVE=1 python3 -m import_compliance.server   # HTTP 서버도 
 | 식약처 수입식품 제품DB(15073949) | `apis.data.go.kr/1471000/IprtFoodPrdtDBService02/getIprtFoodPrdtDBInq02` | `check_food_cosmetics.food_import_live` |
 | 법제처 국가법령정보(lawSearch/lawService) | `www.law.go.kr/DRF/lawSearch.do`, `lawService.do` | `get_legal_basis.law_live` |
 
-HTTP 서버(웹 UI + JSON API):
+HTTP 서버(웹 UI + JSON API + MCP):
 
 ```bash
 cd src
 python3 -m import_compliance.server              # http://0.0.0.0:8787 · 작업 DB는 ../data/app.sqlite
 python3 -m import_compliance.server --port 9000 --db /tmp/tck.sqlite
-curl -s localhost:8787/v1/mcp | head
+curl -s localhost:8787/v1/mcp | head             # 툴 매니페스트(사람이 읽는 JSON)
 curl -s -X POST localhost:8787/v1/tools/assess_import_case \
   -H 'Content-Type: application/json' \
   -d '{"query":"합성니코틴 액상형 전자담배를 수입해 판매"}'
+
+# MCP(JSON-RPC 2.0) — POST /mcp 또는 POST /v1/mcp
+curl -s -X POST localhost:8787/mcp -H 'Content-Type: application/json' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18"}}'
+curl -s -X POST localhost:8787/mcp -H 'Content-Type: application/json' \
+  -d '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"assess_import_case","arguments":{"query":"중국산 무선 선풍기를 수입해 판매"}}}'
+curl -s localhost:8787/.well-known/mcp/server-card.json | head
+curl -sI -X OPTIONS localhost:8787/v1/tools/assess_import_case   # 204 + CORS
+curl -s localhost:8787/robots.txt; curl -s localhost:8787/llms.txt; curl -s localhost:8787/sitemap.xml
 ```
+
+| 경로 | 내용 |
+|---|---|
+| `GET /` | 사람용 웹 UI(CLNS Check · CLNS Intelligence · CLNS API & MCP) |
+| `GET /healthz` | 헬스체크 |
+| `POST /mcp` · `POST /v1/mcp` | MCP JSON-RPC 2.0: `initialize`·`notifications/initialized`·`ping`·`tools/list`·`tools/call`. notification은 202(본문 없음), 표준 에러 코드(-32700/-32600/-32601/-32602), SSE 스트리밍 없음 |
+| `GET /.well-known/mcp/server-card.json` | MCP 서버 카드(인증 없음·툴 8종 스키마) |
+| `GET /v1/mcp` | 툴 매니페스트(사람이 읽는 JSON). `GET /mcp` 는 405(스트리밍 미지원) |
+| `POST /v1/tools/{tool}` | REST JSON 8종 |
+| `GET /robots.txt`·`/llms.txt`·`/sitemap.xml` | 검색·AI 크롤러용 공개 파일 |
+| `GET /static/og.png` | 공유 미리보기 이미지(1200×630) |
+| `OPTIONS *` | CORS preflight 204. 모든 응답에 `Access-Control-Allow-Origin: *` |
 
 브라우저로 `http://localhost:8787/` 을 열면 사람용 화면(CLNS Check · CLNS Intelligence · CLNS API & MCP)이 나온다.
 
@@ -89,6 +110,7 @@ curl -s -X POST localhost:8787/v1/tools/assess_import_case \
 | `PORT` | `8787` | 포트. Render/Koyeb는 이 값을 자동 주입한다(`--port` 로 덮어쓰기) |
 | `IMPORT_COMPLIANCE_DB` | `data/app.sqlite` | 작업 SQLite(판정 이력·쿼터·캐시). 없으면 기동 시 생성 |
 | `IMPORT_COMPLIANCE_LIVE` | `0` | `1`이면 `.env` 또는 환경변수의 키로 실API 조회 |
+| `PUBLIC_BASE_URL` | `https://clns-kr.onrender.com` | robots·llms·sitemap 의 공개 주소 |
 | `DATA_GO_KR_SERVICE_KEY` | – | 공공데이터포털 인증키(Decoding) |
 | `LAW_GO_KR_OC` | – | 법제처 OC 값 |
 
@@ -130,9 +152,10 @@ python3 tests/test_http.py        # 3 tests (실제 소켓)
 python3 tests/test_live_api.py    # 24 tests (네트워크 없이 고정 응답)
 python3 tests/test_recall_index.py # 12 tests (리콜 CSV 파싱·적재·검색·인덱스 복사)
 python3 tests/test_web.py         # 30 tests (브랜드·웹 UI·별칭·환경변수·모듈 엔트리포인트·키 비노출·UI 계약·레거시 브랜드 잔재)
+python3 tests/test_patches_p0_p1.py # 41 tests (MCP JSON-RPC·CORS·크롤러 파일·HS 10자리 판정·식약처 캐시·head 메타·모바일 탭)
 ```
 
-합계 96건. 네트워크 없이 전부 통과한다.
+합계 137건. 네트워크 없이 전부 통과한다(실호출은 `tools/verify_live_apis.py`로 따로 검증).
 
 ## 구조
 
@@ -143,12 +166,14 @@ src/
     corpus.py     코퍼스 로드·정규화
     models.py     데이터 모델
     policy.py     면책·금지 표현·티어 경계
-    store.py      SQLite 캐시·쿼터·폴백·실API 게이트웨이
+    store.py      SQLite 캐시·쿼터·폴백·TTL 캐시·실API 게이트웨이
     live_api.py   공공 API 4종 어댑터(파싱·정규화·재시도·키 리댁션)
     recall_index.py  국표원 리콜 파일데이터(15040696·15054301) 적재·검색
-    api.py        8개 툴 + MCP 매니페스트
+    api.py        8개 툴 + MCP 매니페스트·툴 정의(병렬 호출·7일 캐시·provenance 보정)
+    mcp_http.py   MCP Streamable HTTP(JSON-RPC 2.0) 처리기
+    static_files.py robots.txt·llms.txt·sitemap.xml·MCP 서버 카드·og 이미지
     web_ui.py     사람용 단일 HTML 화면(외부 CDN 0, 인라인 CSS/JS)
-    server.py     stdlib HTTP 서버(웹 UI·JSON API·배포용 환경변수)
+    server.py     stdlib HTTP 서버(웹 UI·JSON API·MCP·CORS·배포용 환경변수)
     cli.py        CLI·코퍼스 자기검증·`--serve`
   traps_20.json   함정 20케이스(근거 54건)
   schema.sql      Postgres 이관용 DDL
@@ -156,6 +181,8 @@ src/
   tools/verify_live_apis.py   실API 4종 라이브 검증
   tools/run_live_scenarios.py 대표 3품목 라이브 실전 테스트 러너
   tools/build_corpus_doc.py   문서 자동 생성
+  tools/make_og_image.py      공유 미리보기 PNG 생성(Pillow, 생성 시점에만)
+static/og.png     1200×630 공유 미리보기(og:image)
 Dockerfile        무료 클라우드 배포 이미지(python:3.12-slim)
 render.yaml       Render Blueprint(free Web Service, 키는 sync:false)
 .dockerignore     .env·캐시·테스트 제외(키가 이미지에 구워지지 않게)

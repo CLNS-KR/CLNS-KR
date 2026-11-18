@@ -14,7 +14,7 @@ SERVICE_NAME = "CLNS"
 SERVICE_SUBTITLE_EN = "PRODUCT COMPLIANCE INTELLIGENCE · KOREA"
 SERVICE_SUBTITLE_KO = "복잡한 한국 수입 규제를 10초 만에 확인"
 SERVICE_TAGLINE = "Clearance, simplified."
-SERVICE_VERSION = "0.1.0"
+SERVICE_VERSION = "0.1.1"
 
 PAGE_HTML = """<!doctype html>
 <html lang="ko">
@@ -25,6 +25,36 @@ PAGE_HTML = """<!doctype html>
 <title>CLNS · PRODUCT COMPLIANCE INTELLIGENCE · KOREA</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%231a4fd6'/%3E%3Ctext x='16' y='23' font-size='19' font-weight='700' fill='white' text-anchor='middle' font-family='sans-serif'%3EC%3C/text%3E%3C/svg%3E">
 <meta name="description" content="CLNS — Korea Import Compliance MCP &amp; API. PRODUCT COMPLIANCE INTELLIGENCE · KOREA. Clearance, simplified. 품목명·HS 코드·원산지만으로 세관장확인 요건, 식약처 수입 이력, 국내 리콜 이력, 근거 법령을 한 번에 확인하는 무료 사전 점검. 관세사·법률 자문이 아닌 참고용입니다.">
+<link rel="canonical" href="https://clns-kr.onrender.com/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="CLNS">
+<meta property="og:locale" content="ko_KR">
+<meta property="og:title" content="CLNS — 수입 요건 10초 확인 (한국 수입 규제 사전 점검)">
+<meta property="og:description" content="품목명과 HS 10자리만 넣으면 세관장확인 요건·식약처 수입 이력·국내 리콜·근거 법령을 한 번에. 무료, 회원가입 없음.">
+<meta property="og:url" content="https://clns-kr.onrender.com/">
+<meta property="og:image" content="https://clns-kr.onrender.com/static/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="CLNS — 한국 수입 규제 10초 점검">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="CLNS — 수입 요건 10초 확인">
+<meta name="twitter:description" content="세관장확인 요건·식약처 수입 이력·국내 리콜·근거 법령을 한 화면에서. 무료 베타.">
+<meta name="twitter:image" content="https://clns-kr.onrender.com/static/og.png">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "CLNS",
+  "alternateName": "Korea Import Compliance MCP & API",
+  "url": "https://clns-kr.onrender.com/",
+  "applicationCategory": "BusinessApplication",
+  "operatingSystem": "Web",
+  "inLanguage": "ko-KR",
+  "description": "한국 수입 규제(세관장확인 요건·식약처 수입 이력·국내 리콜·근거 법령)를 3단계로 판정하는 무료 사전 점검 서비스. 관세사·법률 자문이 아닌 참고용.",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "KRW" },
+  "isAccessibleForFree": true
+}
+</script>
 <style>
 :root{
   --bg:#f4f6fa; --card:#ffffff; --ink:#12161f; --ink-soft:#4c5566; --line:#dde3ec;
@@ -79,6 +109,14 @@ nav.tabs button .tab-ko{display:block; margin-top:1px; font-size:10.5px; font-we
 @media (max-width:680px){
   nav.tabs button{font-size:12.5px; padding:8px 11px}
   nav.tabs button .tab-ko{font-size:9.5px}
+}
+/* 390px 폭에서 3번째 탭(CLNS API & MCP)이 잘리지 않게 3등분 그리드로 고정한다. */
+@media (max-width:430px){
+  nav.tabs{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:4px;
+    overflow:visible; padding-top:12px}
+  nav.tabs button{width:100%; font-size:11px; padding:8px 4px; line-height:1.25;
+    white-space:normal; word-break:keep-all; text-align:center}
+  nav.tabs button .tab-ko{font-size:9px}
 }
 nav.tabs button:focus-visible{outline:2px solid var(--brand); outline-offset:2px}
 main{padding-top:18px}
@@ -339,7 +377,10 @@ footer strong{color:var(--ink)}
               <tr><td>GET</td><td><code>/</code></td><td>이 화면(사람용 웹 UI)</td></tr>
               <tr><td>GET</td><td><code>/healthz</code></td><td>헬스체크</td></tr>
               <tr><td>GET</td><td><code>/v1/meta</code></td><td>코퍼스 버전·판정 등급·무료 한도</td></tr>
-              <tr><td>GET</td><td><code>/v1/mcp</code></td><td>MCP 툴 매니페스트(툴 8종)</td></tr>
+              <tr><td>POST</td><td><code>/mcp</code> · <code>/v1/mcp</code></td><td>MCP JSON-RPC 2.0 (initialize·tools/list·tools/call·ping)</td></tr>
+              <tr><td>GET</td><td><code>/.well-known/mcp/server-card.json</code></td><td>MCP 서버 카드(인증 없음·툴 8종 스키마)</td></tr>
+              <tr><td>GET</td><td><code>/v1/mcp</code></td><td>MCP 툴 매니페스트(툴 8종, 사람이 읽는 JSON)</td></tr>
+              <tr><td>GET</td><td><code>/robots.txt</code> · <code>/llms.txt</code> · <code>/sitemap.xml</code></td><td>검색·AI 크롤러용 공개 파일</td></tr>
               <tr><td>POST</td><td><code>/v1/tools/assess_import_case</code></td><td>종합 판정(웹 UI가 호출)</td></tr>
               <tr><td>POST</td><td><code>/v1/tools/assess_import_risk</code></td><td>종합 판정(동일 툴 별칭)</td></tr>
               <tr><td>POST</td><td><code>/v1/tools/lookup_hs_requirements</code></td><td>HS 10자리 세관장확인 요건</td></tr>
@@ -358,9 +399,10 @@ footer strong{color:var(--ink)}
   -d '{"query":"중국산 블루투스 스피커를 수입해 판매","facts":{"rf_tx":"yes","purpose":"resale"}}'</code></pre>
         <p class="sub" style="margin-top:10px">응답에는 판정(<code>verdict</code>), 확인 항목(<code>answer.guidance</code>), 근거 법령·시행일·원문 URL(<code>evidence</code>), 면책(<code>disclaimer</code>)이 항상 함께 들어갑니다. 원본 공공 API 응답은 재전송하지 않고 결합·정규화한 결과만 돌려줍니다.</p>
         <h3>MCP 연결</h3>
-        <p class="sub">MCP 클라이언트에는 <code><span class="base-slot">https://&lt;your-host&gt;</span>/v1/mcp</code>의 툴 목록을 그대로 등록할 수 있습니다. 아래 링크에서 실제 JSON을 확인하세요.</p>
+        <p class="sub">MCP 클라이언트는 <code><span class="base-slot">https://&lt;your-host&gt;</span>/mcp</code>에 JSON-RPC 2.0으로 붙습니다(같은 경로가 <code>/v1/mcp</code>에도 있습니다). <code>initialize</code> → <code>notifications/initialized</code> → <code>tools/list</code> → <code>tools/call</code> 순서로 동작하며, 응답은 <code>application/json</code> 한 덩어리입니다(SSE 스트리밍은 제공하지 않습니다). 인증은 필요 없고, 서버 카드는 <code>/.well-known/mcp/server-card.json</code>에 있습니다.</p>
         <div class="actions">
-          <a class="ghost" href="/v1/mcp" target="_blank" rel="noopener" style="text-decoration:none;padding:10px 14px">/v1/mcp 열기</a>
+          <a class="ghost" href="/v1/mcp" target="_blank" rel="noopener" style="text-decoration:none;padding:10px 14px">툴 매니페스트 열기</a>
+          <a class="ghost" href="/.well-known/mcp/server-card.json" target="_blank" rel="noopener" style="text-decoration:none;padding:10px 14px">서버 카드 열기</a>
           <a class="ghost" href="/v1/meta" target="_blank" rel="noopener" style="text-decoration:none;padding:10px 14px">/v1/meta 열기</a>
         </div>
       </div>
@@ -670,7 +712,7 @@ footer strong{color:var(--ink)}
       var html = "";
       html += '<div class="card">' +
         '<h2>판정 결과</h2>' +
-        '<p class="sub">입력한 품목: ' + esc(result.query ? result.query.text : data.product) + '</p>' +
+        '<p class="sub">입력한 품목: ' + esc(data.product) + '</p>' +
         verdictBlock(result.verdict) +
         provenanceLine(result) +
         '<h3>판정 요지</h3>' + guidanceBlock(result) +
