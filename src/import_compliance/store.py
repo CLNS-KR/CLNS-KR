@@ -101,6 +101,15 @@ CREATE INDEX IF NOT EXISTS idx_recall_items_model ON recall_items(model);
 CREATE INDEX IF NOT EXISTS idx_recall_items_product ON recall_items(product_name);
 CREATE INDEX IF NOT EXISTS idx_recall_items_brand ON recall_items(brand);
 
+CREATE TABLE IF NOT EXISTS usage_daily (
+    day         TEXT NOT NULL,              -- YYYY-MM-DD (Asia/Seoul)
+    kind        TEXT NOT NULL,              -- path | tool | verdict | flag
+    key         TEXT NOT NULL,              -- 서버가 아는 경로·툴명·verdict.code·flag
+    count       INTEGER NOT NULL DEFAULT 0,
+    updated_at  TEXT NOT NULL,
+    PRIMARY KEY (day, kind, key)
+);
+
 CREATE TABLE IF NOT EXISTS recall_stats (
     dataset_id      TEXT NOT NULL,
     year            TEXT NOT NULL,
@@ -263,6 +272,32 @@ class Store:
                 (overall_verdict, json.dumps(response, ensure_ascii=False), assessment_id),
             )
             self.conn.commit()
+
+    # --- 익명 일별 카운터 -----------------------------------------------------
+    def bump_usage(self, day: str, kind: str, key: str, amount: int = 1) -> None:
+        """일별 카운터 1건 증가. 개인 식별자는 받지 않는다(날짜·경로·툴·판정만)."""
+        with self._lock:
+            self.conn.execute(
+                "INSERT INTO usage_daily(day, kind, key, count, updated_at) VALUES (?,?,?,?,?) "
+                "ON CONFLICT(day, kind, key) DO UPDATE SET count = count + ?, updated_at = ?",
+                (day, kind, key, int(amount), iso(now_kst()), int(amount), iso(now_kst())),
+            )
+            self.conn.commit()
+
+    def usage_rows(self, start_day: str, end_day: str) -> list:
+        """[start, end] 날짜 범위의 집계 행(날짜·종류·키·횟수)."""
+        with self._lock:
+            cur = self.conn.execute(
+                "SELECT day, kind, key, count FROM usage_daily WHERE day BETWEEN ? AND ? "
+                "ORDER BY day, kind, key",
+                (start_day, end_day),
+            )
+            return [dict(row) for row in cur.fetchall()]
+
+    def usage_total(self) -> int:
+        with self._lock:
+            row = self.conn.execute("SELECT COALESCE(SUM(count), 0) AS c FROM usage_daily").fetchone()
+        return int(row["c"])
 
 
 class SourceGateway:

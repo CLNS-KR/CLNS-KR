@@ -12,11 +12,17 @@ Clearance, simplified.
 
 **Korea Import Compliance MCP & API** — 한국 수입·구매대행·유통 실무에서 **범용 AI가 자주 틀리는 요건**을 3단계로 판정하고, 근거 법령 조항·시행일·원문 URL과 국/영문 면책을 함께 반환하는 경량 엔진입니다.
 
-- 결제 없음 · 100% 무료 베타
+- 라이브: **<https://clns-kr.onrender.com>** (무료 베타 · Render free Web Service)
+- 결제 없음 · 100% 무료 베타 · 회원가입 없음
 - 외부 API 키가 없어도 동작(코퍼스 기반). 키를 넣으면 4개 공공 API를 실시간 호출하고, 실패 시 캐시로 폴백
 - 원본 API 재전송 없음 — 결합·정규화한 판정만 출력
 - 브라우저에서 바로 쓰는 사람용 화면(`GET /`) 포함: 품목명만 넣고 10초 안에 확인 항목·근거 조문·리콜 이력을 본다. 화면은 CLNS Check · CLNS Intelligence · CLNS API & MCP 세 축으로 나뉜다.
+- **품목별 무료 체크 페이지(pSEO) 35개**: `/p/` 인덱스와 `/p/{slug}` — 무선 미니 선풍기·보조배터리·오메가3·선크림·반려동물 사료 등. JS 없이 크롤러가 읽는 서버 렌더 HTML에 H1·대표 HS·세관장확인 요건 표·KC·전파·식약처 항목·핵심 함정·근거·면책·실시간 조회 링크를 담는다(`sitemap.xml` 동적 생성, 얇은 페이지는 `noindex`).
+- **익명 일별 통계**: `GET /v1/stats` — IP·User-Agent 원문·쿠키·개인 식별자를 저장하지 않고 날짜별 경로/툴/`verdict.code`/0건·오류 수만 집계
+- **MCP 두 가지 전송**: HTTP(`POST /mcp`) + **stdio**(`python -m import_compliance.mcp_stdio`) — 로컬 실행형 MCP 디렉터리(Glama·mcp.so 등) 등록용
 - 무료 클라우드 배포 사본 제공: `Dockerfile`(python:3.12-slim) + `render.yaml`(Render free Web Service)
+- GitHub Actions CI(`.github/workflows/test.yml`) — Python 3.11·3.12 에서 `--check-corpus` + 전체 테스트 자동 실행
+- 라이선스: **MIT** (`LICENSE`, `Copyright (c) 2026 CLNS-KR`)
 
 ## 문서
 
@@ -29,6 +35,8 @@ Clearance, simplified.
 | `live-scenario-results-2026-11-18.json` | 대표 3품목 라이브 판정 산출물(응답시간·요건·리콜 포함, **키 없음**) |
 | `04-live-scenario-report-2026-11-18.md` | 대표 3품목 라이브 판정 사람용 리포트 |
 | `.env.example` | 키 템플릿(`.env`는 커밋 금지) |
+| `LICENSE` | MIT 라이선스(`Copyright (c) 2026 CLNS-KR`) |
+| `.github/workflows/test.yml` | CI: `--check-corpus` + 전체 테스트 + stdio MCP 스모크(Python 3.11·3.12) |
 
 ## 실행
 
@@ -86,17 +94,73 @@ curl -s -X POST localhost:8787/mcp -H 'Content-Type: application/json' \
 curl -s localhost:8787/.well-known/mcp/server-card.json | head
 curl -sI -X OPTIONS localhost:8787/v1/tools/assess_import_case   # 204 + CORS
 curl -s localhost:8787/robots.txt; curl -s localhost:8787/llms.txt; curl -s localhost:8787/sitemap.xml
+curl -s localhost:8787/p/ | head -40               # 품목별 페이지 인덱스(35개)
+curl -s localhost:8787/p/usb-mini-fan | head -60   # 품목별 무료 체크(서버 렌더 HTML)
+curl -s localhost:8787/v1/stats | head -60         # 익명 일별 통계(IP·UA 미저장)
 ```
+
+### MCP 연결 — HTTP 와 stdio
+
+같은 8개 툴을 두 가지 전송으로 제공합니다(로직은 `mcp_http.py` 한 곳).
+
+```bash
+# 1) HTTP(Streamable HTTP · JSON-RPC 2.0, 무인증, application/json 한 덩어리)
+#    POST https://clns-kr.onrender.com/mcp   (= /v1/mcp)
+
+# 2) stdio(로컬 실행형 MCP 디렉터리용) — 한 줄에 JSON-RPC 한 건
+cd src
+python3 -m import_compliance.mcp_stdio \
+  <<'JSON'
+{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18"}}
+{"jsonrpc":"2.0","id":2,"method":"tools/list"}
+{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"lookup_hs_requirements","arguments":{"hs_code":"8414519000"}}}
+JSON
+```
+
+MCP 클라이언트 설정 예시(`claude_desktop_config.json` 등):
+
+```json
+{
+  "mcpServers": {
+    "clns": {
+      "command": "python",
+      "args": ["-m", "import_compliance.mcp_stdio"],
+      "env": { "PYTHONPATH": "/path/to/clns/src" }
+    }
+  }
+}
+```
+
+- stdio 는 stdout 에 JSON-RPC 응답만 쓰고 로그는 stderr 로 보냅니다. notification 에는 아무것도 쓰지 않습니다.
+- 상태를 저장하지 않으므로 `initialize` 없이 `tools/call` 을 바로 보내도 동작합니다.
+
+### 툴 8종
+
+| 툴 | 하는 일 | 주요 인자 |
+|---|---|---|
+| `assess_import_case` | 품목·상황 자연어 → 수입요건·인증·표시·통관 함정 3단계 판정 + 근거·면책 | `query`(필수), `facts`, `limit` |
+| `lookup_hs_requirements` | HS 10자리 → 세관장확인대상 여부·법령·기관·확인시점 | `hs_code`(필수), `direction` |
+| `check_kc_certification` | 전기용품·생활용품·어린이제품·전파 적합성평가 중 걸리는 절차 판정 | `product_name`, `target_age`, `rf_tx`, `battery`, `ac_plug` |
+| `check_food_cosmetics` | 식품·건기식·화장품·기구용기: 수입신고·영업등록·한글표시·광고심의 | `product_name`, `kind`(필수) |
+| `lookup_recall` | 브랜드·모델명·제품명으로 국내 리콜 이력(국표원 15040696 로컬 인덱스) | `brand`, `model`, `product_name`, `category` |
+| `get_legal_basis` | 코퍼스 수록 법령 조항 요지·시행일·원문 URL | `law`(필수), `article` |
+| `explain_trap` | 함정 케이스(TRAP-01~20) 시나리오·흔한 오답·정답·근거 | `case_id`(필수) |
+| `get_service_meta` | 코퍼스 버전·판정 등급·무료/유료 경계·잔여 호출 | – |
+
+무료 한도는 브라우저/클라이언트 ID 당 월 250회이며 `get_service_meta` 는 차감되지 않습니다.
 
 | 경로 | 내용 |
 |---|---|
 | `GET /` | 사람용 웹 UI(CLNS Check · CLNS Intelligence · CLNS API & MCP) |
+| `GET /p/` | 품목별 수입 요건 인덱스(35개, 크롤러 진입점) |
+| `GET /p/{slug}` | 품목별 무료 체크 페이지(서버 렌더 HTML · JS 없음 · 얇은 페이지는 `noindex`). 없는 slug 는 404 |
+| `GET /v1/stats` | 익명 일별 통계 JSON(`?days=7`). IP·User-Agent·쿠키·개인 식별자 미저장 |
 | `GET /healthz` | 헬스체크 |
 | `POST /mcp` · `POST /v1/mcp` | MCP JSON-RPC 2.0: `initialize`·`notifications/initialized`·`ping`·`tools/list`·`tools/call`. notification은 202(본문 없음), 표준 에러 코드(-32700/-32600/-32601/-32602), SSE 스트리밍 없음 |
 | `GET /.well-known/mcp/server-card.json` | MCP 서버 카드(인증 없음·툴 8종 스키마) |
 | `GET /v1/mcp` | 툴 매니페스트(사람이 읽는 JSON). `GET /mcp` 는 405(스트리밍 미지원) |
 | `POST /v1/tools/{tool}` | REST JSON 8종 |
-| `GET /robots.txt`·`/llms.txt`·`/sitemap.xml` | 검색·AI 크롤러용 공개 파일 |
+| `GET /robots.txt`·`/llms.txt`·`/sitemap.xml` | 검색·AI 크롤러용 공개 파일(`sitemap.xml` 은 `/` + `/p/` + 전 품목 URL 동적 생성) |
 | `GET /static/og.png` | 공유 미리보기 이미지(1200×630) |
 | `OPTIONS *` | CORS preflight 204. 모든 응답에 `Access-Control-Allow-Origin: *` |
 
@@ -110,7 +174,7 @@ curl -s localhost:8787/robots.txt; curl -s localhost:8787/llms.txt; curl -s loca
 | `PORT` | `8787` | 포트. Render/Koyeb는 이 값을 자동 주입한다(`--port` 로 덮어쓰기) |
 | `IMPORT_COMPLIANCE_DB` | `data/app.sqlite` | 작업 SQLite(판정 이력·쿼터·캐시). 없으면 기동 시 생성 |
 | `IMPORT_COMPLIANCE_LIVE` | `0` | `1`이면 `.env` 또는 환경변수의 키로 실API 조회 |
-| `PUBLIC_BASE_URL` | `https://clns-kr.onrender.com` | robots·llms·sitemap 의 공개 주소 |
+| `PUBLIC_BASE_URL` | `https://clns-kr.onrender.com` | robots·llms·sitemap·pSEO canonical 의 공개 주소 |
 | `DATA_GO_KR_SERVICE_KEY` | – | 공공데이터포털 인증키(Decoding) |
 | `LAW_GO_KR_OC` | – | 법제처 OC 값 |
 
@@ -137,7 +201,7 @@ docker run -p 8787:8787 -e IMPORT_COMPLIANCE_LIVE=1 \
 
 **무료 플랜 주의**
 
-- 영구 디스크가 없어 작업 DB(판정 이력·쿼터 카운터)는 재시작 시 초기화된다. 리콜 인덱스는 이미지에 있어 매 기동마다 다시 적재된다.
+- 영구 디스크가 없어 작업 DB(판정 이력·쿼터 카운터·**일별 통계**)는 재시작 시 초기화된다. 리콜 인덱스는 이미지에 있어 매 기동마다 다시 적재된다.
 - 미접속 시 슬립되어 첫 요청이 30~60초 걸릴 수 있다.
 - `.dockerignore`가 `.env`·`__pycache__`·테스트·도구·원본 CSV를 제외하므로 이미지에 API 키가 들어가지 않는다.
 - 페이지는 외부 CDN 없이 인라인 CSS/JS만 쓰고 CSP(`default-src 'none'`)로 외부 로드를 막는다.
@@ -153,9 +217,41 @@ python3 tests/test_live_api.py    # 24 tests (네트워크 없이 고정 응답)
 python3 tests/test_recall_index.py # 12 tests (리콜 CSV 파싱·적재·검색·인덱스 복사)
 python3 tests/test_web.py         # 30 tests (브랜드·웹 UI·별칭·환경변수·모듈 엔트리포인트·키 비노출·UI 계약·레거시 브랜드 잔재)
 python3 tests/test_patches_p0_p1.py # 41 tests (MCP JSON-RPC·CORS·크롤러 파일·HS 10자리 판정·식약처 캐시·head 메타·모바일 탭)
+python3 tests/test_pseo_stats.py  # 25 tests (pSEO 35개 페이지·동적 sitemap·익명 카운터·stdio MCP·MIT·CI·시크릿 미포함)
 ```
 
-합계 137건. 네트워크 없이 전부 통과한다(실호출은 `tools/verify_live_apis.py`로 따로 검증).
+합계 162건. 네트워크 없이 전부 통과한다(실호출은 `tools/verify_live_apis.py`로 따로 검증).
+CI 에서는 같은 스위트를 `python3 -m unittest discover -s tests` 로 한 번에 돌린다.
+
+## 익명 통계 (`GET /v1/stats`)
+
+무엇을 저장하는가 — **날짜(YYYY-MM-DD, Asia/Seoul) · 경로 · 툴 이름 · `verdict.code` · 0건/오류 여부의 호출 수**뿐입니다.
+
+무엇을 저장하지 않는가 — IP(및 `X-Forwarded-For` 같은 전달 헤더), User-Agent 원문, 쿠키, Referer, 세션 ID, 질의문 원문. 알 수 없는 경로는 `/404` 한 칸으로 합산해 임의 문자열이 통계에 남지 않게 합니다.
+
+```bash
+curl -s 'https://clns-kr.onrender.com/v1/stats?days=7'
+```
+
+```json
+{
+  "ok": true, "timezone": "Asia/Seoul", "window_days": 7,
+  "privacy": {"stores_ip": false, "stores_user_agent": false,
+              "stores_cookies": false, "stores_identifiers": false},
+  "days": [{"date": "2026-11-18", "requests": 42,
+            "paths": {"/": 12, "/p/usb-mini-fan": 5, "/mcp": 3},
+            "tools": {"lookup_hs_requirements": 7},
+            "verdicts": {"check_likely": 4, "info_needed": 3},
+            "flags": {"zero_results": 1, "errors": 0}}],
+  "totals": {"requests": 42, "paths": {}, "tools": {}, "verdicts": {}, "flags": {}}
+}
+```
+
+이 카운터가 상품 개선의 입력입니다 — “어떤 품목을 넣다가 0건을 맞는지”가 pSEO 우선순위, “어떤 툴이 실패하는지”가 장애 감지입니다.
+
+## 라이선스
+
+MIT — `LICENSE` 참고. 저작권자는 익명 운영 주체 **CLNS-KR** 하나만 표기합니다(개인 이름·연락처 없음).
 
 ## 구조
 
@@ -166,23 +262,30 @@ src/
     corpus.py     코퍼스 로드·정규화
     models.py     데이터 모델
     policy.py     면책·금지 표현·티어 경계
-    store.py      SQLite 캐시·쿼터·폴백·TTL 캐시·실API 게이트웨이
+    store.py      SQLite 캐시·쿼터·폴백·TTL 캐시·실API 게이트웨이·일별 카운터
     live_api.py   공공 API 4종 어댑터(파싱·정규화·재시도·키 리댁션)
     recall_index.py  국표원 리콜 파일데이터(15040696·15054301) 적재·검색
-    api.py        8개 툴 + MCP 매니페스트·툴 정의(병렬 호출·7일 캐시·provenance 보정)
+    api.py        8개 툴 + MCP 매니페스트·툴 정의(병렬 호출·7일 캐시·provenance 보정·툴 호출 계측)
     mcp_http.py   MCP Streamable HTTP(JSON-RPC 2.0) 처리기
-    static_files.py robots.txt·llms.txt·sitemap.xml·MCP 서버 카드·og 이미지
+    mcp_stdio.py  같은 로직을 쓰는 stdio 엔트리포인트(줄 단위 JSON-RPC)
+    pseo.py       품목별 페이지(35개) 서버 렌더러 · noindex/사이트맵 규칙
+    usage.py      익명 일별 카운터(경로·툴·판정·0건/오류) + /v1/stats 페이로드
+    static_files.py robots.txt·llms.txt·동적 sitemap.xml·MCP 서버 카드·og 이미지
     web_ui.py     사람용 단일 HTML 화면(외부 CDN 0, 인라인 CSS/JS)
-    server.py     stdlib HTTP 서버(웹 UI·JSON API·MCP·CORS·배포용 환경변수)
+    server.py     stdlib HTTP 서버(웹 UI·pSEO·JSON API·MCP·CORS·배포용 환경변수)
     cli.py        CLI·코퍼스 자기검증·`--serve`
   traps_20.json   함정 20케이스(근거 54건)
+  pseo_items.json 품목 35개 카탈로그 + 관세청 실조회 요건 표(2026-11-18)
   schema.sql      Postgres 이관용 DDL
   tests/
   tools/verify_live_apis.py   실API 4종 라이브 검증
   tools/run_live_scenarios.py 대표 3품목 라이브 실전 테스트 러너
+  tools/refresh_pseo_hs.py    pSEO 카탈로그의 HS 요건 표만 실API로 재적재
   tools/build_corpus_doc.py   문서 자동 생성
   tools/make_og_image.py      공유 미리보기 PNG 생성(Pillow, 생성 시점에만)
 static/og.png     1200×630 공유 미리보기(og:image)
+LICENSE           MIT (Copyright (c) 2026 CLNS-KR)
+.github/workflows/test.yml  CI(3.11·3.12, --check-corpus + 전체 테스트 + stdio 스모크)
 Dockerfile        무료 클라우드 배포 이미지(python:3.12-slim)
 render.yaml       Render Blueprint(free Web Service, 키는 sync:false)
 .dockerignore     .env·캐시·테스트 제외(키가 이미지에 구워지지 않게)

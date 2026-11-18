@@ -11,6 +11,8 @@
 경로
 ----
 - `GET /` 사람용 웹 UI · `GET /healthz`
+- `GET /p/` 품목별 수입 요건 인덱스 · `GET /p/{slug}` 품목별 무료 체크 페이지(서버 렌더 HTML, JS 없음)
+- `GET /v1/stats` 익명 일별 사용 통계(IP·UA·쿠키 미저장)
 - `POST /mcp` · `POST /v1/mcp` MCP JSON-RPC 2.0 (initialize·tools/list·tools/call·ping)
 - `GET /.well-known/mcp/server-card.json` MCP 서버 카드
 - `GET /v1/mcp` 툴 매니페스트(사람이 읽는 JSON) · `GET /v1/meta`
@@ -35,7 +37,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any, Dict, Optional
 from urllib.parse import urlparse
 
-from . import mcp_http, static_files
+from . import mcp_http, pseo, static_files, usage
 from .api import call_tool, mcp_manifest
 from .live_api import from_environment, register_sources
 from .store import Store
@@ -112,6 +114,17 @@ def _client_id(raw: Optional[str]) -> str:
     return value or "anonymous"
 
 
+def _days_param(query: str) -> int:
+    """`?days=7` 같은 질의값을 1~30 사이 정수로 해석한다(불량이면 기본값)."""
+    from urllib.parse import parse_qs
+
+    try:
+        raw = (parse_qs(query or "").get("days") or [""])[0]
+        return int(raw)
+    except (TypeError, ValueError):
+        return usage.DEFAULT_DAYS
+
+
 def make_handler(store: Store, live=None):
     class Handler(BaseHTTPRequestHandler):
         server_version = "clns/0.1"
@@ -164,7 +177,8 @@ def make_handler(store: Store, live=None):
             self._common_headers()
             self.end_headers()
 
-        def _send_html(self, status: int, html: str) -> None:
+        def _send_html(self, status: int, html: str,
+                       cache: str = "no-cache") -> None:
             body = html.encode("utf-8")
             self.send_response(status)
             self.send_header("Content-Type", "text/html; charset=utf-8")
@@ -201,6 +215,12 @@ def make_handler(store: Store, live=None):
                 self._head(200, "application/json; charset=utf-8")
             elif path == "/static/og.png":
                 self._head(200, "image/png")
+            elif path in ("/p", "/p/"):
+                self._head(200, "text/html; charset=utf-8")
+            elif path.startswith("/p/"):
+                self._head(200, "text/html; charset=utf-8")
+            elif path == "/v1/stats":
+                self._head(200, "application/json; charset=utf-8")
             else:
                 self._head(404, "application/json; charset=utf-8")
 
@@ -214,9 +234,20 @@ def make_handler(store: Store, live=None):
 
         def do_GET(self) -> None:  # noqa: N802
             path = urlparse(self.path).path
+            usage.record_request(store, "GET", path)
             try:
                 if path in ("/", "/index.html"):
                     self._send_html(200, render_page())
+                elif path in ("/p", "/p/"):
+                    self._send_html(200, pseo.render_index())
+                elif path.startswith("/p/"):
+                    slug = path[len("/p/"):].strip("/")
+                    page = pseo.render_item(slug)
+                    if page is None:
+                        self._send_json(404, {"ok": False, "error": "not_found",
+                                              "message": "unknown_item"})
+                    else:
+                        self._send_html(200, page, cache="public, max-age=600")
                 elif path == "/favicon.ico":
                     self.send_response(204)
                     self._common_headers()
@@ -245,6 +276,10 @@ def make_handler(store: Store, live=None):
                     self._send_json(200, call_tool("get_service_meta", {}, store,
                                                    client_id=self._client(), tier=self._tier(),
                                                    live=live))
+                elif path == "/v1/stats":
+                    days = urlparse(self.path).query
+                    self._send_json(200, usage.stats_payload(store, _days_param(days)),
+                                    cache="public, max-age=300")
                 elif path.rstrip("/") == "/mcp":
                     # 스트리밍(SSE) GET 은 제공하지 않는다. MCP 스펙이 허용하는 405 로 알린다.
                     self.send_response(405)
@@ -259,6 +294,7 @@ def make_handler(store: Store, live=None):
 
         def do_POST(self) -> None:  # noqa: N802
             path = urlparse(self.path).path
+            usage.record_request(store, "POST", path)
             if path.rstrip("/") in MCP_PATHS:
                 self._handle_mcp()
                 return

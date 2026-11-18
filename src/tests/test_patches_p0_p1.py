@@ -274,7 +274,12 @@ class CrawlerFilesTest(ServerHarness):
         root = ET.fromstring(raw)
         namespace = "{http://www.sitemaps.org/schemas/sitemap/0.9}"
         locs = [node.text for node in root.iter(namespace + "loc")]
-        self.assertEqual(locs, ["https://clns-kr.onrender.com/"])
+        self.assertEqual(locs[0], "https://clns-kr.onrender.com/")
+        # pSEO: 인덱스 + 품목 페이지가 동적으로 포함된다(30개 이상).
+        self.assertIn("https://clns-kr.onrender.com/p/", locs)
+        self.assertIn("https://clns-kr.onrender.com/p/usb-mini-fan", locs)
+        self.assertGreaterEqual(len([loc for loc in locs if "/p/" in loc]), 31)
+        self.assertEqual(len(locs), len(set(locs)))
         lastmod = [node.text for node in root.iter(namespace + "lastmod")]
         self.assertRegex(lastmod[0], r"^\d{4}-\d{2}-\d{2}$")
 

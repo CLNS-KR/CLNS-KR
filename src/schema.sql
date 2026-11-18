@@ -100,3 +100,13 @@ CREATE TABLE webhook_subscriptions (
 -- 1) api_snapshots는 내부 근거 보존용이며 API 응답으로 그대로 내보내지 않는다.
 -- 2) /v1 응답은 derived_findings + assessments의 가공 결과만 사용한다.
 -- 3) 스냅샷 신선도(72시간) 초과 시 판정을 info_needed로 강등한다.
+
+-- 익명 일별 사용 카운터(GET /v1/stats). 개인 식별자는 저장하지 않는다.
+CREATE TABLE usage_daily (
+    day         TEXT NOT NULL,              -- YYYY-MM-DD (Asia/Seoul)
+    kind        TEXT NOT NULL,              -- path | tool | verdict | flag
+    key         TEXT NOT NULL,              -- 서버가 아는 경로·툴명·verdict.code·flag
+    count       INTEGER NOT NULL DEFAULT 0,
+    updated_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (day, kind, key)
+);

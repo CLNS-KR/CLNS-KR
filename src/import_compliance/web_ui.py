@@ -14,7 +14,7 @@ SERVICE_NAME = "CLNS"
 SERVICE_SUBTITLE_EN = "PRODUCT COMPLIANCE INTELLIGENCE · KOREA"
 SERVICE_SUBTITLE_KO = "복잡한 한국 수입 규제를 10초 만에 확인"
 SERVICE_TAGLINE = "Clearance, simplified."
-SERVICE_VERSION = "0.1.1"
+SERVICE_VERSION = "0.1.2"
 
 PAGE_HTML = """<!doctype html>
 <html lang="ko">
@@ -414,6 +414,7 @@ footer strong{color:var(--ink)}
     <p>PRODUCT COMPLIANCE INTELLIGENCE · KOREA</p>
     <p>Clearance, simplified.</p>
     <p>무료 베타 · 결제 없음 · 회원가입 없음</p>
+    <p><strong>품목별 수입 요건:</strong> <a href="/p/">선풍기·보조배터리·오메가3·선크림 등 35개 품목의 요건·인증·함정을 정리한 무료 체크 페이지</a></p>
     <p><strong>면책:</strong> 본 결과는 사전 참고용입니다. 법적 효력이 없으며, 최종 법적 판단과 통관·인증 가능 여부는 관세사, 관세청, 국가기술표준원·인증기관, 식품의약품안전처 등 소관 기관의 확인이 필요합니다. 본 서비스는 관세사법상 관세 상담·대리 업무를 수행하지 않습니다.</p>
     <p><strong>데이터:</strong> 관세청·식품의약품안전처·산업통상부 국가기술표준원·법제처 공공데이터를 활용합니다. 원본을 그대로 중계하지 않고 결합·정규화한 판정만 제공하며, 조회 실패나 개정 지연 시 캐시 시점을 밝히고 판정을 "추가 정보 필요"로 낮춥니다.</p>
     <p><strong>개인정보:</strong> 이름·연락처·이메일·사업자 정보를 받지 않습니다. 입력한 품목 정보(품목명·HS·원산지 등)는 판정 이력에 익명으로 저장될 수 있습니다. 상호·주소 등 식별 정보는 입력하지 마세요.</p>
@@ -823,6 +824,18 @@ footer strong{color:var(--ink)}
   });
   var initial = (location.hash || "").replace("#", "");
   if (panels[initial]) showTab(initial);
+
+  // ---------- /?q= 프리필 (품목별 페이지에서 넘어온 품목) ----------
+  try {
+    var preset = new URLSearchParams(location.search).get("q");
+    var presetInput = document.getElementById("product");
+    if (preset && presetInput){
+      presetInput.value = preset.slice(0, 80);
+      showTab("check");
+      if (form.requestSubmit) form.requestSubmit();
+      else form.dispatchEvent(new Event("submit", { cancelable: true }));
+    }
+  } catch (e) {}
 
   Array.prototype.forEach.call(document.querySelectorAll(".base-slot"), function(el){ el.textContent = BASE; });
 

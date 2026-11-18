@@ -4,6 +4,7 @@ from __future__ import annotations
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Callable, Dict, List, Optional
 
+from . import usage
 from .corpus import load_corpus, normalize
 from .engine import assess
 from .models import VERDICT_LABEL_EN, VERDICT_LABEL_KO, VERDICT_SEVERITY
@@ -799,9 +800,12 @@ def call_tool(name: str, arguments: Optional[Dict[str, Any]], store: Store,
     try:
         if name in BILLABLE_TOOLS:
             store.consume_quota(client_id, tier=tier)
-        return TOOL_INDEX[name]["handler"](arguments or {}, store, client_id, tier, live)
+        result = TOOL_INDEX[name]["handler"](arguments or {}, store, client_id, tier, live)
     except QuotaExceeded as exc:
-        return {"ok": False, "error": "quota_exceeded", "tool": name,
-                "message": str(exc), "free_monthly_calls": FREE_MONTHLY_CALLS}
+        result = {"ok": False, "error": "quota_exceeded", "tool": name,
+                  "message": str(exc), "free_monthly_calls": FREE_MONTHLY_CALLS}
     except ValueError as exc:
-        return {"ok": False, "error": "invalid_argument", "tool": name, "message": str(exc)}
+        result = {"ok": False, "error": "invalid_argument", "tool": name, "message": str(exc)}
+    # 익명 일별 카운터(툴·verdict.code·0건/오류). IP·UA·쿠키·질의문은 넘기지 않는다.
+    usage.record_tool(store, name, result)
+    return result

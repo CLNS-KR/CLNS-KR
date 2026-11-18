@@ -63,6 +63,12 @@ Sitemap: {root}/sitemap.xml
 
 def llms_txt(base: Optional[str] = None) -> str:
     root = base_url(base)
+    from . import pseo  # 순환 import 방지(지연 로드)
+
+    try:
+        pseo_count = len(pseo.items())
+    except Exception:  # noqa: BLE001 - 카탈로그가 없어도 llms.txt 는 나가야 한다
+        pseo_count = 0
     return f"""# CLNS — Korea Import Compliance
 
 > 한국 수입 규제(세관장확인 요건·식약처 수입 이력·국내 리콜·근거 법령)를 3단계로 판정하는 무료 사전 점검 서비스.
@@ -72,7 +78,9 @@ def llms_txt(base: Optional[str] = None) -> str:
 
 ## 사람용
 - [리스크 체크]({root}/): 품목명(+HS 10자리)으로 확인 항목·요건·리콜·근거 조문을 한 화면에서 본다.
+- [품목별 수입 요건]({root}/p/): {pseo_count}개 품목(선풍기·보조배터리·오메가3·선크림·반려동물 사료 등)의 세관장확인 요건·KC·전파·식약처 확인 항목·함정·근거를 정적 HTML로 정리. 개별 페이지는 `{root}/p/<slug>`.
 - [서비스 메타]({root}/v1/meta): 코퍼스 버전, 판정 등급, 무료 한도, 이용 범위.
+- [익명 사용 통계]({root}/v1/stats): IP·User-Agent·쿠키를 저장하지 않고 일별 호출 수·툴·판정 분포만 집계한 JSON.
 
 ## 기계용 (MCP · JSON-RPC 2.0)
 - [MCP 엔드포인트]({root}/mcp): POST. `initialize` → `tools/list` → `tools/call` 순서로 쓰는 JSON-RPC 2.0 서버. 인증 불필요, 응답은 `application/json` 한 덩어리(SSE 스트리밍 없음).
@@ -95,19 +103,37 @@ def llms_txt(base: Optional[str] = None) -> str:
 
 
 def sitemap_xml(base: Optional[str] = None) -> str:
+    """`/` + `/p/` + 품목별 페이지를 동적으로 반환한다(앱은 페이지 내용에서 빠진다)."""
     root = base_url(base)
     try:
         lastmod = load_corpus().verified_on or "2026-11-18"
     except (OSError, ValueError):
         lastmod = "2026-11-18"
-    return f"""<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url>
+    from . import pseo  # 순환 import 방지(지연 로드)
+
+    try:
+        paths = pseo.indexable_paths()
+    except Exception:  # noqa: BLE001 - 카탈로그 문제가 사이트맵을 막지 않게
+        paths = []
+    entries = [f"""  <url>
     <loc>{root}/</loc>
     <lastmod>{lastmod}</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
-  </url>
+  </url>"""]
+    for path in paths:
+        priority = "0.9" if path == "/p/" else "0.7"
+        freq = "weekly" if path == "/p/" else "monthly"
+        entries.append(f"""  <url>
+    <loc>{root}{path}</loc>
+    <lastmod>{lastmod}</lastmod>
+    <changefreq>{freq}</changefreq>
+    <priority>{priority}</priority>
+  </url>""")
+    body = "\n".join(entries)
+    return f"""<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+{body}
 </urlset>
 """
 
@@ -131,6 +157,14 @@ def server_card() -> Dict[str, Any]:
             "endpoint": "/mcp",
             "protocolVersion": "2025-06-18",
             "contentType": "application/json",
+        },
+        "transports": {
+            "http": {"endpoint": "/mcp", "protocolVersion": "2025-06-18"},
+            "stdio": {
+                "command": "python",
+                "args": ["-m", "import_compliance.mcp_stdio"],
+                "note_ko": "로쇠 실행형 MCP 디렉터리(Glama·mcp.so 등)용. 한 줄에 JSON-RPC 2.0 한 건을 stdin 으로 받고 stdout 으로 응답한다.",
+            },
         },
         "tools": mcp_tools(),
         "resources": [],

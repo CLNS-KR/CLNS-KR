@@ -1,0 +1,53 @@
+# CLNS — 테스트·코퍼스 자기검증 CI
+# 표준 라이브러리만 쓰므로 의존성 설치 단계가 없다(pip install 없음).
+# 공공 API 키는 CI 에 넣지 않는다: 테스트는 고정 응답(fixture)으로만 돈다.
+name: test
+
+on:
+  push:
+    branches: ["main", "master"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Corpus self-check (--check-corpus)
+        working-directory: src
+        env:
+          PYTHONPATH: ${{ github.workspace }}/src
+        run: python -m import_compliance.cli --check-corpus
+
+      - name: Unit + HTTP + pSEO + MCP tests
+        working-directory: src
+        env:
+          PYTHONPATH: ${{ github.workspace }}/src
+        run: |
+          python -m unittest discover -s tests -p "test_*.py" -v
+
+      - name: stdio MCP smoke test
+        working-directory: src
+        env:
+          PYTHONPATH: ${{ github.workspace }}/src
+        run: |
+          printf '%s\n' \
+            '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18"}}' \
+            '{"jsonrpc":"2.0","id":2,"method":"tools/list"}' \
+            | python -m import_compliance.mcp_stdio > /tmp/stdio.out
+          test "$(grep -c '"jsonrpc"' /tmp/stdio.out)" -eq 2
