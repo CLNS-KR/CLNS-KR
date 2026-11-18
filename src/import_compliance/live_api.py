@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import time
 import urllib.error
 import urllib.parse
@@ -33,6 +34,7 @@ SOURCE_CUSTOMS = "customs_requirements"      # 관세청 세관장확인대상�
 SOURCE_MFDS_PERMIT = "mfds_import_food"      # 식약처 수입식품 허가정보 (15058273)
 SOURCE_MFDS_PRODUCT = "mfds_import_product_db"  # 식약처 수입식품 제품DB (15073949)
 SOURCE_LAW = "law_api"                        # 법제처 국가법령정보 공동활용
+SOURCE_RRA = "rra_conformity"                 # 국립전파연구원 적합성평가(인증·등록번호 조회, 키 불필요)
 
 # --- 검증된 엔드포인트 (2026-11-18 data.go.kr 상세페이지 swagger·요청주소 기준) ---
 CUSTOMS_URL = "https://apis.data.go.kr/1220000/retrieveCcctLworCd/getRetrieveCcctLworCd"
@@ -41,6 +43,19 @@ MFDS_IMPROPER_URL = "https://apis.data.go.kr/1471000/ImportFoodPrmisnInfoService
 MFDS_PRODUCT_URL = "https://apis.data.go.kr/1471000/IprtFoodPrdtDBService02/getIprtFoodPrdtDBInq02"
 LAW_SEARCH_URL = "https://www.law.go.kr/DRF/lawSearch.do"
 LAW_SERVICE_URL = "https://www.law.go.kr/DRF/lawService.do"
+
+# 국립전파연구원 적합성평가 Open API — **키가 필요 없는 공개 엔드포인트**.
+# data.go.kr 3034183(적합성평가 DB정보)은 '제공형태: LINK' 로, 실제 호출은 아래 주소로 한다.
+# 인증·등록번호(mtlCefNo) 하나로 조회하며, 검색용 목록 API 는 제공되지 않는다.
+RRA_STATUS_URL = "http://emsit.go.kr/openapi/service/AuthenticationInfoService/getAuthStatus.do"
+RRA_INFO_URL = "http://emsit.go.kr/openapi/service/AuthenticationInfoService/getAuthInfo.do"
+RRA_OFFICIAL_URL = "https://www.rra.go.kr/ko/license/A_c_search.do"
+RRA_DATA_GO_KR_ID = "3034183"
+RRA_RESULT_LABEL = {
+    "0000": "조회됨",
+    "0001": "조회 결과 없음",
+    "0098": "요청 파라미터 누락",
+}
 
 USER_AGENT = "clns-kr/0.1 (+Korea import compliance verification; contact: operator)"
 DEFAULT_TIMEOUT = 20.0
@@ -79,6 +94,14 @@ SOURCE_CATALOG = [
         "license_scope": "출처표시 조건 영리·2차 이용 허용",
         "base_url": "https://www.law.go.kr/DRF/lawSearch.do",
         "update_cycle": "daily",
+    },
+    {
+        "source_id": SOURCE_RRA,
+        "name_ko": "국립전파연구원_적합성평가 DB정보(인증·등록번호 조회)",
+        "provider": "과학기술정보통신부 국립전파연구원",
+        "license_scope": "이용허락범위 제한 없음(data.go.kr 3034183, 키 불필요 공개 API)",
+        "base_url": "http://emsit.go.kr/openapi/service/AuthenticationInfoService",
+        "update_cycle": "realtime",
     },
 ]
 
@@ -139,13 +162,19 @@ def load_env(path: Optional[str] = None) -> Dict[str, str]:
     return values
 
 
-def from_environment(env: Optional[Dict[str, str]] = None, **kwargs: Any) -> Optional["LiveApiClient"]:
-    """환경에서 클라이언트를 만든다. 키가 하나도 없으면 None."""
+def from_environment(env: Optional[Dict[str, str]] = None, *, keyless_rra: bool = False,
+                     **kwargs: Any) -> Optional["LiveApiClient"]:
+    """환경에서 클라이언트를 만든다. 키가 하나도 없으면 None.
+
+    `keyless_rra=True` 이면 키가 없어도 클라이언트를 만든다. 적합성평가(국립전파연구원)
+    조회는 키가 필요 없는 공개 엔드포인트이기 때문에, 키 없이도 그 한 축은 실시간으로
+    동작하게 하기 위한 선택지다(기본값은 기존과 동일하게 None).
+    """
     env = env if env is not None else load_env()
     key = env.get("DATA_GO_KR_SERVICE_KEY", "").strip()
     oc = env.get("LAW_GO_KR_OC", "").strip()
     if not key and not oc:
-        return None
+        return LiveApiClient(service_key="", law_oc="", **kwargs) if keyless_rra else None
     return LiveApiClient(service_key=key, law_oc=oc, **kwargs)
 
 
@@ -293,6 +322,70 @@ def parse_mfds_json(payload: Dict[str, Any]) -> Tuple[Dict[str, str], List[Dict[
     items = [dict(x) for x in _as_list(body.get("items")) if isinstance(x, dict)]
     total = body.get("totalCount")
     return header, items, int(total) if isinstance(total, (int, float)) else None
+
+
+# 인증·등록번호 표기: KCC-REM-MJT-MJT, R-LARN-00-0210, MSIP-REM-XXX-1234, 적합등록 KCC-EMC-…
+RRA_CERT_RE = re.compile(
+    r"\b(?:KCC|MSIP|RCC|SIP|R|S|KC)-[A-Z0-9]{2,6}(?:-[A-Z0-9]{2,10}){1,4}\b",
+    re.IGNORECASE,
+)
+
+
+def normalize_cert_no(value: Any) -> str:
+    """인증·등록번호를 조회 가능한 형태로 정리한다(공백 제거·대문자, '-'는 유지)."""
+    text = "".join(str(value or "").split()).upper()
+    return text
+
+
+def detect_cert_no(text: str) -> Optional[str]:
+    """질의문에서 적합성평가 인증·등록번호를 찾는다. 없으면 None(추측 금지)."""
+    if not text:
+        return None
+    match = RRA_CERT_RE.search(str(text))
+    return normalize_cert_no(match.group(0)) if match else None
+
+
+def parse_rra_xml(body: str) -> Tuple[Dict[str, str], Optional[Dict[str, str]], Any]:
+    """적합성평가 Open API XML → (header, item, raw).
+
+    응답은 단건이라 items 가 아니라 필드 나열이다. 결과코드 0000=조회됨,
+    0001=조회 결과 없음, 0098=파라미터 누락.
+    """
+    root = ET.fromstring(body)
+    data = {child.tag: (child.text or "").strip() for child in root}
+    header = {"resultCode": data.get("resultCode", ""), "resultMsg": data.get("resultMsg", "")}
+    item = None
+    if header["resultCode"] == "0000" and (data.get("mtlCefNo") or data.get("mtlNm")):
+        item = {key: value for key, value in data.items()
+                if key not in ("resultCode", "resultMsg")}
+    return header, item, data
+
+
+def normalize_rra_item(item: Dict[str, Any]) -> Dict[str, Any]:
+    """적합성평가 조회 결과 정규화(원본 태그명은 외부로 내보내지 않는다)."""
+    return {
+        "cert_no": _clean(item.get("mtlCefNo")),
+        "company": _clean(item.get("bsmNm")),
+        "equipment_name": _clean(item.get("mtlNm")),
+        "base_model": _clean(item.get("matlBscMdlNm")),
+        "derivative_models": _clean(item.get("matlDerivMdlNm")),
+        "manufacturer": _clean(item.get("matlMfrNm")),
+        "manufacture_country": _clean(item.get("dtlInfCdNm")),
+        "certified_on": _clean(item.get("cvaPcsYmd")),
+        "remarks": _clean(item.get("matlEtcMtr")),
+        "type": rra_cert_type(_clean(item.get("mtlCefNo"))),
+    }
+
+
+def rra_cert_type(cert_no: str) -> str:
+    """번호 접두로 적합성평가 유형을 추정한다(추정값임을 호출부가 밝힌다)."""
+    prefix = normalize_cert_no(cert_no).split("-")[0]
+    return {
+        "KCC": "적합등록/적합인증(구 표기)",
+        "MSIP": "적합등록/적합인증",
+        "R": "적합인증",
+        "S": "적합등록",
+    }.get(prefix, "미상")
 
 
 def parse_law_json(payload: Dict[str, Any]) -> Tuple[List[Dict[str, Any]], Optional[int]]:
@@ -491,16 +584,22 @@ class LiveApiClient:
     def has_law(self) -> bool:
         return bool(self._law_oc)
 
+    @property
+    def has_rra(self) -> bool:
+        """적합성평가 조회 가능 여부 — **키가 필요 없는 공개 엔드포인트**라 항상 True."""
+        return True
+
     def capabilities(self) -> Dict[str, bool]:
         return {
             "customs_checkpoint": self.has_customs,
             "mfds_import_permit": self.has_mfds,
             "mfds_product_db": self.has_mfds,
             "law_search": self.has_law,
+            "rra_conformity": self.has_rra,
         }
 
     def __repr__(self) -> str:  # 키가 repr 로 새지 않게 고정 문자열
-        return f"LiveApiClient(customs={self.has_customs}, law={self.has_law})"
+        return f"LiveApiClient(customs={self.has_customs}, law={self.has_law}, rra={self.has_rra})"
 
     # --- 저수준 HTTP --------------------------------------------------------
     @staticmethod
@@ -729,3 +828,64 @@ class LiveApiClient:
         items = [u for u in units if isinstance(u, dict)]
         total = len(items)
         return {"resultCode": "00", "resultMsg": "NORMAL SERVICE."}, items, total, payload
+
+    # --- 5) 국립전파연구원 적합성평가 (3034183, 키 불필요) -------------------
+    def rra_certificate(self, cert_no: str) -> LiveFetch:
+        """인증·등록번호로 적합성평가 이력을 조회한다.
+
+        키가 필요 없는 공개 엔드포인트라 별도 활용심의 없이 호출한다.
+        결과코드 0001(조회 결과 없음)은 오류가 아니라 '해당 번호 기록 없음'이며,
+        0098(파라미터 누락)은 빈 번호로 호출했다는 뜻이다. 둘 다 예외로 올리지 않고
+        상태로 돌려줘 호출부가 정직하게 표시하게 한다.
+        """
+        if not self.has_rra:
+            raise LiveApiError(SOURCE_RRA, "적합성평가 조회 비활성")
+        number = normalize_cert_no(cert_no)
+        url = self._url(RRA_INFO_URL, {"mtlCefNo": number})
+        started = time.monotonic()
+        try:
+            status, body, _ = self._transport(url, self.timeout)
+        except LiveApiError as exc:
+            self._log(SOURCE_RRA, url, 0, None, 1, "network_error")
+            raise LiveApiError(SOURCE_RRA, exc.message, retryable=True) from exc
+        if status >= 400:
+            self._log(SOURCE_RRA, url, status, None, 1, "http_error")
+            raise LiveApiError(SOURCE_RRA, redact(f"HTTP {status}: {body[:200]}"), http_status=status)
+        try:
+            header, item, raw = parse_rra_xml(body)
+        except ET.ParseError as exc:
+            self._log(SOURCE_RRA, url, status, None, 1, "parse_error")
+            raise LiveApiError(SOURCE_RRA, redact(f"응답 파싱 실패: {exc}"), http_status=status) from exc
+        code = header["resultCode"]
+        state = {"0000": "live", "0001": "not_found", "0098": "invalid_request"}.get(code, "error")
+        self._log(SOURCE_RRA, url, status, code, 1, state)
+        fetch = LiveFetch(
+            source_id=SOURCE_RRA,
+            ok=state == "live",
+            state=state,
+            http_status=status,
+            result_code=code or None,
+            result_msg=header["resultMsg"] or RRA_RESULT_LABEL.get(code, ""),
+            items=[item] if item else [],
+            raw=raw,
+            fetched_at=datetime.now(KST).isoformat(timespec="seconds"),
+            elapsed_ms=int((time.monotonic() - started) * 1000),
+            attempts=1,
+            request_echo={"cert_no": number},
+        )
+        return fetch
+
+    def rra_status(self, cert_no: str) -> Optional[bool]:
+        """적합성평가 여부(Y/N)만 필요할 때 쓰는 경량 조회. 실패하면 None."""
+        number = normalize_cert_no(cert_no)
+        if not number:
+            return None
+        url = self._url(RRA_STATUS_URL, {"mtlCefNo": number})
+        status, body, _ = self._transport(url, self.timeout)
+        if status >= 400:
+            return None
+        header, _item, raw = parse_rra_xml(body)
+        if header["resultCode"] != "0000":
+            return None
+        flag = str(raw.get("authYn", "")).strip().upper()
+        return flag == "Y" if flag else None

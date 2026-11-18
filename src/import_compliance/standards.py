@@ -138,6 +138,8 @@ REGULATION_TAGS: Dict[str, Dict[str, str]] = {
     "ORIGIN_FTA": {"label_ko": "FTA 원산지", "label_en": "FTA origin"},
     "ORIGIN_MARKING": {"label_ko": "원산지 표시", "label_en": "Origin marking"},
     "IP_PARALLEL_IMPORT": {"label_ko": "지재권·병행수입", "label_en": "IP / parallel import"},
+    "MEDICAL_DEVICE_IMPORT": {"label_ko": "의료기기 수입업 허가·품목 허가", "label_en": "Medical device import licence"},
+    "HYGIENE_PRODUCT_IMPORT": {"label_ko": "위생용품 수입업 신고·기준규격", "label_en": "Hygiene product import"},
 }
 
 # 코퍼스 케이스 → 규제 태그(테스트셋 required_findings 가 참조하는 유일한 매핑).
@@ -162,6 +164,8 @@ CASE_REGULATION_TAGS: Dict[str, List[str]] = {
     "TRAP-18": ["ORIGIN_MARKING"],
     "TRAP-19": ["CUSTOMS_CHECKPOINT"],
     "TRAP-20": ["IP_PARALLEL_IMPORT"],
+    "TRAP-21": ["MEDICAL_DEVICE_IMPORT"],
+    "TRAP-22": ["HYGIENE_PRODUCT_IMPORT"],
 }
 
 

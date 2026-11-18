@@ -315,6 +315,10 @@ class SourceGateway:
 
     def get(self, source_id: str, query_key: str, *, live_failure: bool = True,
             live_query: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        if source_id == "rra_conformity":
+            # 적합성평가(전파법)는 인증·등록번호가 있어야 조회되는 소스라, 번호가 없을 때
+            # '연결 실패(unavailable)'로 뭉개지 않고 '번호 필요' 상태를 따로 돌려준다.
+            return self._rra(query_key, live_query)
         if self.live is not None and live_query:
             live_state = self._live(source_id, query_key, live_query)
             if live_state is not None:
@@ -385,3 +389,52 @@ class SourceGateway:
 
     def _age_hours(self, stamp: str) -> float:
         return snapshot_age_hours(stamp)
+
+    # --- 적합성평가(국립전파연구원) ------------------------------------------
+    def _rra(self, query_key: str, live_query: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+        from .live_api import (
+            RRA_OFFICIAL_URL,
+            SOURCE_RRA,
+            LiveApiError,
+            normalize_cert_no,
+            normalize_rra_item,
+        )
+
+        cert_no = normalize_cert_no((live_query or {}).get("cert_no"))
+        base = {
+            "source_id": SOURCE_RRA,
+            "official_url": RRA_OFFICIAL_URL,
+            "lookup_field": "rra_cert_no",
+            "note_ko": (
+                "적합성평가(적합인증·적합등록)는 인증·등록번호로만 실시간 확인할 수 있습니다. "
+                "번호가 없으면 모델명으로 국립전파연구원 적합성평가 현황 검색에서 확인해야 합니다."
+            ),
+        }
+        if not cert_no:
+            return {**base, "state": "certificate_number_required", "fresh": None,
+                    "age_hours": None, "data": None}
+        if self.live is None or not getattr(self.live, "has_rra", False):
+            return {**base, "state": "unavailable", "fresh": None, "age_hours": None, "data": None}
+        try:
+            fetch = self.live.rra_certificate(cert_no)
+        except LiveApiError as exc:
+            self.store.put_snapshot(SOURCE_RRA, query_key,
+                                    {"error": exc.message, "result_code": exc.code}, status="error")
+            return {**base, "state": "error", "fresh": False, "age_hours": None, "data": None,
+                    "error": exc.message, "result_code": exc.code}
+        normalized = [normalize_rra_item(item) for item in fetch.items]
+        if fetch.state == "live":
+            self.store.put_snapshot(SOURCE_RRA, query_key,
+                                    {"items": normalized, "item_count": len(normalized),
+                                     "result_code": fetch.result_code})
+            return {**base, "state": "live", "fresh": True, "age_hours": 0.0,
+                    "fetched_at": fetch.fetched_at, "item_count": len(normalized),
+                    "result_code": fetch.result_code, "cert_no": cert_no,
+                    "data": {"items": normalized}}
+        return {**base, "state": fetch.state if fetch.state != "live" else "error",
+                "fresh": True, "age_hours": 0.0, "fetched_at": fetch.fetched_at,
+                "item_count": 0, "result_code": fetch.result_code, "cert_no": cert_no,
+                "note_ko": (
+                    "이 인증·등록번호로 조회된 적합성평가 기록이 없습니다. 0건은 '미인증' 단정이 "
+                    "아니라 번호 표기·개정·시스템 반영 차이일 수 있으므로 번호를 다시 확인해야 합니다."
+                ), "data": {"items": []}}

@@ -17,8 +17,8 @@ from .store import Store
 def run_corpus_checks() -> int:
     corpus = load_corpus()
     problems = []
-    if len(corpus.traps) != 20:
-        problems.append(f"trap count is {len(corpus.traps)}, expected 20")
+    if len(corpus.traps) != 22:
+        problems.append(f"trap count is {len(corpus.traps)}, expected 22")
     for trap in corpus.traps:
         if trap.default_verdict not in ("check_likely", "info_needed", "low_risk"):
             problems.append(f"{trap.id}: bad verdict {trap.default_verdict}")
@@ -144,7 +144,7 @@ def main(argv=None) -> int:
         cfg = config_from_env()
         live_client = None
         if args.live or cfg["live_mode"]:
-            live_client = from_environment()
+            live_client = from_environment(keyless_rra=True)
             if live_client is None:
                 print("경고: 실API 모드지만 키가 없습니다. 코퍼스 근거로만 동작합니다.")
             else:
@@ -166,7 +166,7 @@ def main(argv=None) -> int:
     store = Store(args.db or ":memory:")
     live = None
     if args.live:
-        live = from_environment()
+        live = from_environment(keyless_rra=True)
         if live is None:
             print("실API 키가 없습니다(.env의 DATA_GO_KR_SERVICE_KEY / LAW_GO_KR_OC).")
         else:

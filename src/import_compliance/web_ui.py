@@ -16,7 +16,7 @@ SERVICE_NAME = "CLNS"
 SERVICE_SUBTITLE_EN = "PRODUCT COMPLIANCE INTELLIGENCE · KOREA"
 SERVICE_SUBTITLE_KO = "복잡한 한국 수입 규제를 10초 만에 확인"
 SERVICE_TAGLINE = "Clearance, simplified."
-SERVICE_VERSION = "0.1.3"
+SERVICE_VERSION = "0.1.4"
 
 PAGE_HTML = """<!doctype html>
 <html lang="ko">
@@ -270,6 +270,13 @@ footer strong{color:var(--ink)}
               <span class="hint">10자리를 넣으면 관세청 세관장확인대상물품을 실시간 조회합니다(6자리는 요건 판정에 부족).</span>
             </label>
 
+            <label class="field" for="rra">
+              <span class="lab">적합성평가 번호<span class="opt">선택</span></span>
+              <input type="text" id="rra" name="rra" maxlength="40" autocomplete="off"
+                     placeholder="예: R-LARN-00-0210">
+              <span class="hint">전파 적합성평가는 번호가 있어야 실시간 조회됩니다(국립전파연구원, 키 불필요).</span>
+            </label>
+
             <label class="field" for="origin">
               <span class="lab">원산지<span class="opt">선택</span></span>
               <select id="origin" name="origin">
@@ -421,7 +428,7 @@ footer strong{color:var(--ink)}
     <p>무료 베타 · 결제 없음 · 회원가입 없음</p>
     <p><strong>품목별 수입 요건:</strong> <a href="/p/">선풍기·보조배터리·오메가3·선크림 등 35개 품목의 요건·인증·함정을 정리한 무료 체크 페이지</a></p>
     <p><strong>면책:</strong> 본 결과는 사전 참고용입니다. 법적 효력이 없으며, 최종 법적 판단과 통관·인증 가능 여부는 관세사, 관세청, 국가기술표준원·인증기관, 식품의약품안전처 등 소관 기관의 확인이 필요합니다. 본 서비스는 관세사법상 관세 상담·대리 업무를 수행하지 않습니다.</p>
-    <p><strong>데이터:</strong> 관세청·식품의약품안전처·산업통상부 국가기술표준원·법제처 공공데이터를 활용합니다. 원본을 그대로 중계하지 않고 결합·정규화한 판정만 제공하며, 조회 실패나 개정 지연 시 캐시 시점을 밝히고 판정을 "추가 정보 필요"로 낮춥니다.</p>
+    <p><strong>데이터:</strong> 관세청·식품의약품안전처·산업통상부 국가기술표준원·과학기술정보통신부 국립전파연구원·법제처 공공데이터를 활용합니다. 원본을 그대로 중계하지 않고 결합·정규화한 판정만 제공하며, 조회 실패나 개정 지연 시 캐시 시점을 밝히고 판정을 "추가 정보 필요"로 낮춥니다.</p>
     <p><strong>개인정보:</strong> 이름·연락처·이메일·사업자 정보를 받지 않습니다. 입력한 품목 정보(품목명·HS·원산지 등)는 판정 이력에 익명으로 저장될 수 있습니다. 상호·주소 등 식별 정보는 입력하지 마세요.</p>
     <p>© 2026 CLNS · 익명 운영 무료 베타 · <span id="version">v__VERSION__</span></p>
   </footer>
@@ -594,6 +601,33 @@ footer strong{color:var(--ink)}
     return inner + '<p class="note-inline" style="margin-top:8px">' + esc(block.note_ko || "") + "</p>";
   }
 
+  function rraBlock(block){
+    if (!block) return emptyBox("적합성평가 번호를 넣으면 국립전파연구원 적합성평가 DB를 실시간으로 조회합니다(키 불필요). 번호가 없으면 모델명으로 직접 확인해야 합니다.");
+    if (block.state === "cached_fallback") {
+      var cachedRows = (block.matches || []).map(function(m){
+        return { equip: m.equipment_name, model: m.base_model, cert: m.cert_no, date: m.certified_on, country: m.manufacture_country };
+      });
+      var cachedHead = '<p class="sub">' + esc(block.cert_no) + " · 캐시 " + esc(String(block.age_hours)) + "시간 경과 · 일치 " + esc(String(block.match_count)) + "건</p>";
+      cachedHead += table([["기자재명", "equip"], ["기본모델", "model"], ["인증·등록번호", "cert"], ["인증일", "date"], ["제조국", "country"]], cachedRows);
+      if (!cachedRows.length) cachedHead += emptyBox(block.note_ko || "조회 결과가 없습니다.");
+      return cachedHead + '<p class="note-inline" style="margin-top:8px">' + esc(block.cache_note_ko || "") + "</p>";
+    }
+    if (block.state === "not_found") {
+      return emptyBox(block.note_ko || "이 번호로 조회된 적합성평가 기록이 없습니다.") +
+        '<p class="note-inline" style="margin-top:8px"><a href="' + esc(block.official_url || "") + '" target="_blank" rel="noopener noreferrer">국립전파연구원에서 직접 확인</a></p>';
+    }
+    if (block.state !== "live") {
+      return emptyBox("적합성평가 조회가 정상 처리되지 않았습니다(코드 " + esc(text(block.code) || text(block.result_code) || "n/a") + "). " + esc(block.note_ko || ""));
+    }
+    var rows = (block.matches || []).map(function(m){
+      return { equip: m.equipment_name, model: m.base_model, cert: m.cert_no, date: m.certified_on, country: m.manufacture_country };
+    });
+    var inner = '<p class="sub">' + esc(block.cert_no) + " · " + esc(block.cert_type_estimate || "") + " · 조회 " + esc(block.checked_at) + " · 일치 " + esc(String(block.match_count)) + "건</p>";
+    inner += table([["기자재명", "equip"], ["기본모델", "model"], ["인증·등록번호", "cert"], ["인증일", "date"], ["제조국", "country"]], rows);
+    if (!rows.length) inner += emptyBox(block.note_ko || "조회 결과가 없습니다.");
+    return inner + '<p class="note-inline" style="margin-top:8px">' + esc(block.type_note_ko || "") + " " + esc(block.note_ko || "") + "</p>";
+  }
+
   function mfdsBlock(block){
     if (!block) return "";
     var parts = [];
@@ -688,6 +722,7 @@ footer strong{color:var(--ink)}
       origin: document.getElementById("origin").value,
       wire: radio("wire") || "unknown",
       child: radio("child") || "no",
+      rra: (document.getElementById("rra").value || "").trim(),
       kind: document.getElementById("kind").value,
       purpose: radio("purpose") || "resale"
     };
@@ -709,6 +744,7 @@ footer strong{color:var(--ink)}
 
     var facts = { purpose: data.purpose, rf_tx: data.wire, target_age: data.child === "yes" ? "어린이" : "성인" };
     if (data.hs.length === 10) facts.hs_code = data.hs;
+    if (data.rra) facts.rra_cert_no = data.rra;
     var query = buildQuery(data);
 
     submitBtn.disabled = true;
@@ -755,6 +791,11 @@ footer strong{color:var(--ink)}
             ? "HS " + data.hs + " 실시간 조회 결과입니다."
             : "HS " + data.hs + " 기준입니다. 아래에 실시간 조회 결과 또는 실패 사유가 표시됩니다.");
       html += section("세관장확인 요건 (관세청)", customsInner, customsSub);
+
+      if (result.rra_conformity_live){
+        html += section("전파 적합성평가 (국립전파연구원)", rraBlock(result.rra_conformity_live),
+          "인증·등록번호 1건 단위 조회 결과입니다. 모델명 일치는 별도로 대조해야 합니다.");
+      }
 
       if (mfds){
         html += section("식약처 수입 이력", mfds.__error ? emptyBox("식약처 조회 실패: " + mfds.__error) : mfdsBlock(mfds.food_import_live),

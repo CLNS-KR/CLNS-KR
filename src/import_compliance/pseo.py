@@ -27,6 +27,7 @@ from typing import Any, Dict, List, Optional
 from . import site_verification, static_files
 from .corpus import load_corpus
 from .models import Trap
+from .standards import CASE_REGULATION_TAGS, REGULATION_TAGS
 
 CATALOG_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                             "pseo_items.json")
@@ -373,6 +374,183 @@ def _basis_block(item: Dict[str, Any]) -> str:
     return "".join(out)
 
 
+# 규제 태그 → 소관 기관(페이지의 '규제 축' 표에 쓰는 공통 어휘).
+TAG_AUTHORITY_KO: Dict[str, str] = {
+    "FOOD_IMPORT_DECLARATION": "식품의약품안전처",
+    "FOOD_BUSINESS_REGISTRATION": "식품의약품안전처",
+    "FOOD_ADDITIVE": "식품의약품안전처",
+    "HEALTH_FUNCTIONAL_FOOD": "식품의약품안전처",
+    "FOOD_CONTACT_MATERIAL": "식품의약품안전처",
+    "KOREAN_LABELING": "식품의약품안전처·관세청",
+    "COSMETICS_RESPONSIBLE_SALES": "식품의약품안전처",
+    "CHILDREN_PRODUCT_SAFETY": "산업통상부 국가기술표준원",
+    "ELECTRICAL_KC": "산업통상부 국가기술표준원",
+    "BATTERY_SAFETY": "산업통상부 국가기술표준원",
+    "RF_CONFORMITY": "과학기술정보통신부 국립전파연구원",
+    "HOUSEHOLD_CHEMICAL": "환경부·산업통상부",
+    "CUSTOMS_CHECKPOINT": "관세청",
+    "CUSTOMS_LOW_VALUE": "관세청",
+    "CUSTOMS_PERSONAL_ID": "관세청",
+    "DRUG_IMPORT": "식품의약품안전처",
+    "TOBACCO_VAPE": "보건복지부·기획재정부",
+    "ORIGIN_FTA": "관세청",
+    "ORIGIN_MARKING": "관세청·산업통상부",
+    "IP_PARALLEL_IMPORT": "관세청·특허청",
+    "MEDICAL_DEVICE_IMPORT": "식품의약품안전처",
+    "HYGIENE_PRODUCT_IMPORT": "식품의약품안전처",
+}
+
+# 태그 → 이 페이지에서 "어떤 툴로 확인하는지"(MCP 연결 안내를 일관되게 만든다).
+TAG_TOOL: Dict[str, str] = {
+    "CUSTOMS_CHECKPOINT": "lookup_hs_requirements",
+    "CUSTOMS_LOW_VALUE": "lookup_hs_requirements",
+    "CUSTOMS_PERSONAL_ID": "lookup_hs_requirements",
+    "ELECTRICAL_KC": "check_kc_certification",
+    "BATTERY_SAFETY": "check_kc_certification",
+    "CHILDREN_PRODUCT_SAFETY": "check_kc_certification",
+    "RF_CONFORMITY": "check_kc_certification",
+    "FOOD_IMPORT_DECLARATION": "check_food_cosmetics",
+    "FOOD_BUSINESS_REGISTRATION": "check_food_cosmetics",
+    "FOOD_ADDITIVE": "check_food_cosmetics",
+    "HEALTH_FUNCTIONAL_FOOD": "check_food_cosmetics",
+    "FOOD_CONTACT_MATERIAL": "check_food_cosmetics",
+    "COSMETICS_RESPONSIBLE_SALES": "check_food_cosmetics",
+    "MEDICAL_DEVICE_IMPORT": "assess_import_case",
+    "HYGIENE_PRODUCT_IMPORT": "assess_import_case",
+    "KOREAN_LABELING": "assess_import_case",
+    "HOUSEHOLD_CHEMICAL": "assess_import_case",
+    "DRUG_IMPORT": "assess_import_case",
+    "TOBACCO_VAPE": "assess_import_case",
+    "ORIGIN_FTA": "assess_import_case",
+    "ORIGIN_MARKING": "assess_import_case",
+    "IP_PARALLEL_IMPORT": "assess_import_case",
+}
+
+TOOL_ONE_LINE_KO: Dict[str, str] = {
+    "assess_import_case": "품목·상황을 자연어로 넣어 쟁점·근거·면책을 한 번에 판정",
+    "lookup_hs_requirements": "HS 10자리로 세관장확인 요건·기관·확인시점 조회",
+    "check_kc_certification": "전기용품 KC·전지·전파 적합성평가 중 무엇이 걸리는지 판정",
+    "check_food_cosmetics": "식품·건강기능식품·화장품·기구용기 요건 판정(위생용품은 assess_import_case)",
+    "lookup_recall": "브랜드·모델·품목군으로 국내 리콜 이력 조회",
+    "get_legal_basis": "근거 법령 조문 요지·시행일·원문 URL 조회",
+    "explain_trap": "이 페이지의 함정 케이스 해설(오답·정답·근거)",
+}
+
+
+def _item_tags(item: Dict[str, Any]) -> List[str]:
+    """항목에 연결된 함정 케이스들의 규제 태그를 순서 유지·중복 제거로 뽑는다."""
+    out: List[str] = []
+    for trap in _item_traps(item):
+        for tag in CASE_REGULATION_TAGS.get(trap.id, []):
+            if tag not in out:
+                out.append(tag)
+    return out
+
+
+def _axes_block(item: Dict[str, Any]) -> str:
+    """'이 품목에 걸리는 규제 축' — 태그·소관 기관·확인 카드·조회 툴을 한 표로 보여준다."""
+    tags = _item_tags(item)
+    if not tags:
+        return ""
+    traps = {trap.id: trap for trap in _item_traps(item)}
+    rows = []
+    for tag in tags:
+        meta = REGULATION_TAGS.get(tag) or {}
+        cards = [trap_id for trap_id, trap in traps.items()
+                 if tag in CASE_REGULATION_TAGS.get(trap_id, [])]
+        rows.append(
+            "<tr>"
+            f"<td>{_esc(meta.get('label_ko') or tag)}</td>"
+            f"<td>{_esc(TAG_AUTHORITY_KO.get(tag) or '소관 기관 확인')}</td>"
+            f"<td>{_esc(', '.join(cards) or '-')}</td>"
+            f"<td><code>{_esc(TAG_TOOL.get(tag, 'assess_import_case'))}</code></td>"
+            "</tr>"
+        )
+    return (
+        '<div class="tablewrap"><table><thead><tr><th>규제 축</th><th>소관 기관</th>'
+        "<th>확인 카드</th><th>MCP 툴</th></tr></thead><tbody>"
+        + "".join(rows)
+        + "</tbody></table></div>"
+        + '<p class="brand-sub" style="margin-top:8px">축은 품목 유형·표시 문구에 따라 갈립니다. '
+        "아래 '핵심 함정'에서 어떤 말 한마디로 결론이 바뀌는지 먼저 보세요.</p>"
+    )
+
+
+def _classification_block(item: Dict[str, Any]) -> str:
+    """HS 요건 표와 법령상 품목 분류는 다르다는 것을 모든 페이지에 같은 문장으로 밝힌다."""
+    tags = set(_item_tags(item))
+    extra = ""
+    if tags & {"MEDICAL_DEVICE_IMPORT", "HYGIENE_PRODUCT_IMPORT"}:
+        extra = (
+            " <strong>의료기기·위생용품·의약외품 경계:</strong> 의료기기는 의료기기법(수입업 허가·품목 허가), "
+            "위생용품은 위생용품 관리법(수입업 신고·수입신고·검사·기준규격), 생리대·탐폰·생리컵과 "
+            "KF·비말차단·수술용 마스크는 의약외품(약사법)으로 법이 다릅니다."
+        )
+    return (
+        '<div class="card"><p style="margin-top:0"><strong>HS 요건과 법령상 품목 분류는 다릅니다.</strong> '
+        "위 세관장확인 표는 <strong>HS 10자리 단위</strong>의 요건이라, 같은 HS에 묶인 다른 품목의 요건이 "
+        "함께 나올 수 있습니다. 반대로 표에 없다고 그 법의 적용이 없는 것도 아닙니다. "
+        "품목이 그 법의 정의에 들어가는지는 품목명·용도·표시로 따로 판단해야 합니다."
+        + extra
+        + "</p></div>"
+    )
+
+
+def _mcp_block(item: Dict[str, Any], base: str) -> str:
+    """MCP·API 연결 안내 — 이 품목에 실제로 쓸 툴만 골라 보여준다(모든 페이지 공통 형식)."""
+    tags = _item_tags(item)
+    tools = ["assess_import_case"]
+    for tag in tags:
+        tool = TAG_TOOL.get(tag)
+        if tool and tool not in tools:
+            tools.append(tool)
+    for extra in ("lookup_recall", "get_legal_basis"):
+        if extra not in tools:
+            tools.append(extra)
+    items_html = "".join(
+        f"<li><code>{_esc(tool)}</code> — {_esc(TOOL_ONE_LINE_KO.get(tool, ''))}</li>"
+        for tool in tools
+    )
+    example = json.dumps({"query": f"{item['name_ko']} 수입 판매",
+                          "facts": {"hs_code": item["hs_code"], "purpose": "resale"}},
+                         ensure_ascii=False)
+    return (
+        '<h2>API·MCP로 이 품목 자동 조회</h2>'
+        '<div class="card">'
+        f'<ul class="clean">{items_html}</ul>'
+        '<p style="margin-bottom:4px"><strong>HTTP</strong> <code>POST /v1/tools/assess_import_case</code></p>'
+        f'<p style="font-size:13.5px; color:var(--ink-soft); margin-top:0"><code>{_esc(_clamp(example, 220))}</code></p>'
+        '<p style="margin-bottom:0"><strong>MCP</strong> <code>POST /mcp</code> · 매니페스트 '
+        f'<a href="{_esc(base)}/v1/mcp">/v1/mcp</a> · 로컬 실행 '
+        '<code>python -m import_compliance.mcp_stdio</code></p>'
+        '<p class="brand-sub" style="margin-bottom:0">응답에는 항상 근거 조항·시행일·원문 URL과 국·영문 면책이 함께 옵니다. '
+        "원본 API 응답은 재전송하지 않고 결합·정규화한 판정만 돌려줍니다.</p>"
+        "</div>"
+    )
+
+
+def _channel_block() -> str:
+    """모든 페이지 공통: 직구·목록통관 축은 품목별 카드와 별도로 항상 같은 문장으로 안내한다."""
+    traps = _trap_map()
+    out = []
+    for trap_id in ("TRAP-12", "TRAP-13"):
+        trap = traps.get(trap_id)
+        if trap is None:
+            continue
+        out.append(
+            f"<li><strong>{_esc(trap.id)} · {_esc(trap.title)}</strong> — "
+            f"{_esc(_clamp(trap.correct_answer, MAX_TRAP_ANSWER))}</li>"
+        )
+    if not out:
+        return ""
+    return (
+        '<h2>해외직구·목록통관으로 들여올 때</h2>'
+        f'<div class="card"><ul class="clean">{"".join(out)}</ul>'
+        '<p class="brand-sub" style="margin-bottom:0">판매 목적·금액·품목에 따라 목록통관 배제와 개인통관고유부호 요구가 달라집니다. '
+        "금액이 낮아도 면세·목록통관이 자동으로 되지 않습니다.</p></div>"
+    )
+
+
 def _related_block(item: Dict[str, Any]) -> str:
     same = [other for other in items()
             if other["slug"] != item["slug"] and other.get("category") == item.get("category")]
@@ -490,6 +668,11 @@ def render_item(slug: str, base: Optional[str] = None) -> Optional[str]:
 <h2>세관장확인 요건 (관세청)</h2>
 <div class="card">{_requirements_table(item)}</div>
 
+<h2>이 품목에 걸리는 규제 축</h2>
+<div class="card">{_axes_block(item)}</div>
+
+{_classification_block(item)}
+
 <h2>인증·허가 요건</h2>
 <div class="card"><ul class="clean">{certifications or "<li>확인 항목 없음</li>"}</ul></div>
 
@@ -502,10 +685,14 @@ def render_item(slug: str, base: Optional[str] = None) -> Optional[str]:
 <h2>법적 근거</h2>
 <div class="card">{_basis_block(item) or "<p>근거 조항은 실시간 조회 응답의 evidence 로 제공됩니다.</p>"}</div>
 
+{_channel_block()}
+
 <h2>이 페이지에서 다룬 검색어</h2>
 <p style="font-size:14px; color:var(--ink-soft)">{_esc(keywords)}</p>
 
 {_related_block(item)}
+
+{_mcp_block(item, root)}
 
 <h2>정확히 확인하려면</h2>
 <div class="card">

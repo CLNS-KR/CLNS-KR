@@ -1,6 +1,8 @@
 """API / MCP 툴 8종."""
 from __future__ import annotations
 
+import json
+
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Callable, Dict, List, Optional
 
@@ -19,7 +21,15 @@ from .standards import (
 from .engine import assess
 from .models import VERDICT_LABEL_EN, VERDICT_LABEL_KO, VERDICT_SEVERITY
 from .policy import PAID_TIER_NOTICE_KO, SCOPE_LIMITS_KO, TIER_BOUNDARIES
-from .store import FREE_MONTHLY_CALLS, QuotaExceeded, SourceGateway, Store, iso, now_kst
+from .store import (
+    FREE_MONTHLY_CALLS,
+    QuotaExceeded,
+    SourceGateway,
+    Store,
+    iso,
+    now_kst,
+    snapshot_age_hours,
+)
 
 # 공공데이터 스냅샷 TTL(문서 03 설계값: 7일). 이 시간 안의 캐시는 'cached_fallback'으로 정직하게 표시한다.
 CACHE_TTL_HOURS = 24 * 7
@@ -232,6 +242,145 @@ def _mfds_live(live: Any, product_name: str, *, store: Any = None,
     return block
 
 
+def _rra_live(live: Any, cert_no: str, *, store: Any = None, rows: int = 3,
+              reuse_key: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    """국립전파연구원 적합성평가 조회(인증·등록번호 1건) + 7일 TTL 캐시.
+
+    키가 필요 없는 공개 엔드포인트라 별도 활용신청 없이 호출한다.
+    번호가 없으면 None(호출부가 '번호 필요' 상태를 안내한다).
+    `reuse_key` 는 엔진 게이트웨이가 같은 요청에서 이미 저장한 스냅샷 키다
+    (같은 요청에서 같은 API를 두 번 부르지 않기 위해 재사용한다).
+    """
+    if live is None or not getattr(live, "has_rra", False):
+        return None
+    from .live_api import (
+        RRA_OFFICIAL_URL,
+        SOURCE_RRA,
+        LiveApiError,
+        normalize_cert_no,
+        normalize_rra_item,
+        rra_cert_type,
+    )
+
+    number = normalize_cert_no(cert_no)
+    if not number:
+        return None
+    key = _cache_key("rra", number)
+    cached = _cached_block(store, SOURCE_RRA, key)
+    if cached is not None:
+        return cached
+
+    block: Dict[str, Any] = {
+        "state": "live",
+        "fresh": True,
+        "age_hours": 0.0,
+        "cert_no": number,
+        "cert_type_estimate": rra_cert_type(number),
+        "source": "과학기술정보통신부 국립전파연구원_적합성평가 DB정보(data.go.kr 3034183, 이용허락범위 제한 없음, 키 불필요)",
+        "official_url": RRA_OFFICIAL_URL,
+        "note_ko": LIVE_NOTES["usage_ko"],
+        "passthrough_ko": LIVE_NOTES["passthrough_ko"],
+        "cache_ttl_hours": CACHE_TTL_HOURS,
+        "type_note_ko": (
+            "유형(적합인증·적합등록 등)은 번호 접두를 기준으로 표시한 추정값이며, "
+            "공식 확인은 국립전파연구원 조회 화면을 따른다."
+        ),
+    }
+    prefetched = _prefetched_rra(store, reuse_key, rows) if reuse_key else None
+    if prefetched is not None:
+        block.update(prefetched)
+        _store_block(store, SOURCE_RRA, key, block)
+        return block
+    try:
+        fetch = live.rra_certificate(number)
+    except LiveApiError as exc:
+        block.update(_live_error(exc))
+        return block
+    matches = [normalize_rra_item(item) for item in fetch.items][:rows]
+    block["checked_at"] = fetch.fetched_at
+    block["result_code"] = fetch.result_code
+    block["match_count"] = len(matches)
+    block["matches"] = matches
+    if fetch.state == "not_found":
+        block["state"] = "not_found"
+        block["note_ko"] = (
+            "이 인증·등록번호로 조회된 적합성평가 기록이 없습니다. 0건은 '미인증' 단정이 아니라 "
+            "번호 표기·개정·시스템 반영 차이일 수 있으므로 번호를 다시 확인해야 합니다."
+        )
+    elif fetch.state != "live":
+        block["state"] = "error"
+        block["note_ko"] = "적합성평가 조회가 정상 처리되지 않았습니다(결과코드 확인 필요)."
+    else:
+        _store_block(store, SOURCE_RRA, key, block)
+    return block
+
+
+def _prefetched_rra(store: Any, key: str, rows: int) -> Optional[Dict[str, Any]]:
+    """같은 요청에서 엔진 게이트웨이가 남긴 적합성평가 스냅샷(최근 3분)을 블록으로 되살린다."""
+    if store is None or not key:
+        return None
+    from .live_api import SOURCE_RRA
+
+    try:
+        row = store.latest_snapshot(SOURCE_RRA, key)
+    except Exception:  # noqa: BLE001 - 캐시 조회 실패는 네트워크 호출로 넘긴다
+        return None
+    if row is None:
+        return None
+    age = snapshot_age_hours(row["fetched_at"])
+    if age > 0.05:  # 3분
+        return None
+    try:
+        payload = json.loads(row["payload_json"])
+    except (TypeError, ValueError):
+        return None
+    items = payload.get("items") or []
+    return {
+        "state": "live",
+        "fresh": True,
+        "age_hours": round(age, 3),
+        "checked_at": row["fetched_at"],
+        "result_code": payload.get("result_code"),
+        "match_count": len(items),
+        "matches": items[:rows],
+    }
+
+
+def _apply_rra_result(result: Dict[str, Any], block: Dict[str, Any]) -> None:
+    """적합성평가 조회 결과를 안내문·data_provenance 에 반영한다."""
+    from .live_api import SOURCE_RRA
+
+    answer = result.setdefault("answer", {})
+    guidance = answer.setdefault("guidance", [])
+    state = str(block.get("state") or "")
+    cert_no = str(block.get("cert_no") or "")
+    _mark_live_provenance(
+        result, SOURCE_RRA, state=state if state in ("live", "not_found", "error") else "error",
+        fetched_at=str(block.get("checked_at") or ""), fresh=bool(block.get("fresh")),
+        age_hours=block.get("age_hours"), item_count=block.get("match_count"),
+        cert_no=cert_no or None,
+    )
+    if state == "live" and block.get("matches"):
+        top = block["matches"][0]
+        guidance.append(
+            f"국립전파연구원 적합성평가 DB에서 인증·등록번호 {cert_no}의 기록을 확인했습니다"
+            f"(기자재명 {top.get('equipment_name') or '-'}, 기본모델 {top.get('base_model') or '-'}, "
+            f"인증일 {top.get('certified_on') or '-'}). 조회된 기록은 인증 사실의 확인이며, "
+            "해당 모델이 이번 수입 건의 모델과 같은지는 모델명·파생모델로 대조해야 합니다."
+        )
+    elif state == "not_found":
+        guidance.append(
+            f"인증·등록번호 {cert_no}로는 적합성평가 기록이 조회되지 않았습니다. 0건은 '미인증' "
+            "단정이 아니므로 번호 표기(하이픈·연도)와 개정 여부를 다시 확인해야 합니다."
+        )
+    elif state == "error":
+        guidance.append(
+            "적합성평가 실시간 조회에 실패했습니다"
+            f"(코드 {block.get('code') or block.get('result_code') or 'n/a'}). "
+            "전파법 적합성평가 쟁점은 코퍼스·법령 근거로만 판단했습니다."
+        )
+
+
 def _law_live(live: Any, law_names: List[str], limit: int = 3,
               article: str = "", store: Any = None) -> Optional[Dict[str, Any]]:
     if live is None or not getattr(live, "has_law", False) or not law_names:
@@ -365,9 +514,46 @@ def tool_assess_import_case(args: Dict[str, Any], store: Store, client_id: str, 
             if store is not None:  # 판정을 올렸으면 저장된 사본도 같은 결론으로 맞춘다
                 store.update_assessment(str(result.get("assessment_id") or ""),
                                         str(result["verdict"]["code"]), result)
+    # 적합성평가(전파법): 인증·등록번호가 있으면 국립전파연구원 DB를 실시간 조회한다.
+    cert_no = str(resolved.get("rra_cert_no") or facts.get("rra_cert_no")
+                  or facts.get("cert_no") or "").strip()
+    if cert_no:
+        rra_block = _rra_live(live, cert_no, store=store,
+                              reuse_key=normalize(query)[:60] if store is not None else None)
+        if rra_block is not None:
+            result["rra_conformity_live"] = rra_block
+            _apply_rra_result(result, rra_block)
+    elif any("RF_CONFORMITY" in (finding.get("regulation_tags") or [])
+             for finding in result.get("findings") or []):
+        _add_rra_hint(result, store)
     # 실시간 조회로 verdict 가 올라갔으면 표준 판정 상태도 함께 맞춘다.
     apply_status(result)
     return _envelope("assess_import_case", result)
+
+
+def _add_rra_hint(result: Dict[str, Any], store: Any = None) -> None:
+    """인증·등록번호가 없을 때: '미연결'이 아니라 '번호를 주면 조회 가능'을 안내한다."""
+    from .live_api import RRA_OFFICIAL_URL, SOURCE_RRA
+
+    guidance = result.setdefault("answer", {}).setdefault("guidance", [])
+    provenance = result.get("data_provenance")
+    already = False
+    if isinstance(provenance, dict):
+        for entry in provenance.get("sources") or []:
+            if entry.get("source_id") == SOURCE_RRA:
+                already = True
+                entry.setdefault("state", "certificate_number_required")
+                entry["official_url"] = RRA_OFFICIAL_URL
+                entry["lookup_field"] = "rra_cert_no"
+    if not already:
+        _mark_live_provenance(result, SOURCE_RRA, state="certificate_number_required",
+                              fresh=None, official_url=RRA_OFFICIAL_URL,
+                              lookup_field="rra_cert_no")
+    guidance.append(
+        "전파 적합성평가(적합인증·적합등록)는 인증·등록번호가 있어야 실시간 확인됩니다. "
+        "번호를 facts.rra_cert_no 로 알려주면 국립전파연구원 DB에서 바로 조회하고, "
+        f"번호가 없으면 모델명으로 {RRA_OFFICIAL_URL} 에서 확인해야 합니다."
+    )
 
 
 def tool_lookup_hs_requirements(args: Dict[str, Any], store: Store, client_id: str, tier: str,
@@ -436,12 +622,30 @@ def tool_check_kc_certification(args: Dict[str, Any], store: Store, client_id: s
         facts["battery_type"] = args["battery"]
     if args.get("ac_plug"):
         facts["ac_plug"] = args["ac_plug"]
+    if args.get("rra_cert_no"):
+        facts["rra_cert_no"] = str(args["rra_cert_no"]).strip()
     query = f"{product} KC 인증 전기용품 전기용품안전관리법"
     if args.get("target_age"):
         query += " 어린이제품"
     if args.get("rf_tx") == "yes":
         query += " 전파 적합성"
     result = assess(query, facts, store=store, client_id=client_id, tier=tier, limit=3)
+    # 적합성평가 번호가 있으면 국립전파연구원 DB를 바로 조회해 붙인다(키 불필요).
+    from .live_api import detect_cert_no
+
+    cert_no = str(facts.get("rra_cert_no") or "")
+    if not cert_no:
+        found = detect_cert_no(query)
+        cert_no = found or ""
+    if cert_no:
+        rra_block = _rra_live(live, cert_no, store=store)
+        if rra_block is not None:
+            result["rra_conformity_live"] = rra_block
+            _apply_rra_result(result, rra_block)
+    elif any("RF_CONFORMITY" in (finding.get("regulation_tags") or [])
+             for finding in result.get("findings") or []):
+        _add_rra_hint(result, store)
+    apply_status(result)
     return _envelope("check_kc_certification", result)
 
 
@@ -649,7 +853,8 @@ def tool_get_service_meta(args: Dict[str, Any], store: Store, client_id: str, ti
         "live_sources": (
             live.capabilities() if live is not None else
             {"customs_checkpoint": False, "mfds_import_permit": False,
-             "mfds_product_db": False, "law_search": False}
+             "mfds_product_db": False, "law_search": False,
+             "rra_conformity": False}
         ),
         "principles": [
             "원본 API 1:1 재전송 금지",
@@ -671,7 +876,7 @@ TOOL_DEFS: List[Dict[str, Any]] = [
             "type": "object",
             "properties": {
                 "query": {"type": "string", "description": "품목과 상황 설명(예: '중국산 블루투스 스피커를 수입해 판매')"},
-                "facts": {"type": "object", "description": "purpose(resale|self_use), channel(direct|agency), price_usd, hs_code, target_age 등"},
+                "facts": {"type": "object", "description": "purpose(resale|self_use), channel(direct|agency), price_usd, hs_code, rra_cert_no(적합성평가 인증·등록번호), target_age 등"},
                 "limit": {"type": "integer", "minimum": 1, "maximum": 3, "default": 3},
             },
             "required": ["query"],
@@ -704,6 +909,7 @@ TOOL_DEFS: List[Dict[str, Any]] = [
                 "rf_tx": {"type": "string", "enum": ["yes", "no", "unknown"]},
                 "battery": {"type": "string", "description": "배터리 종류/내장 여부"},
                 "ac_plug": {"type": "string", "enum": ["yes", "no", "unknown"]},
+                "rra_cert_no": {"type": "string", "description": "전파 적합성평가 인증·등록번호(예: R-LARN-00-0210). 있으면 국립전파연구원 DB를 즉시 조회"},
             },
             "required": ["product_name"],
         },
@@ -755,11 +961,11 @@ TOOL_DEFS: List[Dict[str, Any]] = [
     {
         "name": "explain_trap",
         "title_ko": "함정 케이스 해설",
-        "description_ko": "케이스 ID(TRAP-01~20)의 시나리오, 흔한 AI 오답, 정답, 근거를 반환합니다.",
+        "description_ko": "케이스 ID(TRAP-01~22)의 시나리오, 흔한 AI 오답, 정답, 근거를 반환합니다.",
         "handler": tool_explain_trap,
         "input_schema": {
             "type": "object",
-            "properties": {"case_id": {"type": "string", "pattern": "^TRAP-(0[1-9]|1[0-9]|20)$"}},
+            "properties": {"case_id": {"type": "string", "pattern": "^TRAP-(0[1-9]|1[0-9]|2[0-2])$"}},
             "required": ["case_id"],
         },
     },

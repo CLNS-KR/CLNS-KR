@@ -21,17 +21,17 @@ VERDICT_KO = {
 }
 
 HEADER = """---
-title: "02. 일반 AI가 틀리는 한국 수입·유통 함정 20선"
+title: "02. 일반 AI가 틀리는 한국 수입·유통 함정 {count}선"
 project: 수입·유통 컴플라이언스 검증 엔진
 checked_on: {checked}
 corpus_version: {version}
 ---
 
-# 02. 일반 AI가 틀리는 한국 수입·유통 함정 20선
+# 02. 일반 AI가 틀리는 한국 수입·유통 함정 {count}선
 
 ## 1. 이 문서의 목적과 검증 방법
 
-이 코퍼스는 **"ChatGPT·Claude 같은 범용 AI나 단순 검색이 한국 수입 실무에서 자신 있게 틀리는 지점"** 20개를 모은 것이다. 단순히 "AI가 틀린다"고 주장하지 않고, 각 케이스마다 ① 실제 법령·고시 조항, ② 시행일, ③ 원문 URL을 붙였다.
+이 코퍼스는 **"ChatGPT·Claude 같은 범용 AI나 단순 검색이 한국 수입 실무에서 자신 있게 틀리는 지점"** {count}개를 모은 것이다. 단순히 "AI가 틀린다"고 주장하지 않고, 각 케이스마다 ① 실제 법령·고시 조항, ② 시행일, ③ 원문 URL을 붙였다.
 
 검증 방법:
 
@@ -40,7 +40,7 @@ corpus_version: {version}
 - 확인일은 **{checked}** 이다. 법령은 그 뒤로도 개정되므로, 엔진은 모든 응답에 `effective_date`와 `checked_at`을 함께 반환한다.
 - **확인하지 못한 것은 코퍼스에 넣지 않았다.** 세부 별표 품목 열거처럼 기관 확인이 필요한 부분은 "추가 정보 필요"로 남긴다.
 
-## 2. 한눈에 보는 20개
+## 2. 한눈에 보는 {count}개
 
 | ID | 쟁점 | 흔한 AI 오답(요약) | 올바른 방향(요약) | 기본 판정 |
 |---|---|---|---|---|
@@ -93,7 +93,7 @@ def detail_block(t: dict) -> str:
 PATTERNS = """
 ## 4. AI가 반복해서 틀리는 5가지 패턴
 
-20개를 관통하는 오류 구조는 다섯 가지다. 이 다섯 개가 엔진의 룰 설계 근거이기도 하다.
+{count}개를 관통하는 오류 구조는 다섯 가지다. 이 다섯 개가 엔진의 룰 설계 근거이기도 하다.
 
 ### 패턴 1. "자가사용"과 "판매"를 같은 것으로 본다
 TRAP-01·02·07·10·12가 여기에 걸린다. AI는 "소량", "자가소비", "개인 직구"라는 단어를 보면 규제가 없다고 결론내린다. 그러나 한국 제도에서 **자가소비 예외는 '판매·영업 목적이 아닐 것'을 전제**로 하고, 구매대행을 끼우면 그 예외 자체가 사라진다(수입식품법 시행규칙 별표 8의2 제2호). 화장품도 자가소비 직구와 판매용 유통은 등록 요건이 완전히 다르다.
@@ -130,12 +130,13 @@ def main() -> None:
     with open(CORPUS, encoding="utf-8") as handle:
         data = json.load(handle)
     traps = data["traps"]
-    parts = [HEADER.format(checked=data["verified_on"], version=data["corpus_version"])]
+    count = len(traps)
+    parts = [HEADER.format(checked=data["verified_on"], version=data["corpus_version"], count=count)]
     parts.extend(table_row(t) for t in traps)
     parts.append("\n## 3. 케이스 상세\n\n")
     for trap in traps:
         parts.append(detail_block(trap))
-    parts.append(PATTERNS)
+    parts.append(PATTERNS.replace("{count}", str(count)))
     with open(OUT, "w", encoding="utf-8") as handle:
         handle.write("".join(parts))
     print(f"wrote {OUT} ({len(traps)} cases)")

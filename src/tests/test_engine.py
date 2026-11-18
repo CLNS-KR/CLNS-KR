@@ -1,4 +1,4 @@
-"""회귀 테스트: 함정 20케이스 판정 + 리스크 가드 + 쿼터/캐시 폴백.
+"""회귀 테스트: 함정 22케이스 판정 + 리스크 가드 + 쿼터/캐시 폴백.
 
 실행: python3 tests/test_engine.py   (pytest 불필요, 표준 unittest)
 """
@@ -47,13 +47,15 @@ CASES = [
     ("TRAP-18", "중국 부품을 국내에서 조립해 Made in Korea 표시를 하려고 해", {"process": "단순 조립", "material_origin": "중국"}, "check_likely"),
     ("TRAP-19", "HS 850760 품목의 수입요건을 확인하려고 해", {}, "info_needed"),
     ("TRAP-20", "정품 병행수입을 하려는데 상표권 문제가 없을까", {}, "info_needed"),
+    ("TRAP-21", "해외에서 산 전자혈압계를 국내 오픈마켓에서 판매하려고 해", {}, "check_likely"),
+    ("TRAP-22", "기저귀와 칫솔을 수입해 판매하려고 해", {}, "check_likely"),
 ]
 
 
 class CorpusTest(unittest.TestCase):
-    def test_corpus_has_20_cases_with_evidence(self):
+    def test_corpus_has_22_cases_with_evidence(self):
         corpus = load_corpus()
-        self.assertEqual(len(corpus.traps), 20)
+        self.assertEqual(len(corpus.traps), 22)
         for trap in corpus.traps:
             self.assertTrue(trap.legal_basis, trap.id)
             for basis in trap.legal_basis:
@@ -64,7 +66,7 @@ class CorpusTest(unittest.TestCase):
 
     def test_no_duplicate_ids(self):
         corpus = load_corpus()
-        self.assertEqual(len({t.id for t in corpus.traps}), 20)
+        self.assertEqual(len({t.id for t in corpus.traps}), 22)
 
     def test_customs_law_effective_dates_match_legal_api(self):
         """법제처 현행 조문 시행일자(2026-11-18 확인)와 코퍼스 인용이 어긋나지 않게 고정한다."""
@@ -87,7 +89,7 @@ class CorpusTest(unittest.TestCase):
 
 
 class TrapVerdictTest(unittest.TestCase):
-    def test_all_20_cases(self):
+    def test_all_22_cases(self):
         store = Store(":memory:")
         self.addCleanup(store.close)
         for case_id, query, facts, expected in CASES:

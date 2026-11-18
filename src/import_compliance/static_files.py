@@ -73,7 +73,7 @@ def llms_txt(base: Optional[str] = None) -> str:
 
 > 한국 수입 규제(세관장확인 요건·식약처 수입 이력·국내 리콜·근거 법령)를 3단계로 판정하는 무료 사전 점검 서비스.
 > 확정 판정이 아니라 "확인해야 할 항목의 목록"을 제시하며, 모든 응답에 근거 조항·시행일·원문 URL·국/영문 면책이 함께 온다.
-> 데이터: 관세청 세관장확인대상물품(15101589), 식약처 수입식품 계열(15058273·15073949), 법제처 국가법령정보, 국표원 리콜 파일데이터(15040696).
+> 데이터: 관세청 세관장확인대상물품(15101589), 식약처 수입식품 계열(15058273·15073949), 법제처 국가법령정보, 국표원 리콜 파일데이터(15040696), 국립전파연구원 적합성평가 DB정보(3034183, 인증·등록번호 조회·키 불필요).
 > 서비스는 관세사법상 관세 상담·대리 업무를 수행하지 않으며, 품목분류(HS) 확정·인증 대행·통관 대리를 하지 않는다.
 
 ## 사람용
@@ -90,13 +90,15 @@ def llms_txt(base: Optional[str] = None) -> str:
 ## 기계용 (REST JSON)
 - [종합 판정]({root}/v1/tools/assess_import_case): POST. `{{"query": "...", "facts": {{"purpose": "resale", "hs_code": "8414519000", "rf_tx": "no"}}}}`
 - [HS 10자리 세관장확인 요건]({root}/v1/tools/lookup_hs_requirements): POST. `{{"hs_code": "8414519000"}}`
-- [식품·화장품 요건]({root}/v1/tools/check_food_cosmetics): POST. `{{"product_name": "오메가3", "kind": "health_functional"}}`
+- [식품·화장품·기구용기 요건]({root}/v1/tools/check_food_cosmetics): POST. `{{"product_name": "오메가3", "kind": "health_functional"}}`
+- [KC·전파 적합성평가]({root}/v1/tools/check_kc_certification): POST. `{{"product_name": "블루투스 스피커", "rf_tx": "yes", "rra_cert_no": "R-LARN-00-0210"}}`
 - [국내 리콜 이력]({root}/v1/tools/lookup_recall): POST. `{{"product_name": "전지"}}`
 - [근거 조항]({root}/v1/tools/get_legal_basis): POST. `{{"law": "관세법", "article": "제226조"}}`
 
 ## 읽는 법
 - 판정 등급은 `check_likely`(확인 가능성 높음) / `info_needed`(추가 정보 필요) / `low_risk`(현재 정보상 가능성 낮음) 세 가지이며 확정 판단이 아니다.
 - 조회 0건은 "요건 없음"이 아니라 "조회되지 않음"이다. HS 10자리·입력 표기 차이로도 0건이 나온다.
+- 전파 적합성평가는 인증·등록번호로만 실시간 조회되며(`rra_conformity`), 번호가 없으면 국립전파연구원 조회 화면에서 모델명으로 확인해야 한다.
 - 리콜 데이터는 2023-08-09 배포본(등록일 2019-10~2022-07) 정적 스냅샷이라 최신 리콜은 반영되지 않는다.
 - 실시간 조회 결과가 7일 TTL 캐시에서 나온 경우 `state: "cached_fallback"` 과 `age_hours` 로 캐시 시점을 밝힌다.
 """

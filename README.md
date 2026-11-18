@@ -14,13 +14,14 @@ Clearance, simplified.
 
 - 라이브: **<https://clns-kr.onrender.com>** (무료 베타 · Render free Web Service)
 - 결제 없음 · 100% 무료 베타 · 회원가입 없음
-- 외부 API 키가 없어도 동작(코퍼스 기반). 키를 넣으면 4개 공공 API를 실시간 호출하고, 실패 시 캐시로 폴백
+- 외부 API 키가 없어도 동작(코퍼스 기반). 키를 넣으면 관세청·식약처·법제처 공공 API를 실시간 호출하고, 실패 시 캐시로 폴백. 전파 적합성평가(국립전파연구원)는 **키가 필요 없는 공개 API**라 번호만 있으면 바로 조회한다
 - 원본 API 재전송 없음 — 결합·정규화한 판정만 출력
 - 브라우저에서 바로 쓰는 사람용 화면(`GET /`) 포함: 품목명만 넣고 10초 안에 확인 항목·근거 조문·리콜 이력을 본다. 화면은 CLNS Check · CLNS Intelligence · CLNS API & MCP 세 축으로 나뉜다.
-- **품목별 무료 체크 페이지(pSEO) 35개**: `/p/` 인덱스와 `/p/{slug}` — 무선 미니 선풍기·보조배터리·오메가3·선크림·반려동물 사료 등. JS 없이 크롤러가 읽는 서버 렌더 HTML에 H1·대표 HS·세관장확인 요건 표·KC·전파·식약처 항목·핵심 함정·근거·면책·실시간 조회 링크를 담는다(`sitemap.xml` 동적 생성, 얇은 페이지는 `noindex`).
+- **품목별 무료 체크 페이지(pSEO) 35개**: `/p/` 인덱스와 `/p/{slug}` — 무선 미니 선풍기·보조배터리·오메가3·선크림·반려동물 사료 등. JS 없이 크롤러가 읽는 서버 렌더 HTML에 H1·대표 HS·세관장확인 요건 표·**규제 축(소관 기관·확인 카드·MCP 툴)**·KC·전파·식약처 항목·핵심 함정·근거·면책·**API/MCP 연결 안내**·실시간 조회 링크를 담는다(`sitemap.xml` 동적 생성, 얇은 페이지는 `noindex`).
 - **익명 일별 통계**: `GET /v1/stats` — IP·User-Agent 원문·쿠키·개인 식별자를 저장하지 않고 날짜별 경로/툴/`verdict.code`/0건·오류 수만 집계
-- **대표 100개 품목 테스트셋** — 8개 분야(전기·전자 KC / 무선·전파 / 배터리 / 어린이제품 / 식품·건기식 / 화장품 / 생활화학·차량용 방향제 / 의료기기·위생용품) 100건으로 분야별 정확도와 **중대 규제 누락(FN) 0건**을 검증(`--check-testset`)
-- **응답 스키마 0.1.3** — 기존 3단계 `verdict` 위에 표준 5단계 `assessment_status`(APPLICABLE·NOT_APPLICABLE·POTENTIALLY_APPLICABLE·REVIEW_REQUIRED·UNKNOWN), `missing_information`, `destination`·`jurisdiction`·`origin`(ISO), `regulation_tags` 를 추가
+- **규제 카드 22개(0.1.4)** — 기존 20개 쟁점에 **의료기기법(TRAP-21)·위생용품 관리법(TRAP-22)** 카드를 법제처 실조회 검증으로 추가. 미래 시행일 개정 조문(의료기기법 2026-10-20 공포분, 본문 2027-10-21 시행)은 인용하지 않고 **현재 시행 중인 조문**만 쓴다
+- **대표 100개 품목 테스트셋** — 8개 분야(전기·전자 KC / 무선·전파 / 배터리 / 어린이제품 / 식품·건기식 / 화장품 / 생활화학·차량용 방향제 / 의료기기·위생용품) 100건으로 분야별 정확도와 **중대 규제 누락(FN) 0건**을 검증(`--check-testset`). 의료기기·위생용품 12건은 카드에 맞춰 필수 태그를 승격하고, 생리대(의약외품) 2건은 `must_not_find`로 오분류를 막는다
+- **응답 스키마 0.1.3(0.1.4에서도 유지)** — 기존 3단계 `verdict` 위에 표준 5단계 `assessment_status`(APPLICABLE·NOT_APPLICABLE·POTENTIALLY_APPLICABLE·REVIEW_REQUIRED·UNKNOWN), `missing_information`, `destination`·`jurisdiction`·`origin`(ISO), `regulation_tags` 를 추가
 - **MCP 두 가지 전송**: HTTP(`POST /mcp`) + **stdio**(`python -m import_compliance.mcp_stdio`) — 로컬 실행형 MCP 디렉터리(Glama·mcp.so 등) 등록용
 - 무료 클라우드 배포 사본 제공: `Dockerfile`(python:3.12-slim) + `render.yaml`(Render free Web Service)
 - GitHub Actions CI(`.github/workflows/test.yml`) — Python 3.11·3.12 에서 `--check-corpus` + `--check-testset` + 전체 테스트 자동 실행
@@ -31,16 +32,16 @@ Clearance, simplified.
 | 파일 | 내용 |
 |---|---|
 | `01-api-sources-and-legal.md` | 실제 쓸 공공 API 목록, 신청 방법, 확인한 약관 원문, 상업적 가공 안전성 판정, **2026-11-18 실호출 검증 결과** |
-| `02-ai-trap-corpus-20.md` | 일반 AI가 틀리는 함정 20개(상황·오답·정답·근거·판정 로직) |
+| `02-ai-trap-corpus-20.md` | 일반 AI가 틀리는 함정 22개(상황·오답·정답·근거·판정 로직). 파일명은 초기 20건 기준이며, 0.1.4에서 TRAP-21·22를 더해 `tools/build_corpus_doc.py`로 재생성했다 |
 | `03-mvp-spec-and-risk-mitigation.md` | 5대 리스크 대응, 아키텍처, 캐시 DB, 8개 툴, 무료/유료 경계, 면책 |
 | `live-api-verification-2026-11-18.json` | 라이브 검증 산출물(정규화 샘플·상태, **키 없음**) |
 | `live-scenario-results-2026-11-18.json` | 대표 3품목 라이브 판정 산출물(응답시간·요건·리콜 포함, **키 없음**) |
 | `04-live-scenario-report-2026-11-18.md` | 대표 3품목 라이브 판정 사람용 리포트 |
-| `05-launch-audit-and-growth-plan.md` | 출시 전 감사·성장 계획 |
-| `06-testset-100-and-schema-0.1.3.md` | 대표 100개 테스트셋·표준 판정 상태·공통 스키마(0.1.3)와 검증 결과 |
 | `.env.example` | 키 템플릿(`.env`는 커밋 금지) |
 | `LICENSE` | MIT 라이선스(`Copyright (c) 2026 CLNS-KR`) |
 | `.github/workflows/test.yml` | CI: `--check-corpus` + `--check-testset` + 전체 테스트 + stdio MCP 스모크(Python 3.11·3.12) |
+
+출시 전 감사·성장 계획(05), 테스트셋·스키마 설계(06), 0.1.4 변경 상세(07), 법령 조문 검증 산출물은 내부 문서로 두고 공개 저장소에는 포함하지 않는다.
 
 ## 실행
 
@@ -79,6 +80,7 @@ IMPORT_COMPLIANCE_LIVE=1 python3 -m import_compliance.server   # HTTP 서버도 
 | 식약처 수입식품 허가정보(15058273) | `apis.data.go.kr/1471000/ImportFoodPrmisnInfoService05/getImrtsCnfirmList05` | `check_food_cosmetics.food_import_live` |
 | 식약처 수입식품 제품DB(15073949) | `apis.data.go.kr/1471000/IprtFoodPrdtDBService02/getIprtFoodPrdtDBInq02` | `check_food_cosmetics.food_import_live` |
 | 법제처 국가법령정보(lawSearch/lawService) | `www.law.go.kr/DRF/lawSearch.do`, `lawService.do` | `get_legal_basis.law_live` |
+| 국립전파연구원 적합성평가 DB정보(3034183) | `emsit.go.kr/openapi/service/AuthenticationInfoService/getAuthInfo.do` (키 불필요) | `assess_import_case.rra_conformity_live`, `check_kc_certification.rra_conformity_live` |
 
 HTTP 서버(웹 UI + JSON API + MCP):
 
@@ -283,10 +285,11 @@ python3 tests/test_patches_p0_p1.py # 41 tests (MCP JSON-RPC·CORS·크롤러 �
 python3 tests/test_pseo_stats.py  # 25 tests (pSEO 35개 페이지·동적 sitemap·익명 카운터·stdio MCP·MIT·CI·시크릿 미포함)
 python3 tests/test_site_verification.py # 11 tests (검색엔진 소유확인 파일 서빙)
 python3 tests/test_testset_100.py # 18 tests (100건 구조·분야별 정확도·중대 규제 누락 FN·결정성)
+python3 tests/test_medical_hygiene_rra.py # 25 tests (의료기기·위생용품 카드·현행 조문 검증·적합성평가 실연동·pSEO 연결)
 python3 tests/test_schema_013.py  # 31 tests (표준 상태 5단계·누락 정보·지리 필드·규제 태그·하위 호환·익명성)
 ```
 
-합계 **222건**. 네트워크 없이 전부 통과한다(실호출은 `tools/verify_live_apis.py`로 따로 검증).
+합계 **247건**. 네트워크 없이 전부 통과한다(실호출은 `tools/verify_live_apis.py`로 따로 검증).
 CI 에서는 같은 스위트를 `python3 -m unittest discover -s tests` 로 한 번에 돌리고, 그 앞에 `--check-corpus`·`--check-testset` 자기검증을 둔다.
 
 ## 익명 통계 (`GET /v1/stats`)
@@ -341,9 +344,9 @@ src/
     web_ui.py     사람용 단일 HTML 화면(외부 CDN 0, 인라인 CSS/JS)
     server.py     stdlib HTTP 서버(웹 UI·pSEO·JSON API·MCP·CORS·배포용 환경변수)
     cli.py        CLI·코퍼스 자기검증·`--serve`
-  traps_20.json   함정 20케이스(근거 54건, corpus 1.0.4)
+  traps_20.json   함정 22케이스(의료기기·위생용품 추가, corpus 1.0.5)
   testset_100.json 대표 100품목 테스트셋(8분야·필수 규제 태그)
-  pseo_items.json 품목 35개 카탈로그 + 관세청 실조회 요건 표(2026-11-18)
+  pseo_items.json 품목 35개 카탈로그(1.0.1) + 관세청 실조회 요건 표(2026-11-18)
   schema.sql      Postgres 이관용 DDL
   tests/
   tools/verify_live_apis.py   실API 4종 라이브 검증

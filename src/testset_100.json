@@ -1,5 +1,5 @@
 {
- "testset_version": "1.0.0",
+ "testset_version": "1.0.1",
  "schema_version": "0.1.3",
  "jurisdiction": "KR",
  "created_on": "2026-11-18",
@@ -14,7 +14,7 @@
   "household_chemical": "생활화학제품·차량용 방향제",
   "medical_sanitary": "의료기기·위생용품"
  },
- "note_ko": "대표 100개 품목 테스트셋. 각 케이스는 분야(domain)·기대 판정(expected_verdict)·필수 규제 태그(required_findings)를 가지며, 필수 태그가 응답에서 빠지면 중대 규제 누락(FN)으로 센다. required_findings 는 standards.CASE_REGULATION_TAGS 의 태그 어휘를 쓴다. 의료기기·위생용품 분야는 세관장확인·목록통관 축에서만 검증하며 (전용 규제 카드 없음) 이 한계는 응답의 scope_limits_ko 에도 표시된다.",
+ "note_ko": "대표 100개 품목 테스트셋. 각 케이스는 분야(domain)·기대 판정(expected_verdict)·필수 규제 태그(required_findings)를 가지며, 필수 태그가 응답에서 빠지면 중대 규제 누락(FN)으로 센다. required_findings 는 standards.CASE_REGULATION_TAGS 의 태그 어휘를 쓴다. 의료기기·위생용품 분야는 세관장확인·목록통관 축에서만 검증하며 (전용 규제 카드 없음) 이 한계는 응답의 scope_limits_ko 에도 표시된다. 1.0.1(2026-11-18): 의료기기법·위생용품 관리법 카드(TRAP-21·22) 추가에 맞춰 의료기기·위생용품 12건의 required_findings를 승격하고, 생리대(의약외품) 2건은 위생용품으로 오답 처리하지 않도록 must_not_find로 고정했다.",
  "cases": [
   {
    "case_id": "CASE-001",
@@ -1525,13 +1525,14 @@
    "product_ko": "전자혈압계 9018",
    "query": "전자혈압계 HS 9018 6자리로 세관장확인 요건 확인",
    "facts": {},
-   "expected_verdict": "info_needed",
+   "expected_verdict": "check_likely",
    "required_findings": [
+    "MEDICAL_DEVICE_IMPORT",
     "CUSTOMS_CHECKPOINT"
    ],
    "primary_case_id": "TRAP-19",
    "severity": "critical",
-   "note_ko": "의료기기는 HS 10자리로 세관장확인 요건을 조회해야 한다."
+   "note_ko": "전자혈압계는 의료기기(수입업 허가+품목 허가·인증·신고)이면서 HS 10자리 세관장확인 대상이다. 6자리만으로는 통관 요건을 확정하지 않는다."
   },
   {
    "case_id": "CASE-090",
@@ -1540,13 +1541,14 @@
    "product_ko": "체온계 9025",
    "query": "체온계 HS 9025 6자리 수입요건",
    "facts": {},
-   "expected_verdict": "info_needed",
+   "expected_verdict": "check_likely",
    "required_findings": [
+    "MEDICAL_DEVICE_IMPORT",
     "CUSTOMS_CHECKPOINT"
    ],
    "primary_case_id": "TRAP-19",
    "severity": "critical",
-   "note_ko": "체온계는 의료기기 등급에 따라 허가·신고가 갈린다."
+   "note_ko": "체온계는 의료기기 등급에 따라 수입허가·인증·신고가 갈리지만, 수입업 허가와 품목 절차 자체는 항상 확인해야 한다."
   },
   {
    "case_id": "CASE-091",
@@ -1555,13 +1557,14 @@
    "product_ko": "의료용 장갑 4015",
    "query": "의료용 장갑 HS 4015 6자리 세관장확인",
    "facts": {},
-   "expected_verdict": "info_needed",
+   "expected_verdict": "check_likely",
    "required_findings": [
+    "MEDICAL_DEVICE_IMPORT",
     "CUSTOMS_CHECKPOINT"
    ],
    "primary_case_id": "TRAP-19",
    "severity": "critical",
-   "note_ko": "의료용 장갑은 1등급 의료기기로 분류되는 경우가 많다."
+   "note_ko": "의료용 장갑은 1등급 의료기기로 분류되는 경우가 많아 수입업 허가+품목 절차를 확인하고, HS 10자리 세관장확인도 함께 본다."
   },
   {
    "case_id": "CASE-092",
@@ -1570,13 +1573,14 @@
    "product_ko": "콘택트렌즈 9001",
    "query": "콘택트렌즈 HS 9001 6자리로 요건 확인",
    "facts": {},
-   "expected_verdict": "info_needed",
+   "expected_verdict": "check_likely",
    "required_findings": [
+    "MEDICAL_DEVICE_IMPORT",
     "CUSTOMS_CHECKPOINT"
    ],
    "primary_case_id": "TRAP-19",
    "severity": "critical",
-   "note_ko": "렌즈는 의료기기 4등급으로 취급될 수 있어 요건 확인이 필수."
+   "note_ko": "콘택트렌즈는 의료기기(고위험 등급)로 수입업 허가·품목 허가 확인이 필수이고, 렌즈관리용품은 의약외품으로 분류가 다르다."
   },
   {
    "case_id": "CASE-093",
@@ -1587,13 +1591,14 @@
    "facts": {
     "hs_code": "9018909000"
    },
-   "expected_verdict": "info_needed",
+   "expected_verdict": "check_likely",
    "required_findings": [
+    "MEDICAL_DEVICE_IMPORT",
     "CUSTOMS_CHECKPOINT"
    ],
    "primary_case_id": "TRAP-19",
    "severity": "critical",
-   "note_ko": "10자리 조회에서 0건이어도 요건 없음으로 단정하지 않는다."
+   "note_ko": "10자리 HS 조회에서 0건이어도 의료기기 수입업 허가·품목 허가 확인은 별도로 필요하다."
   },
   {
    "case_id": "CASE-094",
@@ -1608,7 +1613,11 @@
    ],
    "primary_case_id": "TRAP-19",
    "severity": "critical",
-   "note_ko": "위생용품은 수입업 신고·기준규격 요건이 별도로 붙는다."
+   "note_ko": "생리대는 위생용품이 아니라 의약외품(약사법·의약외품 범위 지정 고시)이다. 위생용품 관리법 카드로 오답 처리하지 않고, 통관 축(HS 6자리 → 10자리 필요)만 판정한다.",
+   "must_not_find": [
+    "HYGIENE_PRODUCT_IMPORT",
+    "MEDICAL_DEVICE_IMPORT"
+   ]
   },
   {
    "case_id": "CASE-095",
@@ -1617,13 +1626,14 @@
    "product_ko": "기저귀 9619",
    "query": "기저귀 HS 9619 6자리 수입요건",
    "facts": {},
-   "expected_verdict": "info_needed",
+   "expected_verdict": "check_likely",
    "required_findings": [
+    "HYGIENE_PRODUCT_IMPORT",
     "CUSTOMS_CHECKPOINT"
    ],
    "primary_case_id": "TRAP-19",
    "severity": "standard",
-   "note_ko": "기저귀는 위생용품과 어린이제품 경계 확인이 필요."
+   "note_ko": "기저귀는 위생용품(수입업 신고+수입신고·검사+기준규격)이고, 어린이제품 경계도 함께 확인한다."
   },
   {
    "case_id": "CASE-096",
@@ -1632,13 +1642,14 @@
    "product_ko": "위생용 면봉 5601",
    "query": "위생용 면봉 HS 5601 6자리로 요건 확인",
    "facts": {},
-   "expected_verdict": "info_needed",
+   "expected_verdict": "check_likely",
    "required_findings": [
+    "HYGIENE_PRODUCT_IMPORT",
     "CUSTOMS_CHECKPOINT"
    ],
    "primary_case_id": "TRAP-19",
    "severity": "standard",
-   "note_ko": "위생용품 품목 고시에서 해당 여부를 확인."
+   "note_ko": "위생용 면봉은 위생용품 관리법상 위생용품이다(멸균면뷴은 의약외품으로 분류가 다름)."
   },
   {
    "case_id": "CASE-097",
@@ -1647,13 +1658,14 @@
    "product_ko": "칫솔 9603",
    "query": "칫솔 HS 9603 6자리 세관장확인",
    "facts": {},
-   "expected_verdict": "info_needed",
+   "expected_verdict": "check_likely",
    "required_findings": [
+    "HYGIENE_PRODUCT_IMPORT",
     "CUSTOMS_CHECKPOINT"
    ],
    "primary_case_id": "TRAP-19",
    "severity": "standard",
-   "note_ko": "칫솔은 위생용품 기준규격 대상 여부 확인."
+   "note_ko": "칫솔은 구강관리용품으로 위생용품이다. 기준규격·표시기준과 수입업 신고를 확인한다."
   },
   {
    "case_id": "CASE-098",
@@ -1664,13 +1676,14 @@
    "facts": {
     "hs_code": "9025191000"
    },
-   "expected_verdict": "info_needed",
+   "expected_verdict": "check_likely",
    "required_findings": [
+    "MEDICAL_DEVICE_IMPORT",
     "CUSTOMS_CHECKPOINT"
    ],
    "primary_case_id": "TRAP-19",
    "severity": "critical",
-   "note_ko": "같은 6자리라도 10자리에 따라 요건이 갈린다."
+   "note_ko": "같은 6자리라도 10자리에 따라 세관장확인 요건이 갈리고, 의료기기 허가 축은 별도로 확인해야 한다."
   },
   {
    "case_id": "CASE-099",
@@ -1684,11 +1697,12 @@
    },
    "expected_verdict": "check_likely",
    "required_findings": [
-    "CUSTOMS_LOW_VALUE"
+    "CUSTOMS_LOW_VALUE",
+    "MEDICAL_DEVICE_IMPORT"
    ],
    "primary_case_id": "TRAP-12",
    "severity": "critical",
-   "note_ko": "의료기기는 금액이 낮아도 목록통관 배제 검토 대상."
+   "note_ko": "콘택트렌즈는 금액이 낮아도 목록통관 배제 검토 대상이고, 의료기기 수입업 허가·품목 허가도 함께 걸린다."
   },
   {
    "case_id": "CASE-100",
@@ -1706,7 +1720,10 @@
    ],
    "primary_case_id": "TRAP-12",
    "severity": "standard",
-   "note_ko": "위생용품도 금액 기준만으로 목록통관이 정해지지 않는다."
+   "note_ko": "생리대는 의약외품(약사법)이라 위생용품 관리법이 아니라 의약외품 수입 요건을 확인해야 한다. 금액 기준만으로 목록통관이 정해지지 않는다.",
+   "must_not_find": [
+    "HYGIENE_PRODUCT_IMPORT"
+   ]
   }
  ]
 }

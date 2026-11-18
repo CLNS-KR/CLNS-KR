@@ -7,6 +7,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
 from .corpus import Corpus, load_corpus, normalize
+from .live_api import detect_cert_no
 from .models import VERDICT_LABEL_EN, VERDICT_LABEL_KO, VERDICT_SEVERITY, Finding, Trap
 from .policy import (
     DISCLAIMER_EN,
@@ -66,6 +67,11 @@ def _infer_facts(query: str, facts: Optional[Dict[str, Any]]) -> Dict[str, Any]:
 
     if "rf_tx" not in out and any(k in norm for k in ("블루투스", "와이파이", "무선", "wi-fi", "wifi")):
         out["rf_tx"] = "yes"
+
+    if not any(key in out for key in ("rra_cert_no", "cert_no", "적합성평가번호")):
+        cert_no = detect_cert_no(query)
+        if cert_no:
+            out["rra_cert_no"] = cert_no
 
     if "ac_plug" not in out:
         if "어댑터" in norm or "아답터" in norm or "충전기" in norm:
@@ -347,11 +353,18 @@ SOURCE_MAP = {
     "cosmetics": ["mfds_import_food", "customs_requirements"],
     "label": ["mfds_import_food", "law_api"],
     "kc": ["kats_product_safety", "customs_requirements"],
-    "rf": ["rra_conformity", "customs_requirements"],
+    # 전파 적합성평가는 인증·등록번호가 있어야 조회되므로 api 계층(툴)이 단독으로
+    # 실호출하고 data_provenance 에 반영한다. 엔진이 같이 부르면 같은 요청에서
+    # 같은 API를 두 번 호출하게 되어 캐시 의미가 사라진다.
+    "rf": ["customs_requirements", "law_api"],
     "customs": ["customs_requirements", "law_api"],
     "origin": ["law_api", "fta_portal"],
     "ip": ["customs_requirements", "law_api"],
     "chemical": ["keco_chemical", "customs_requirements"],
+    # 의료기기·위생용품은 식약처 허가·신고 축이지만 공개 API 로 바로 조회되는 소스가
+    # 없어서, 통관(세관장확인)과 법령 근거로 확인하고 결과에는 그 한계를 밝힌다.
+    "medical": ["customs_requirements", "law_api"],
+    "hygiene": ["customs_requirements", "law_api"],
 }
 
 

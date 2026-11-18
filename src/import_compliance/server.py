@@ -435,8 +435,9 @@ def main(argv: Optional[list] = None) -> int:
 
     live = None
     if live_on:
-        live = from_environment()
-        if live is None:
+        # 적합성평가(국립전파연구원)는 키가 필요 없는 공개 API 라, 다른 키가 없어도 켠다.
+        live = from_environment(keyless_rra=True)
+        if live is None:  # pragma: no cover - keyless_rra=True 는 항상 클라이언트를 만든다
             print("경고: 실API 모드지만 DATA_GO_KR_SERVICE_KEY / LAW_GO_KR_OC 가 없습니다. "
                   "코퍼스·법령 근거만으로 동작합니다.", file=sys.stderr, flush=True)
         else:
