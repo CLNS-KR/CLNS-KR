@@ -373,7 +373,7 @@ footer strong{color:var(--ink)}
       </div>
 
       <details class="card" id="drug-card">
-        <summary>[옵션] 해외직구·휴대 반입 의약품·성분 체크<span class="sum-sub">마약류·국내 금지성분·자가사용 6병 기준 확인이 필요할 때만 펼쳐서 사용하세요.</span></summary>
+        <summary>해외 약·영양제 반입 가능 여부 체크 (직구·휴대 반입)<span class="sum-sub">해외에서 사는 약이나 영양제가 국내 금지성분(마약류 등)에 걸리는지, 6병 기준을 넘는지 확인할 때 열어보세요.</span></summary>
         <div class="card-body">
         <p class="sub" style="margin-top:4px">해외직구·휴대 반입하려는 의약품·영양제의 성분을 <strong>한글·영문 모두</strong> 넣으면 마약류(마약·향정신성의약품·대마), 마약류 원료물질, 국내 전용 성분 여부와 자가사용 인정기준(6병·3개월분)을 함께 대조합니다. 마약류·원료물질 목록은 마약류 관리에 관한 법률 시행령 별표 1~8에서 생성했습니다(출처: 법제처 국가법령정보센터).</p>
         <form id="drug-form" novalidate>
