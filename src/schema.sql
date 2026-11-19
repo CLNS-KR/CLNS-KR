@@ -86,6 +86,28 @@ CREATE TABLE recall_stats (
     PRIMARY KEY (dataset_id, year, category, disposition)
 );
 
+-- 식약처 행정처분결과 적재분(15124560 식품제조가공업 · 15124559 식품판매업)
+-- 원본의 업소명·대표자명·전화번호·주소·인허가번호는 저장하지 않는다.
+-- 이 소스는 원본 payload를 api_snapshots 에도 남기지 않는다(원문에 개인정보가 있어 스냅샷 보관 자체가 개인정보 저장이 된다).
+CREATE TABLE disposition_items (
+    dataset_id          TEXT NOT NULL,          -- '15124560' | '15124559'
+    disposition_seq     TEXT NOT NULL,          -- 원본 행정처분전산키(식별정보 아님)
+    industry            TEXT,
+    disposition_type    TEXT,
+    confirmed_on        DATE,                   -- 처분확정일
+    disposition_from    DATE,
+    disposition_to      DATE,
+    violation_summary   TEXT,                   -- 개인정보 패턴 마스킹본
+    law_reference       TEXT,                   -- 위반법령
+    disposition_summary TEXT,                   -- 처분내용
+    agency              TEXT,                   -- 처분기관
+    last_updated        TEXT,
+    loaded_at           TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (dataset_id, disposition_seq)
+);
+CREATE INDEX idx_disposition_law ON disposition_items(law_reference);
+CREATE INDEX idx_disposition_confirmed ON disposition_items(confirmed_on DESC);
+
 CREATE TABLE webhook_subscriptions (
     id              BIGSERIAL PRIMARY KEY,
     client_id       TEXT NOT NULL,

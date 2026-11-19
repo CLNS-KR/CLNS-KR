@@ -164,7 +164,7 @@ class LawVerificationTest(unittest.TestCase):
         self.assertEqual(CASE_REGULATION_TAGS["TRAP-21"], ["MEDICAL_DEVICE_IMPORT"])
         self.assertEqual(CASE_REGULATION_TAGS["TRAP-22"], ["HYGIENE_PRODUCT_IMPORT"])
         scope = " ".join(SCOPE_LIMITS_KO)
-        self.assertIn("22개", scope)
+        self.assertIn("24개", scope)
         self.assertIn("의약외품", scope)
         self.assertIn("적합성평가", scope)
 

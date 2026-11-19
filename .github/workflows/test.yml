@@ -40,6 +40,12 @@ jobs:
           PYTHONPATH: ${{ github.workspace }}/src
         run: python -m import_compliance.cli --check-testset
 
+      - name: Drug import testset (--check-drugs)
+        working-directory: src
+        env:
+          PYTHONPATH: ${{ github.workspace }}/src
+        run: python -m import_compliance.cli --check-drugs
+
       - name: Unit + HTTP + pSEO + MCP tests
         working-directory: src
         env:

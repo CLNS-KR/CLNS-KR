@@ -55,22 +55,22 @@ def assess_once(query: str, facts=None) -> dict:
 
 
 class VersionTest(unittest.TestCase):
-    def test_package_version_is_0_1_4(self):
-        self.assertEqual(__version__, "0.1.4")
-        # 엔진 버전은 0.1.4 로 올라가도 응답 스키마 0.1.3 의 필드 계약은 그대로 둔다
-        # (0.1.4 는 규제 태그 추가뿐, 필드 삭제·의미 변경이 없다).
+    def test_package_version_is_0_2_0(self):
+        self.assertEqual(__version__, "0.2.0")
+        # 엔진 버전이 0.2.0 으로 올라가도 응답 스키마 0.1.3 의 필드 계약은 그대로 둔다
+        # (0.2.0 은 ad_review·labeling_check·disposition_lookup 블록 추가뿐, 기존 필드 삭제·의미 변경이 없다).
         self.assertEqual(SCHEMA_VERSION, "0.1.3")
-        self.assertEqual(web_ui.SERVICE_VERSION, "0.1.4")
+        self.assertEqual(web_ui.SERVICE_VERSION, "0.2.0")
 
-    def test_dockerfile_version_is_0_1_4(self):
+    def test_dockerfile_version_is_0_2_0(self):
         with open(os.path.join(ROOT, "Dockerfile"), encoding="utf-8") as handle:
             docker = handle.read()
-        self.assertIn('org.opencontainers.image.version="0.1.4"', docker)
+        self.assertIn('org.opencontainers.image.version="0.2.0"', docker)
 
     def test_response_reports_schema_version(self):
         result = assess_once("중국산 과자를 구매대행으로 들여와 판매")
         self.assertEqual(result["schema_version"], SCHEMA_VERSION)
-        self.assertEqual(result["engine"]["version"], "1.0.5")
+        self.assertEqual(result["engine"]["version"], "1.0.6")
 
 
 class StandardFieldsTest(unittest.TestCase):
@@ -117,6 +117,9 @@ class StandardFieldsTest(unittest.TestCase):
                 "lookup_hs_requirements": {"hs_code": "8507601000"},
                 "check_kc_certification": {"product_name": "USB 충전기"},
                 "check_food_cosmetics": {"product_name": "비타민", "kind": "health_functional"},
+                "check_drug_import": {"product_name": "멜라토닌", "channel": "carry"},
+                "check_ad_labeling": {"product_type": "general_food", "ad_copy": "다이어트에 좋은 차"},
+                "lookup_mfds_disposition": {"industry": "manufacturing"},
                 "lookup_recall": {"brand": "테스트브랜드"},
                 "get_legal_basis": {"law": "관세법"},
                 "explain_trap": {"case_id": "TRAP-04"},

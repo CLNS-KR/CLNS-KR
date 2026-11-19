@@ -117,16 +117,59 @@ def _apply_fact_rules(rules: List[Dict[str, Any]], facts: Dict[str, Any]) -> Opt
     """사용자가 준 사실관계(facts)로 쟁점을 낮출 수 있는 규칙을 적용한다.
 
     규칙은 판정을 낮추는 데만 쓴다(예: rf_tx=no → 전파법 쟁점 low_risk).
+
+    지원하는 조건(모두 만족해야 적용)
+    - `field` + `equals`: 단일 필드 동등 비교(기존)
+    - `all_fields`(dict): 여러 필드가 모두 같은 값일 때
+    - `none_fields`(dict): 해당 값이면 규칙을 적용하지 않는다
+    - `quantity_max`({field, max}): 수량이 상한 이하일 때(의약품 6병 기준 등)
     """
     for rule in rules or []:
         field = str(rule.get("field", "")).strip()
-        if not field:
+        all_fields = rule.get("all_fields") or {}
+        none_fields = rule.get("none_fields") or {}
+        quantity_max = rule.get("quantity_max") or {}
+        if not field and not all_fields and not quantity_max:
             continue
-        value = facts.get(field)
-        if value in (None, "", "unknown"):
-            continue
-        if str(value).strip().lower() != str(rule.get("equals", "")).strip().lower():
-            continue
+
+        if field:
+            value = facts.get(field)
+            if value in (None, "", "unknown"):
+                continue
+            if str(value).strip().lower() != str(rule.get("equals", "")).strip().lower():
+                continue
+
+        if all_fields:
+            mismatch = False
+            for key, expected in all_fields.items():
+                value = facts.get(key)
+                if value in (None, "", "unknown"):
+                    mismatch = True
+                    break
+                if str(value).strip().lower() != str(expected).strip().lower():
+                    mismatch = True
+                    break
+            if mismatch:
+                continue
+
+        if none_fields:
+            blocked = any(
+                str(facts.get(key, "")).strip().lower() == str(bad).strip().lower()
+                for key, bad in none_fields.items()
+            )
+            if blocked:
+                continue
+
+        if quantity_max:
+            q_field = str(quantity_max.get("field", "quantity"))
+            raw = facts.get(q_field)
+            try:
+                amount = int(raw)
+            except (TypeError, ValueError):
+                continue  # 수량이 없으면 '기준 이내'를 단정하지 않는다
+            if amount > int(quantity_max.get("max", 0)):
+                continue
+
         verdict = str(rule.get("verdict", "info_needed"))
         if verdict not in VERDICT_SEVERITY:
             continue
@@ -238,8 +281,20 @@ def assess(
         raise ValueError("query_too_short")
 
     merged = _infer_facts(query, facts)
+    screening = _screen_drugs(query, merged)
     matched_scored = []
-    for trap, hits in _match_traps(corpus, norm):
+    matched = _match_traps(corpus, norm)
+    # 성분 사전에서 마약류·제한성분이 확인되면 카드 신호가 없어도 해당 쟁점을 붙인다.
+    if screening:
+        from .drugs import cards_for
+
+        for case_id, hits in cards_for(screening):
+            if any(trap.id == case_id for trap, _ in matched):
+                continue
+            trap = corpus.by_id(case_id)
+            if trap is not None:
+                matched.append((trap, list(hits)))
+    for trap, hits in matched:
         score = len(hits)
         verdict = trap.default_verdict
         reason = "규정 신호 일치"
@@ -289,6 +344,8 @@ def assess(
     answer = _build_answer(overall, findings)
     if cap_note:
         answer["guidance"].append(cap_note)
+    if screening:
+        answer["guidance"].extend(screening.get("guidance_ko") or [])
 
     finding_dicts = [f.to_dict() for f in findings]
     geo = geography(query, facts)
@@ -331,9 +388,38 @@ def assess(
     # 표준 판정 상태(APPLICABLE … UNKNOWN)는 verdict·findings·missing_information
     # 에서 계산해 붙인다. 기존 verdict 필드는 그대로 둔다(하위 호환).
     apply_status(response)
+    if screening:
+        response["drug_screening"] = screening
     if store is not None:
         store.record_assessment(response["assessment_id"], client_id, tier, query, overall, response)
     return response
+
+
+def _screen_drugs(query: str, merged: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """의약품 쟁점이 보이면 성분 스크리닝을 수행하고 사실관계를 보강한다.
+
+    - `drug_screening` 블록을 응답에 담기 위해 결과를 돌려준다.
+    - 스크리닝이 성분을 찾았으면 `drug_class`(마약류 해당 여부)를 사실관계로 채운다.
+      이 값이 있어야 TRAP-14(의약품 직구)가 '추가 정보 필요'에 머물지 않고 판단된다.
+    """
+    from . import drugs
+
+    if not drugs.looks_like_drug_query(query, merged):
+        return None
+    screening = drugs.assess(query, merged)
+    classes = {item["class"] for item in screening.get("matches") or []}
+    if classes & set(drugs.CONTROLLED_CLASSES):
+        merged["drug_class"] = "yes"
+    elif classes:
+        merged.setdefault("drug_class", "no")
+    if screening.get("channel") in ("carry", "online"):
+        merged["drug_channel"] = screening["channel"]
+        merged.setdefault("channel", screening["channel"])
+    quantity = screening.get("quantity") or {}
+    if quantity.get("value"):
+        merged.setdefault("quantity", int(quantity["value"]))
+        merged.setdefault("quantity_unit", quantity.get("unit") or "")
+    return screening
 
 
 class TrapMatch:
@@ -365,6 +451,9 @@ SOURCE_MAP = {
     # 없어서, 통관(세관장확인)과 법령 근거로 확인하고 결과에는 그 한계를 밝힌다.
     "medical": ["customs_requirements", "law_api"],
     "hygiene": ["customs_requirements", "law_api"],
+    # 의약품(마약류·원료물질·국내 전용 성분)은 시행령 별표 기반 로컬 사전으로 대조하고,
+    # 식약처 의약품 허가정보 API는 활용승인 전이라 '승인 필요' 상태를 그대로 밝힌다.
+    "drug": ["mfds_drug_schedule", "customs_requirements", "law_api"],
 }
 
 

@@ -17,8 +17,8 @@ from .store import Store
 def run_corpus_checks() -> int:
     corpus = load_corpus()
     problems = []
-    if len(corpus.traps) != 22:
-        problems.append(f"trap count is {len(corpus.traps)}, expected 22")
+    if len(corpus.traps) != 24:
+        problems.append(f"trap count is {len(corpus.traps)}, expected 24")
     for trap in corpus.traps:
         if trap.default_verdict not in ("check_likely", "info_needed", "low_risk"):
             problems.append(f"{trap.id}: bad verdict {trap.default_verdict}")
@@ -108,6 +108,59 @@ def run_testset_checks() -> int:
     return 0
 
 
+def run_drug_testset_checks() -> int:
+    """의약품·영양제 반입 테스트셋(별도 관리) 점검: 판정 일치·필수 태그·금지 태그."""
+    import os
+
+    path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                        "drug_testset.json")
+    problems = []
+    try:
+        with open(path, encoding="utf-8") as handle:
+            testset = json.load(handle)
+    except (FileNotFoundError, OSError, ValueError) as exc:
+        print(f"FAILED drug testset not readable: {exc}")
+        return 1
+    cases = testset.get("cases") or []
+    if len(cases) != testset.get("case_count"):
+        problems.append(f"case count mismatch: {len(cases)} != {testset.get('case_count')}")
+    corpus_ids = {trap.id for trap in load_corpus().traps}
+    store = Store(":memory:")
+    matched = 0
+    try:
+        for case in cases:
+            if case.get("primary_case_id") not in corpus_ids:
+                problems.append(f"{case.get('case_id')}: unknown primary_case_id")
+            for tag in case.get("required_findings") or []:
+                if tag not in REGULATION_TAGS:
+                    problems.append(f"{case.get('case_id')}: unknown tag {tag}")
+            result = assess(case["query"], case.get("facts") or {}, store=store, limit=3)
+            tags = set()
+            for finding in result["findings"]:
+                tags.update(finding.get("regulation_tags") or [])
+            if result["verdict"]["code"] == case.get("expected_verdict"):
+                matched += 1
+            else:
+                problems.append(f"{case.get('case_id')}: verdict {result['verdict']['code']} "
+                                f"!= {case.get('expected_verdict')}")
+            missing = set(case.get("required_findings") or []) - tags
+            if missing:
+                problems.append(f"{case.get('case_id')}: missing findings {sorted(missing)}")
+            forbidden = set(case.get("must_not_find") or []) & tags
+            if forbidden:
+                problems.append(f"{case.get('case_id')}: forbidden findings {sorted(forbidden)}")
+    finally:
+        store.close()
+    if problems:
+        print("FAILED")
+        for problem in problems:
+            print(" -", problem)
+        return 1
+    print(f"OK drug_testset_version={testset.get('testset_version')} cases={len(cases)} "
+          f"verdict_match={matched}/{len(cases)} forbidden=0")
+    return 0
+
+
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description="import-compliance engine")
     parser.add_argument("query", nargs="*", help="자연어 질의")
@@ -116,6 +169,15 @@ def main(argv=None) -> int:
     parser.add_argument("--check-corpus", action="store_true", help="코퍼스 무결성 점검")
     parser.add_argument("--check-testset", action="store_true",
                         help="대표 100개 테스트셋 점검(분야별 정확도·규제 누락 FN)")
+    parser.add_argument("--check-drugs", action="store_true",
+                        help="의약품·영양제 반입 테스트셋 점검(금지성분·자가사용 기준)")
+    parser.add_argument("--drug", metavar="성분·제품명",
+                        help="의약품 성분 스크리닝(예: --drug 졸피뎀 --channel online --quantity 30)")
+    parser.add_argument("--channel", choices=["carry", "online", "unknown"],
+                        help="--drug 의 반입 경로(휴대/직구)")
+    parser.add_argument("--quantity", type=int, help="--drug 의 수량(6병 기준 대조)")
+    parser.add_argument("--drug-schedules", action="store_true",
+                        help="마약류·원료물질 성분 사전 상태 출력")
     parser.add_argument("--full", action="store_true", help="전체 JSON 출력")
     parser.add_argument("--live", action="store_true",
                         help="실API 호출 모드(.env 키 사용). 없으면 코퍼스·캐시만")
@@ -135,6 +197,36 @@ def main(argv=None) -> int:
         return run_corpus_checks()
     if args.check_testset:
         return run_testset_checks()
+    if args.check_drugs:
+        return run_drug_testset_checks()
+    if args.drug_schedules:
+        from . import drugs
+
+        data = drugs.load_schedules()
+        pretty_print({
+            "schedule_version": data.get("schedule_version"),
+            "generated_on": data.get("generated_on"),
+            "decree": data.get("decree"),
+            "decree_promulgated_on": data.get("decree_promulgated_on"),
+            "counts": data.get("counts"),
+            "tables": data.get("tables"),
+            "attribution_ko": data.get("attribution_ko"),
+            "api_candidates": [{"dataset_id": row["dataset_id"], "name_ko": row["name_ko"],
+                                "state": row["state"], "apply_url": row["apply_url"]}
+                               for row in drugs.API_CANDIDATES],
+        })
+        return 0
+    if args.drug:
+        store = Store(args.db or ":memory:")
+        payload = {"product_name": args.drug}
+        if args.channel:
+            payload["channel"] = args.channel
+        if args.quantity:
+            payload["quantity"] = args.quantity
+        out = call_tool("check_drug_import", payload, store,
+                        live=from_environment(keyless_rra=True) if args.live else None)
+        pretty_print(out)
+        return 0 if out.get("ok") else 1
     if args.mcp:
         print(json.dumps(mcp_manifest(), ensure_ascii=False, indent=2))
         return 0

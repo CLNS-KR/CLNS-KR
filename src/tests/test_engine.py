@@ -53,9 +53,10 @@ CASES = [
 
 
 class CorpusTest(unittest.TestCase):
-    def test_corpus_has_22_cases_with_evidence(self):
+    def test_corpus_has_24_cases_with_evidence(self):
         corpus = load_corpus()
-        self.assertEqual(len(corpus.traps), 22)
+        # 0.1.5: 의약품 카드 TRAP-23(마약류)·TRAP-24(오남용·원료물질) 추가
+        self.assertEqual(len(corpus.traps), 24)
         for trap in corpus.traps:
             self.assertTrue(trap.legal_basis, trap.id)
             for basis in trap.legal_basis:
@@ -66,7 +67,8 @@ class CorpusTest(unittest.TestCase):
 
     def test_no_duplicate_ids(self):
         corpus = load_corpus()
-        self.assertEqual(len({t.id for t in corpus.traps}), 22)
+        # 0.1.5: 의약품 카드(TRAP-23·24) 추가로 24개
+        self.assertEqual(len({t.id for t in corpus.traps}), 24)
 
     def test_customs_law_effective_dates_match_legal_api(self):
         """법제처 현행 조문 시행일자(2026-11-18 확인)와 코퍼스 인용이 어긋나지 않게 고정한다."""
@@ -239,13 +241,14 @@ class QuotaAndTierTest(unittest.TestCase):
         self.assertTrue(meta["ok"])  # 메타 조회는 과금/한도 미적용
 
     def test_billable_tools_exclude_meta(self):
-        self.assertEqual(len(TOOL_DEFS), 8)
-        self.assertEqual(len(BILLABLE_TOOLS), 7)
+        # 0.2.0: check_ad_labeling·lookup_mfds_disposition 추가로 11종(과금 10종)
+        self.assertEqual(len(TOOL_DEFS), 11)
+        self.assertEqual(len(BILLABLE_TOOLS), 10)
         self.assertNotIn("get_service_meta", BILLABLE_TOOLS)
 
     def test_mcp_manifest_lists_8_tools(self):
         manifest = mcp_manifest()
-        self.assertEqual(len(manifest["tools"]), 8)
+        self.assertEqual(len(manifest["tools"]), 11)
         names = {t["name"] for t in manifest["tools"]}
         self.assertIn("assess_import_case", names)
         self.assertIn("get_legal_basis", names)

@@ -27,5 +27,16 @@ snapshots/
 07-*.md
 patches/
 audit/
+# 0.1.5 의약품 변경 상세·API 승인 상태 산출물(내부 문서 · 공개 저장소 비공개)
+08-*.md
+
 # 법령 실조회 검증 산출물(내부 대조용 · 공개 저장소 비공개)
 medical-hygiene-law-verification.json
+drug-law-verification.json
+ad-label-law-verification.json
+food-sanitation-law-verification.json
+# 행정처분 API 실호출 상태·집계 산출물(집계본이지만 운영 상태이므로 비공개)
+disposition-api-verification-*.json
+
+# data.go.kr 활용승인 상태 실호출 기록(키는 없지만 운영 상태이므로 비공개)
+drug-api-verification-*.json

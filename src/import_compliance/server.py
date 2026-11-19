@@ -41,6 +41,7 @@ from . import mcp_http, pseo, site_verification, static_files, usage
 from .api import call_tool, mcp_manifest
 from .live_api import from_environment, register_sources
 from .store import Store
+from .version import __version__
 from .web_ui import render_page
 
 MAX_BODY = 64 * 1024
@@ -127,7 +128,7 @@ def _days_param(query: str) -> int:
 
 def make_handler(store: Store, live=None):
     class Handler(BaseHTTPRequestHandler):
-        server_version = "clns/0.1"
+        server_version = "clns/" + __version__
         sys_version = ""
 
         def version_string(self) -> str:  # 파이썬 버전 노출 없이 제품명만

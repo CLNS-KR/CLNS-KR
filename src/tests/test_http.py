@@ -46,7 +46,7 @@ class HttpSmokeTest(unittest.TestCase):
             self.assertEqual(json.loads(resp.read())["ok"], True)
         with urllib.request.urlopen(f"http://127.0.0.1:{self.port}/v1/mcp", timeout=5) as resp:
             manifest = json.loads(resp.read().decode("utf-8"))
-        self.assertEqual(len(manifest["tools"]), 8)
+        self.assertEqual(len(manifest["tools"]), 11)
 
     def test_assess_over_http(self):
         out = self._post("assess_import_case", {"query": "중국산 유아용 완구를 수입해 판매"})

@@ -140,6 +140,13 @@ REGULATION_TAGS: Dict[str, Dict[str, str]] = {
     "IP_PARALLEL_IMPORT": {"label_ko": "지재권·병행수입", "label_en": "IP / parallel import"},
     "MEDICAL_DEVICE_IMPORT": {"label_ko": "의료기기 수입업 허가·품목 허가", "label_en": "Medical device import licence"},
     "HYGIENE_PRODUCT_IMPORT": {"label_ko": "위생용품 수입업 신고·기준규격", "label_en": "Hygiene product import"},
+    "NARCOTIC_IMPORT_BAN": {"label_ko": "마약류(마약·향정·대마) 반입 제한", "label_en": "Narcotic / psychotropic import restriction"},
+    "DRUG_INGREDIENT_RESTRICTION": {"label_ko": "오남용·원료물질·국내 전용 성분 제한", "label_en": "Restricted drug ingredient"},
+    "FOOD_AD_CLAIM": {"label_ko": "식품 부당표시·광고", "label_en": "Food labeling & advertising claim"},
+    "HFF_CLAIM_MISREPRESENTATION": {"label_ko": "건강기능식품 오인 표시", "label_en": "HFF misrepresentation"},
+    "COSMETICS_AD_CLAIM": {"label_ko": "화장품 부당표시·광고", "label_en": "Cosmetics advertising claim"},
+    "COSMETICS_FUNCTIONAL_CLAIM": {"label_ko": "기능성화장품 오인 표시", "label_en": "Functional cosmetics claim"},
+    "MFDS_DISPOSITION": {"label_ko": "식약처 행정처분 이력", "label_en": "MFDS administrative disposition"},
 }
 
 # 코퍼스 케이스 → 규제 태그(테스트셋 required_findings 가 참조하는 유일한 매핑).
@@ -166,6 +173,8 @@ CASE_REGULATION_TAGS: Dict[str, List[str]] = {
     "TRAP-20": ["IP_PARALLEL_IMPORT"],
     "TRAP-21": ["MEDICAL_DEVICE_IMPORT"],
     "TRAP-22": ["HYGIENE_PRODUCT_IMPORT"],
+    "TRAP-23": ["NARCOTIC_IMPORT_BAN"],
+    "TRAP-24": ["DRUG_INGREDIENT_RESTRICTION"],
 }
 
 
@@ -194,6 +203,7 @@ def unknown_tags(tags: Iterable[str]) -> List[str]:
 # 에 그대로 남기고, 응답 최상위 missing_information 만 표준명으로 노출한다.
 MISSING_FIELD_ALIAS: Dict[str, str] = {
     "ac_plug": "ac_plug",
+    "ad_copy": "ad_copy",
     "additive_names": "additive_names",
     "agreement": "fta_agreement",
     "battery_type": "battery_type",
@@ -203,6 +213,9 @@ MISSING_FIELD_ALIAS: Dict[str, str] = {
     "direction": "trade_direction",
     "domestic_sales": "domestic_sales_status",
     "drug_class": "drug_class",
+    "drug_class": "drug_class",
+    "drug_ingredient": "drug_ingredient",
+    "drug_name": "drug_name",
     "energy_density": "energy_density",
     "food_contact": "food_contact_use",
     "food_type": "food_type",
@@ -212,6 +225,8 @@ MISSING_FIELD_ALIAS: Dict[str, str] = {
     "hs_code": "hs_10_code",
     "ingredient": "ingredient",
     "item": "item_name",
+    "label_items": "label_items",
+    "label_text": "label_text",
     "material": "material",
     "material_origin": "material_origin",
     "nicotine": "nicotine_content",
@@ -219,6 +234,9 @@ MISSING_FIELD_ALIAS: Dict[str, str] = {
     "process": "manufacturing_process",
     "product_name": "product_name",
     "product_type": "product_type",
+    "prescription": "prescription_status",
+    "quantity": "quantity",
+    "quantity_unit": "quantity_unit",
     "purpose": "import_purpose",
     "rated_power": "rated_power",
     "rf_tx": "wireless_function",

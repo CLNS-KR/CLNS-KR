@@ -1,0 +1,5028 @@
+{
+ "schedule_version": "1.0.0",
+ "generated_on": "2026-11-18",
+ "law": "마약류 관리에 관한 법률",
+ "decree": "마약류 관리에 관한 법률 시행령",
+ "decree_mst": "291673",
+ "decree_promulgated_on": "2026-11-10",
+ "decree_effective_from": "2026-11-10",
+ "decree_promulgation_no": "36827",
+ "attribution_ko": "출처: 법제처 국가법령정보센터 — 마약류 관리에 관한 법률 시행령 별표 1~8",
+ "note_ko": "별표 표에서 이름(한글·영문)만 추출한 로컬 사전입니다. 조문 원문·별표 전체 내용은 법제처 국가법령정보센터에서 확인해야 하며, 이 사전에 없다고 마약류가 아니라고 단정할 수 없습니다(임시마약류 지정·개정 반영 시차).",
+ "tables": [
+  {
+   "table": "별표 1",
+   "title": "법 제2조제2호라목에 해당하는 마약(제2조제1항 관련)",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호라목",
+   "row_count": 33,
+   "revised_on": "2021-12-14"
+  },
+  {
+   "table": "별표 2",
+   "title": "법 제2조제2호마목에 해당하는 마약(제2조제2항 관련)",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "row_count": 115,
+   "revised_on": "2026-11-10"
+  },
+  {
+   "table": "별표 3",
+   "title": "법 제2조제3호가목에 해당하는 향정신성의약품(제2조제3항 관련)",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "row_count": 152,
+   "revised_on": "2026-11-10"
+  },
+  {
+   "table": "별표 4",
+   "title": "법 제2조제3호나목에 해당하는 향정신성의약품(제2조제3항 관련)",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(나목)",
+   "reference": "법 제2조제3호나목",
+   "row_count": 46,
+   "revised_on": "2026-11-10"
+  },
+  {
+   "table": "별표 5",
+   "title": "법 제2조제3호다목에 해당하는 향정신성의약품(제2조제3항 관련)",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(다목)",
+   "reference": "법 제2조제3호다목",
+   "row_count": 59,
+   "revised_on": "2026-11-10"
+  },
+  {
+   "table": "별표 6",
+   "title": "법 제2조제3호라목에 해당하는 향정신성의약품(제2조제3항 관련)",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "row_count": 85,
+   "revised_on": "2026-11-10"
+  },
+  {
+   "table": "별표 7",
+   "title": "법 제2조제4호다목에 해당하는 화학적합성품(제2조제4항 관련)",
+   "class": "CANNABIS_SYNTHETIC",
+   "class_ko": "대마와 동일한 화학적합성품",
+   "reference": "법 제2조제4호다목",
+   "row_count": 3,
+   "revised_on": "2016-11-01"
+  },
+  {
+   "table": "별표 8",
+   "title": "원료물질, 최대거래량 및 최고농도(제2조제5항, 제6조, 제19조제1항ㆍ제3항 및 제20조제1항 관련)",
+   "class": "PRECURSOR",
+   "class_ko": "마약류 원료물질",
+   "reference": "법 제2조제6호",
+   "row_count": 55,
+   "revised_on": "2026-11-10"
+  }
+ ],
+ "counts": {
+  "NARCOTIC": 148,
+  "PSYCHOTROPIC": 342,
+  "CANNABIS_SYNTHETIC": 3,
+  "PRECURSOR": 55
+ },
+ "substances": [
+  {
+   "name_ko": "아세토르핀",
+   "name_en": "Acetorphine",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호라목",
+   "table": "별표 1",
+   "no": "1"
+  },
+  {
+   "name_ko": "벤질모르핀",
+   "name_en": "Benzylmorphine",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호라목",
+   "table": "별표 1",
+   "no": "2"
+  },
+  {
+   "name_ko": "코카인",
+   "name_en": "Cocaine",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호라목",
+   "table": "별표 1",
+   "no": "3"
+  },
+  {
+   "name_ko": "코독심",
+   "name_en": "Codoxime",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호라목",
+   "table": "별표 1",
+   "no": "4"
+  },
+  {
+   "name_ko": "데소모르핀",
+   "name_en": "Desomorphine",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호라목",
+   "table": "별표 1",
+   "no": "5"
+  },
+  {
+   "name_ko": "디히드로모르핀",
+   "name_en": "Dihydromorphin e",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호라목",
+   "table": "별표 1",
+   "no": "6"
+  },
+  {
+   "name_ko": "에토르핀",
+   "name_en": "Etorphine",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호라목",
+   "table": "별표 1",
+   "no": "8"
+  },
+  {
+   "name_ko": "헤로인",
+   "name_en": "Heroin",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호라목",
+   "table": "별표 1",
+   "no": "9"
+  },
+  {
+   "name_ko": "히드로코돈",
+   "name_en": "Hydrocodone",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호라목",
+   "table": "별표 1",
+   "no": "10"
+  },
+  {
+   "name_ko": "히드로모르피놀",
+   "name_en": "Hydromorphinol",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호라목",
+   "table": "별표 1",
+   "no": "11"
+  },
+  {
+   "name_ko": "히드로모르폰",
+   "name_en": "Hydromorphone",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호라목",
+   "table": "별표 1",
+   "no": "12"
+  },
+  {
+   "name_ko": "메틸데소르핀",
+   "name_en": "Methyldesorphine",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호라목",
+   "table": "별표 1",
+   "no": "13"
+  },
+  {
+   "name_ko": "메틸디히드로모르핀",
+   "name_en": "Methyldihydromorphine",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호라목",
+   "table": "별표 1",
+   "no": "14"
+  },
+  {
+   "name_ko": "메토폰",
+   "name_en": "Metopon",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호라목",
+   "table": "별표 1",
+   "no": "15"
+  },
+  {
+   "name_ko": "모르핀",
+   "name_en": "Morphine",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호라목",
+   "table": "별표 1",
+   "no": "16"
+  },
+  {
+   "name_ko": "모르핀-엔-옥사이드",
+   "name_en": "Morphine-N-Oxide",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호라목",
+   "table": "별표 1",
+   "no": "17"
+  },
+  {
+   "name_ko": "미로핀",
+   "name_en": "Myrophine",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호라목",
+   "table": "별표 1",
+   "no": "18"
+  },
+  {
+   "name_ko": "니코디코딘",
+   "name_en": "Nicodicodine",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호라목",
+   "table": "별표 1",
+   "no": "19"
+  },
+  {
+   "name_ko": "니코모르핀",
+   "name_en": "Nicomorphine",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호라목",
+   "table": "별표 1",
+   "no": "20"
+  },
+  {
+   "name_ko": "노르모르핀",
+   "name_en": "Normorphine",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호라목",
+   "table": "별표 1",
+   "no": "21"
+  },
+  {
+   "name_ko": "옥시코돈",
+   "name_en": "Oxycodone",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호라목",
+   "table": "별표 1",
+   "no": "22"
+  },
+  {
+   "name_ko": "옥시모르폰",
+   "name_en": "Oxymorphone",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호라목",
+   "table": "별표 1",
+   "no": "23"
+  },
+  {
+   "name_ko": "테바콘",
+   "name_en": "Thebacon",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호라목",
+   "table": "별표 1",
+   "no": "24"
+  },
+  {
+   "name_ko": "테바인",
+   "name_en": "Thebaine",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호라목",
+   "table": "별표 1",
+   "no": "25"
+  },
+  {
+   "name_ko": "아세틸디히드로코데인",
+   "name_en": "Acetyldihydrocodeine",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호라목",
+   "table": "별표 1",
+   "no": "26"
+  },
+  {
+   "name_ko": "코데인",
+   "name_en": "Codeine",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호라목",
+   "table": "별표 1",
+   "no": "27"
+  },
+  {
+   "name_ko": "디히드로코데인",
+   "name_en": "Dihydrocodeine",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호라목",
+   "table": "별표 1",
+   "no": "28"
+  },
+  {
+   "name_ko": "에틸모르핀",
+   "name_en": "Ethylmorphine",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호라목",
+   "table": "별표 1",
+   "no": "29"
+  },
+  {
+   "name_ko": "니코코딘",
+   "name_en": "Nicocodine",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호라목",
+   "table": "별표 1",
+   "no": "30"
+  },
+  {
+   "name_ko": "노르코데인",
+   "name_en": "Norcodeine",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호라목",
+   "table": "별표 1",
+   "no": "31"
+  },
+  {
+   "name_ko": "폴코딘",
+   "name_en": "Pholcodine",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호라목",
+   "table": "별표 1",
+   "no": "32"
+  },
+  {
+   "name_ko": "디히드로에토르핀",
+   "name_en": "Dihydroetorphine",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호라목",
+   "table": "별표 1",
+   "no": "34"
+  },
+  {
+   "name_ko": "오리파빈",
+   "name_en": "Oripavine",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호라목",
+   "table": "별표 1",
+   "no": "35"
+  },
+  {
+   "name_ko": "아세틸메타돌",
+   "name_en": "Acetylmethadol",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "1"
+  },
+  {
+   "name_ko": "알릴프로딘",
+   "name_en": "Allylprodine",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "2"
+  },
+  {
+   "name_ko": "알파세틸메타돌",
+   "name_en": "Alphacetylmethadol",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "3"
+  },
+  {
+   "name_ko": "알파메프로딘",
+   "name_en": "Alphameprodine",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "4"
+  },
+  {
+   "name_ko": "알파메타돌",
+   "name_en": "Alphamethadol",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "5"
+  },
+  {
+   "name_ko": "알파프로딘",
+   "name_en": "Alphaprodine",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "6"
+  },
+  {
+   "name_ko": "아닐레리딘",
+   "name_en": "Anileridine",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "7"
+  },
+  {
+   "name_ko": "벤제티딘",
+   "name_en": "Benzethidine",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "8"
+  },
+  {
+   "name_ko": "베타세틸메타돌",
+   "name_en": "Betacetylmethadol",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "9"
+  },
+  {
+   "name_ko": "베타메프로딘",
+   "name_en": "Betameprodine",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "10"
+  },
+  {
+   "name_ko": "베타메타돌",
+   "name_en": "Betamethadol",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "11"
+  },
+  {
+   "name_ko": "베타프로딘",
+   "name_en": "Betaprodine",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "12"
+  },
+  {
+   "name_ko": "베지트라미드",
+   "name_en": "Bezitramide",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "13"
+  },
+  {
+   "name_ko": "클로니타젠",
+   "name_en": "Clonitazene",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "14"
+  },
+  {
+   "name_ko": "덱스트로모라미드",
+   "name_en": "Dextromoramide",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "15"
+  },
+  {
+   "name_ko": "디암프로미드",
+   "name_en": "Diampromide",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "16"
+  },
+  {
+   "name_ko": "디에틸티암부텐",
+   "name_en": "Diethylthiambutene",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "17"
+  },
+  {
+   "name_ko": "디메녹사돌",
+   "name_en": "Dimenoxadol",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "18"
+  },
+  {
+   "name_ko": "디메펩타놀",
+   "name_en": "Dimepheptanol",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "19"
+  },
+  {
+   "name_ko": "디메틸티암부텐",
+   "name_en": "Dimethylthiambutene",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "20"
+  },
+  {
+   "name_ko": "디옥사페틸부티레이트",
+   "name_en": "Dioxaphetylbutyrate",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "21"
+  },
+  {
+   "name_ko": "디페녹실레이트",
+   "name_en": "Diphenoxylate",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "22"
+  },
+  {
+   "name_ko": "디피파논",
+   "name_en": "Dipipanone",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "23"
+  },
+  {
+   "name_ko": "에틸메틸티암부텐",
+   "name_en": "Ethylmethylthiambutene",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "24"
+  },
+  {
+   "name_ko": "에토니타젠",
+   "name_en": "Etonitazene",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "25"
+  },
+  {
+   "name_ko": "에톡세리딘",
+   "name_en": "Etoxeridine",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "26"
+  },
+  {
+   "name_ko": "펜타닐",
+   "name_en": "Fentanyl",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "27"
+  },
+  {
+   "name_ko": "푸레티딘",
+   "name_en": "Furethidine",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "28"
+  },
+  {
+   "name_ko": "히드록시페티딘",
+   "name_en": "Hydroxypethidine",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "29"
+  },
+  {
+   "name_ko": "이소메타돈",
+   "name_en": "Isomethadone",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "30"
+  },
+  {
+   "name_ko": "케토베미돈",
+   "name_en": "Ketobemidone",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "31"
+  },
+  {
+   "name_ko": "레보메토르판",
+   "name_en": "Levomethorpha n",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "32"
+  },
+  {
+   "name_ko": "레보모라미드",
+   "name_en": "Levomoramide",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "33"
+  },
+  {
+   "name_ko": "레보페나실모르판",
+   "name_en": "Levophenacylmorphan",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "34"
+  },
+  {
+   "name_ko": "레보르파놀",
+   "name_en": "Levorphanol",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "35"
+  },
+  {
+   "name_ko": "메타조신",
+   "name_en": "Metazocine",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "36"
+  },
+  {
+   "name_ko": "메타돈",
+   "name_en": "Methadone",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "37"
+  },
+  {
+   "name_ko": "메타돈 제조중간체",
+   "name_en": "Methadone Intermediate",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "38"
+  },
+  {
+   "name_ko": "모라미드 제조중간체",
+   "name_en": "Moramide Intermediate",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "39"
+  },
+  {
+   "name_ko": "모르페리딘",
+   "name_en": "Morpheridine",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "40"
+  },
+  {
+   "name_ko": "노라시메타돌",
+   "name_en": "Noracymethadol",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "41"
+  },
+  {
+   "name_ko": "노르레보르파놀",
+   "name_en": "Norlevorphanol",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "42"
+  },
+  {
+   "name_ko": "노르메타돈",
+   "name_en": "Normethadone",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "43"
+  },
+  {
+   "name_ko": "노르피파논",
+   "name_en": "Norpipanone",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "44"
+  },
+  {
+   "name_ko": "페티딘",
+   "name_en": "Pethidine",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "45"
+  },
+  {
+   "name_ko": "페티딘 제조중간체 에이",
+   "name_en": "Pethidine Intermediate A",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "46"
+  },
+  {
+   "name_ko": "페티딘 제조중간체 비",
+   "name_en": "Pethidine Intermediate B",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "47"
+  },
+  {
+   "name_ko": "페티딘 제조중간체 시",
+   "name_en": "Pethidine Intermediate C",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "48"
+  },
+  {
+   "name_ko": "페나독손",
+   "name_en": "Phenadoxone",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "49"
+  },
+  {
+   "name_ko": "페남프로미드",
+   "name_en": "Phenampromide",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "50"
+  },
+  {
+   "name_ko": "페나조신",
+   "name_en": "Phenazocine",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "51"
+  },
+  {
+   "name_ko": "페노모르판",
+   "name_en": "Phenomorphan",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "52"
+  },
+  {
+   "name_ko": "페노페리딘",
+   "name_en": "Phenoperidine",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "53"
+  },
+  {
+   "name_ko": "피미노딘",
+   "name_en": "Piminodine",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "54"
+  },
+  {
+   "name_ko": "피리트라미드",
+   "name_en": "Piritramide",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "55"
+  },
+  {
+   "name_ko": "프로헵타진",
+   "name_en": "Proheptazine",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "56"
+  },
+  {
+   "name_ko": "프로페리딘",
+   "name_en": "Properidine",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "57"
+  },
+  {
+   "name_ko": "라세메토르판",
+   "name_en": "Racemethorpha n",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "58"
+  },
+  {
+   "name_ko": "라세모라미드",
+   "name_en": "Racemoramide",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "59"
+  },
+  {
+   "name_ko": "라세모르판",
+   "name_en": "Racemorphan",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "60"
+  },
+  {
+   "name_ko": "트리메페리딘",
+   "name_en": "Trimeperidine",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "61"
+  },
+  {
+   "name_ko": "프로피람",
+   "name_en": "Propiram",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "62"
+  },
+  {
+   "name_ko": "드로테바놀",
+   "name_en": "Drotebanol",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "63"
+  },
+  {
+   "name_ko": "디페녹신",
+   "name_en": "Difenoxin",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "64"
+  },
+  {
+   "name_ko": "알펜타닐",
+   "name_en": "Alfentanil",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "65"
+  },
+  {
+   "name_ko": "틸리딘",
+   "name_en": "Tilidine",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "66"
+  },
+  {
+   "name_ko": "프로폭시펜",
+   "name_en": "Propoxyphene",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "67"
+  },
+  {
+   "name_ko": "아세틸-알파-메틸펜타닐",
+   "name_en": "Acetyl-alpha-methyl- fentan yl",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "68"
+  },
+  {
+   "name_ko": "알파-메틸펜타닐",
+   "name_en": "Alpha-methylfentanyl",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "69"
+  },
+  {
+   "name_ko": "3-메틸펜타닐",
+   "name_en": "3-Methylfentanyl",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "70"
+  },
+  {
+   "name_ko": "수펜타닐",
+   "name_en": "Sufentanil",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "71"
+  },
+  {
+   "name_ko": "피이피에이피",
+   "name_en": "PEPAP",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "72"
+  },
+  {
+   "name_ko": "엠피피피",
+   "name_en": "MPPP",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "73"
+  },
+  {
+   "name_ko": "레미펜타닐",
+   "name_en": "Remifentanil",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "74"
+  },
+  {
+   "name_ko": "타펜타돌",
+   "name_en": "Tapentadol",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "75"
+  },
+  {
+   "name_ko": "티오펜타닐",
+   "name_en": "Thiofentanyl",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "76"
+  },
+  {
+   "name_ko": "3-메틸티오펜타닐",
+   "name_en": "3-Methylthiofentanyl",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "77"
+  },
+  {
+   "name_ko": "알파-메틸티오펜타닐",
+   "name_en": "Alpha-methylthiofentanyl",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "78"
+  },
+  {
+   "name_ko": "베타-히드록시-3메틸펜타닐",
+   "name_en": "Beta-hydroxy-3-methylfenta nyl",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "79"
+  },
+  {
+   "name_ko": "베타-히드록시펜타닐",
+   "name_en": "Beta-hydroxyfentanyl",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "80"
+  },
+  {
+   "name_ko": "파라-플루오로펜타닐",
+   "name_en": "Para-fluorofentanyl",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "81"
+  },
+  {
+   "name_ko": "아세틸펜타닐",
+   "name_en": "Acetylfentanyl",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "82"
+  },
+  {
+   "name_ko": "에이에이치-7921",
+   "name_en": "AH-7921",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "83"
+  },
+  {
+   "name_ko": "부티르펜타닐",
+   "name_en": "Butyrfentanyl",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "84"
+  },
+  {
+   "name_ko": "카르펜타닐",
+   "name_en": "Carfentanil",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "85"
+  },
+  {
+   "name_ko": "푸라닐펜타닐",
+   "name_en": "Furanylfentanyl",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "86"
+  },
+  {
+   "name_ko": "옥펜타닐",
+   "name_en": "Ocfentanil",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "87"
+  },
+  {
+   "name_ko": "아크릴펜타닐",
+   "name_en": "Acrylfentanyl",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "88"
+  },
+  {
+   "name_ko": "4-플루오로이소부티르펜타닐",
+   "name_en": "4-Fluoroisobutyrfentanyl, 4-FIBF",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "89"
+  },
+  {
+   "name_ko": "테트라히드로푸라닐펜타닐",
+   "name_en": "Tetrahydrofuranylfentanyl, T HF-F",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "90"
+  },
+  {
+   "name_ko": "유-47700",
+   "name_en": "U-47700",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "91"
+  },
+  {
+   "name_ko": "파라플루오로부티릴펜타닐",
+   "name_en": "Parafluorobutyrylfentanyl",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "92"
+  },
+  {
+   "name_ko": "오르토-플루오로펜타닐",
+   "name_en": "Ortho-fluorofentanyl",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "93"
+  },
+  {
+   "name_ko": "메톡시아세틸펜타닐",
+   "name_en": "Methoxyacetylfentanyl",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "94"
+  },
+  {
+   "name_ko": "시클로프로필펜타닐",
+   "name_en": "Cyclopropylfentanyl",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "95"
+  },
+  {
+   "name_ko": "크로토닐펜타닐",
+   "name_en": "Crotonylfentanyl",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "96"
+  },
+  {
+   "name_ko": "발레릴펜타닐",
+   "name_en": "Valerylfentanyl",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "97"
+  },
+  {
+   "name_ko": "이소토니타젠",
+   "name_en": "Isotonitazene",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "99"
+  },
+  {
+   "name_ko": "알티아이-111",
+   "name_en": "RTI-111",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "100"
+  },
+  {
+   "name_ko": "유-48800",
+   "name_en": "U-48800",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "101"
+  },
+  {
+   "name_ko": "브로르핀",
+   "name_en": "Brorphine",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "102"
+  },
+  {
+   "name_ko": "메토니타젠",
+   "name_en": "Metonitazene",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "103"
+  },
+  {
+   "name_ko": "올리세리딘",
+   "name_en": "Oliceridine",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "104"
+  },
+  {
+   "name_ko": "에타젠",
+   "name_en": "Etazene",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "105"
+  },
+  {
+   "name_ko": "에토니타제핀",
+   "name_en": "Etonitazepyne",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "106"
+  },
+  {
+   "name_ko": "프로토니타젠",
+   "name_en": "Protonitazene",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "107"
+  },
+  {
+   "name_ko": "2-메틸-에이피-237",
+   "name_en": "2-Methyl-AP-237",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "108"
+  },
+  {
+   "name_ko": "부토니타젠",
+   "name_en": "Butonitazene",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "109"
+  },
+  {
+   "name_ko": "엔-피롤리디노 프로토니타젠",
+   "name_en": "N-Pyrrolidino protonitazene",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "110"
+  },
+  {
+   "name_ko": "엔-피롤리디노 메토니타젠",
+   "name_en": "N-Pyrrolidino metonitazene",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "111"
+  },
+  {
+   "name_ko": "에토니타제피프네",
+   "name_en": "Etonitazepipne",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "112"
+  },
+  {
+   "name_ko": "엔-데스에틸 이소토니타젠",
+   "name_en": "N-Desethyl isotonitazene",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "113"
+  },
+  {
+   "name_ko": "유-49900",
+   "name_en": "U-49900",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "114"
+  },
+  {
+   "name_ko": "엔-데스에틸 에토니타젠",
+   "name_en": "N-Desethyl etonitazene",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "115"
+  },
+  {
+   "name_ko": "엔-피롤리디노 이소토니타젠",
+   "name_en": "N-Pyrrolidino isotonitazene",
+   "class": "NARCOTIC",
+   "class_ko": "마약",
+   "reference": "법 제2조제2호마목",
+   "table": "별표 2",
+   "no": "116"
+  },
+  {
+   "name_ko": "디메톡시브로모암페타민",
+   "name_en": "Dimethoxybromoamphetamine",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "1"
+  },
+  {
+   "name_ko": "2,5-디메톡시암페타민",
+   "name_en": "2,5-Dimethoxyamphetamine, 2,5-D MA",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "2"
+  },
+  {
+   "name_ko": "4-메톡시암페타민",
+   "name_en": "4-Methoxyamphetamine, PMA",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "3"
+  },
+  {
+   "name_ko": "5-메톡시-3,4-메틸렌디옥시암페타민",
+   "name_en": "5-Methoxy-3,4-methylenedioxyam phetamine, MMDA",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "4"
+  },
+  {
+   "name_ko": "4-메틸-2,5-디메톡시암페타민",
+   "name_en": "4-Methyl-2,5-dimethoxyamphetam ine, STP, DOM",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "5"
+  },
+  {
+   "name_ko": "3,4-메틸렌디옥시암페타민",
+   "name_en": "3,4-Methylenedioxyamphetamine, MDA",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "6"
+  },
+  {
+   "name_ko": "3,4,5-트리메톡시암페타민",
+   "name_en": "3,4,5-trimethoxyamphetamine, TM A",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "7"
+  },
+  {
+   "name_ko": "부포테닌",
+   "name_en": "Bufotenine",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "8"
+  },
+  {
+   "name_ko": "디에틸트립타민",
+   "name_en": "Diethyltryptamine, DET",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "9"
+  },
+  {
+   "name_ko": "디메틸트립타민",
+   "name_en": "Dimethyltryptamin e, DMT",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "10"
+  },
+  {
+   "name_ko": "디메틸헵틸피란",
+   "name_en": "Dimethylheptylpyra n, DMHP",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "11"
+  },
+  {
+   "name_ko": "엔-에틸-3-피페리딜 벤질레이트",
+   "name_en": "N-ethyl-3-piperidyl benzilate",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "12"
+  },
+  {
+   "name_ko": "이보게인",
+   "name_en": "Ibogaine",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "13"
+  },
+  {
+   "name_ko": "리서직산 디에틸아마이드",
+   "name_en": "Lisergic a cid diethylamide, LSD, LSD-25",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "14"
+  },
+  {
+   "name_ko": "메스칼린",
+   "name_en": "Mescaline",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "15"
+  },
+  {
+   "name_ko": "엔-메틸-3-피페리딜 벤질레이트",
+   "name_en": "N-methyl-3-piperidyl benzilate",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "16"
+  },
+  {
+   "name_ko": "파라헥실",
+   "name_en": "Parahexyl",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "17"
+  },
+  {
+   "name_ko": "페이오트",
+   "name_en": "Peyote",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "18"
+  },
+  {
+   "name_ko": "사일로시빈",
+   "name_en": "Psilocybin",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "19"
+  },
+  {
+   "name_ko": "사일로신",
+   "name_en": "Psilocyn",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "20"
+  },
+  {
+   "name_ko": "에트립타민",
+   "name_en": "Etryptamine",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "23"
+  },
+  {
+   "name_ko": "4-메틸티오암페타민",
+   "name_en": "4-Methylthioa mphetamine, 4-MTA",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "24"
+  },
+  {
+   "name_ko": "크라톰",
+   "name_en": "Kratom",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "25"
+  },
+  {
+   "name_ko": "5-메톡시-디이소프로필트립타민",
+   "name_en": "5-Methoxy-diisopropyltryptamine, 5-Meo-DiPT",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "26"
+  },
+  {
+   "name_ko": "5-메톡시-메틸이소프로필트립타민",
+   "name_en": "5-Methoxy-methyliso propyltrypta mine, 5-MeO-MiPT",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "27"
+  },
+  {
+   "name_ko": "5-메톡시디메틸트립타민",
+   "name_en": "5-Methoxydimethyltryptamine, 5- MeO-DMT",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "28"
+  },
+  {
+   "name_ko": "메틸이소프로필트립타민",
+   "name_en": "Methylisopropyltryptamine, MiPT",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "29"
+  },
+  {
+   "name_ko": "5-메톡시-알파-메틸트립타민",
+   "name_en": "5-Methoxy-α-methyltryptamine, 5 -MeO-AMT",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "30"
+  },
+  {
+   "name_ko": "디이소프로필트립타민",
+   "name_en": "Diisopropyltryptamine, DiPT",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "31"
+  },
+  {
+   "name_ko": "4-아세톡시-디이소프로필트립타민",
+   "name_en": "4-Acetoxy-diisopropyltryptamine, 4-Acetoxy-DiPT",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "32"
+  },
+  {
+   "name_ko": "에이치유-210",
+   "name_en": "HU-210",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "37"
+  },
+  {
+   "name_ko": "메틸렌디옥시피로발레론",
+   "name_en": "Methylenedioxypyrovalerone, MDP V",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "39"
+  },
+  {
+   "name_ko": "4-플루오로암페타민",
+   "name_en": "4-Fluoroamphetamine, 4-FA",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "40"
+  },
+  {
+   "name_ko": "4-메틸암페타민",
+   "name_en": "4-Methylamphetamine, 4-MA",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "41"
+  },
+  {
+   "name_ko": "엔-히드록시 메틸렌디옥시암페타민",
+   "name_en": "N-hydroxy methylenedioxy amphe tamine, N-hydroxy MDA",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "42"
+  },
+  {
+   "name_ko": "메틸렌디옥시에틸암페타민",
+   "name_en": "Methylenedioxyethylamphetamine, MDE",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "43"
+  },
+  {
+   "name_ko": "4-메틸아미노렉스",
+   "name_en": "4-Methylaminorex",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "44"
+  },
+  {
+   "name_ko": "5-에이피비",
+   "name_en": "5-APB",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "45"
+  },
+  {
+   "name_ko": "피엠엠에이",
+   "name_en": "PMMA, para-methoxymethamphetamine",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "46"
+  },
+  {
+   "name_ko": "엠엠디에이-2",
+   "name_en": "MMDA-2",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "47"
+  },
+  {
+   "name_ko": "메톡세타민",
+   "name_en": "methoxetamine",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "48"
+  },
+  {
+   "name_ko": "시비-13",
+   "name_en": "CB-13",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "49"
+  },
+  {
+   "name_ko": "5-메오-디에이엘티",
+   "name_en": "5-MeO-DALT",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "50"
+  },
+  {
+   "name_ko": "메티오프로파민",
+   "name_en": "methiopropamine",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "51"
+  },
+  {
+   "name_ko": "5-에이피디비",
+   "name_en": "5-APDB",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "52"
+  },
+  {
+   "name_ko": "파라 -클로로암페타민",
+   "name_en": "p-chloroamp hetamine",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "53"
+  },
+  {
+   "name_ko": "알파- 피브이티",
+   "name_en": "α-PVT",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "54"
+  },
+  {
+   "name_ko": "알파- 메틸트립타민",
+   "name_en": "α-methyltrypta mine",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "55"
+  },
+  {
+   "name_ko": "4-오에이치-디이티",
+   "name_en": "4-OH-DET",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "56"
+  },
+  {
+   "name_ko": "데스옥시-디2피엠",
+   "name_en": "Dexoxy-D2PM",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "57"
+  },
+  {
+   "name_ko": "5-엠에이피비",
+   "name_en": "5-MAPB",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "58"
+  },
+  {
+   "name_ko": "엠디에이아이",
+   "name_en": "MDAI",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "59"
+  },
+  {
+   "name_ko": "25시-엔비오엠이",
+   "name_en": "25C-NBOMe",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "60"
+  },
+  {
+   "name_ko": "3-플루오로메트암페타민",
+   "name_en": "3-fluoromethamphetamine, 3-FM A",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "61"
+  },
+  {
+   "name_ko": "5-에이피아이",
+   "name_en": "5-API",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "62"
+  },
+  {
+   "name_ko": "5-아이에이아이",
+   "name_en": "5-IAI",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "63"
+  },
+  {
+   "name_ko": "디메톡시-메트암페타민",
+   "name_en": "Dimethoxy-methamphetamine, D MMA",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "64"
+  },
+  {
+   "name_ko": "에틸페니데이트",
+   "name_en": "Ethylphenidate",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "65"
+  },
+  {
+   "name_ko": "엠티-45",
+   "name_en": "MT-45",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "66"
+  },
+  {
+   "name_ko": "5-엠이오-이피티",
+   "name_en": "5-MeO-EPT",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "67"
+  },
+  {
+   "name_ko": "디오시",
+   "name_en": "DOC",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "68"
+  },
+  {
+   "name_ko": "25아이-엔비오엠이",
+   "name_en": "25I-NBOMe",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "69"
+  },
+  {
+   "name_ko": "2-벤즈히드릴피페리딘",
+   "name_en": "2-Benzhydrylpiperidine, 2-DPMP",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "70"
+  },
+  {
+   "name_ko": "에이-836,339",
+   "name_en": "A-836,339",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "71"
+  },
+  {
+   "name_ko": "파라-클로로메트암페타민",
+   "name_en": "p-Chloromethamphetamine, PCMA",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "72"
+  },
+  {
+   "name_ko": "파라-브로모암페타민",
+   "name_en": "p-Bromoamphetamine, PBA",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "73"
+  },
+  {
+   "name_ko": "25디-엔비오엠이",
+   "name_en": "25D-NBOMe",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "74"
+  },
+  {
+   "name_ko": "5-이에이피비",
+   "name_en": "5-EAPB",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "75"
+  },
+  {
+   "name_ko": "2시-시",
+   "name_en": "2C-C",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "76"
+  },
+  {
+   "name_ko": "2시-피",
+   "name_en": "2C-P",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "77"
+  },
+  {
+   "name_ko": "엔-메틸-2-에이아이",
+   "name_en": "N-Methyl-2-AI",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "78"
+  },
+  {
+   "name_ko": "아르에이치-34",
+   "name_en": "RH-34",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "79"
+  },
+  {
+   "name_ko": "엔-에틸노르케타민",
+   "name_en": "N-Ethylnorketamine",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "80"
+  },
+  {
+   "name_ko": "메피라핌",
+   "name_en": "Mepirapim",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "81"
+  },
+  {
+   "name_ko": "25비-엔비오엠이",
+   "name_en": "25B-NBOMe",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "82"
+  },
+  {
+   "name_ko": "4,4’-디엠에이아르",
+   "name_en": "4,4’-DMAR",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "83"
+  },
+  {
+   "name_ko": "25비-엔비에프",
+   "name_en": "25B-NBF",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "84"
+  },
+  {
+   "name_ko": "25시-엔비에프",
+   "name_en": "25C-NBF",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "85"
+  },
+  {
+   "name_ko": "25아이-엔비에프",
+   "name_en": "25I-NBF",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "86"
+  },
+  {
+   "name_ko": "2-엠이오-디페니딘",
+   "name_en": "2-MeO-diphenidine",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "87"
+  },
+  {
+   "name_ko": "비오디",
+   "name_en": "BOD",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "88"
+  },
+  {
+   "name_ko": "에스칼린",
+   "name_en": "Escaline",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "89"
+  },
+  {
+   "name_ko": "알릴에스칼린",
+   "name_en": "Allylescaline",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "90"
+  },
+  {
+   "name_ko": "메트알릴에스칼린",
+   "name_en": "Methallylescaline",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "91"
+  },
+  {
+   "name_ko": "25이-엔비오엠이",
+   "name_en": "25E-NBOMe",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "92"
+  },
+  {
+   "name_ko": "25엔-엔비오엠이",
+   "name_en": "25N-NBOMe",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "93"
+  },
+  {
+   "name_ko": "25시-엔비오에이치",
+   "name_en": "25C-NBOH",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "94"
+  },
+  {
+   "name_ko": "25아이-엔비오에이치",
+   "name_en": "25I-NBOH",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "95"
+  },
+  {
+   "name_ko": "라로카인",
+   "name_en": "Larocaine",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "96"
+  },
+  {
+   "name_ko": "니트라카인",
+   "name_en": "Nitracaine",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "97"
+  },
+  {
+   "name_ko": "플루브로마제팜",
+   "name_en": "Flubromazepam",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "98"
+  },
+  {
+   "name_ko": "3시-이",
+   "name_en": "3C-E",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "99"
+  },
+  {
+   "name_ko": "메트암네타민",
+   "name_en": "Methamnetamine",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "100"
+  },
+  {
+   "name_ko": "티-비오시-3,4-엠디엠에이",
+   "name_en": "t-BOC-3,4-MDMA",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "101"
+  },
+  {
+   "name_ko": "더블유아이엔-55,212-2",
+   "name_en": "WIN-55,212-2",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "102"
+  },
+  {
+   "name_ko": "에이엘-엘에이디",
+   "name_en": "AL-LAD",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "103"
+  },
+  {
+   "name_ko": "7-히드록시미트라지닌",
+   "name_en": "7-Hydroxymitragynine",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "104"
+  },
+  {
+   "name_ko": "미트라지닌",
+   "name_en": "Mitragynine",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "105"
+  },
+  {
+   "name_ko": "3,4-디클로로메틸페니데이트",
+   "name_en": "3,4-Dichloromethylphenidate",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "106"
+  },
+  {
+   "name_ko": "디페니딘",
+   "name_en": "Diphenidine",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "107"
+  },
+  {
+   "name_ko": "브로모-드래곤에프엘와이",
+   "name_en": "Bromo-DragonFLY",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "108"
+  },
+  {
+   "name_ko": "25에이치-엔비오엠이",
+   "name_en": "25H-NBOMe",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "109"
+  },
+  {
+   "name_ko": "더블유-15",
+   "name_en": "W-15",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "110"
+  },
+  {
+   "name_ko": "더블유-18",
+   "name_en": "W-18",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "111"
+  },
+  {
+   "name_ko": "2시-엔",
+   "name_en": "2C-N",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "112"
+  },
+  {
+   "name_ko": "25비-엔비오에이치",
+   "name_en": "25B-NBOH",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "113"
+  },
+  {
+   "name_ko": "2시-티에프엠",
+   "name_en": "2C-TFM",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "114"
+  },
+  {
+   "name_ko": "4-플루오로메틸페니데이트",
+   "name_en": "4-Fluoromethylphenidate",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "115"
+  },
+  {
+   "name_ko": "3시-피",
+   "name_en": "3C-P",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "116"
+  },
+  {
+   "name_ko": "비피카나",
+   "name_en": "BiPICANA",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "117"
+  },
+  {
+   "name_ko": "오알지27569",
+   "name_en": "Org27569",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "118"
+  },
+  {
+   "name_ko": "에이비-시에이치푸피카",
+   "name_en": "AB-CHFUPYCA",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "119"
+  },
+  {
+   "name_ko": "4-플루오로에틸페니데이트",
+   "name_en": "4-Fluoroethylphenidate",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "120"
+  },
+  {
+   "name_ko": "티오티논",
+   "name_en": "Thiothinone",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "121"
+  },
+  {
+   "name_ko": "4-엠엠에이-엔비오엠이",
+   "name_en": "4-MMA-NBOMe",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "122"
+  },
+  {
+   "name_ko": "3-플루오로에트암페타민",
+   "name_en": "3-Fluoroethamphetamine",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "123"
+  },
+  {
+   "name_ko": "4-플루오로에트암페타민",
+   "name_en": "4-Fluoroethamphetamine",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "124"
+  },
+  {
+   "name_ko": "5-엠에이피디비",
+   "name_en": "5-MAPDB",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "125"
+  },
+  {
+   "name_ko": "메틸나프티데이트",
+   "name_en": "Methylnaphthidate",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "126"
+  },
+  {
+   "name_ko": "에틸나프티데이트",
+   "name_en": "Ethylnaphthidate",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "127"
+  },
+  {
+   "name_ko": "2시-비-에프엘와이",
+   "name_en": "2C-B-FLY",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "128"
+  },
+  {
+   "name_ko": "4’-플루오로-4-메틸아미노렉스",
+   "name_en": "4’-Fluoro-4-methylaminorex",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "129"
+  },
+  {
+   "name_ko": "알파-피비티",
+   "name_en": "α-PBT",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "130"
+  },
+  {
+   "name_ko": "아디나졸람",
+   "name_en": "Adinazolam",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "131"
+  },
+  {
+   "name_ko": "플루클로티졸람",
+   "name_en": "Fluclotizolam",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "132"
+  },
+  {
+   "name_ko": "메티졸람",
+   "name_en": "Metizolam",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "133"
+  },
+  {
+   "name_ko": "푸비미나",
+   "name_en": "FUBIMINA",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "134"
+  },
+  {
+   "name_ko": "이티에이치-엘에이디",
+   "name_en": "ETH-LAD",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "135"
+  },
+  {
+   "name_ko": "쿠밀-페가클론",
+   "name_en": "Cumyl-Pegaclone",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "136"
+  },
+  {
+   "name_ko": "이소프로필페니데이트",
+   "name_en": "Isopropylphenidate",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "137"
+  },
+  {
+   "name_ko": "파라-메톡시에틸암페타민",
+   "name_en": "ρ-Methoxyethylamphetamine",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "138"
+  },
+  {
+   "name_ko": "티에노암페타민",
+   "name_en": "Thienoamphetamine",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "139"
+  },
+  {
+   "name_ko": "엔-히드록시 엠디엠에이",
+   "name_en": "N-hydroxy MDMA",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "140"
+  },
+  {
+   "name_ko": "비디비",
+   "name_en": "BDB",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "141"
+  },
+  {
+   "name_ko": "디오아이",
+   "name_en": "DOI",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "142"
+  },
+  {
+   "name_ko": "2,5-디메톡시페네틸아민",
+   "name_en": "2,5-Dimethoxyphenethylamine",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "143"
+  },
+  {
+   "name_ko": "25아이피-엔비오엠이",
+   "name_en": "25iP-NBOMe",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "144"
+  },
+  {
+   "name_ko": "30시-엔비오엠이",
+   "name_en": "30C-NBOMe",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "145"
+  },
+  {
+   "name_ko": "3에프-페네트라진",
+   "name_en": "3F-phenetrazine",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "146"
+  },
+  {
+   "name_ko": "4-메틸메틸페니데이트",
+   "name_en": "4-Methylmethylphenidate",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "147"
+  },
+  {
+   "name_ko": "메페드린",
+   "name_en": "Mephedrene",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "148"
+  },
+  {
+   "name_ko": "메프테트라민",
+   "name_en": "Mephtetramine, MTTA",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "149"
+  },
+  {
+   "name_ko": "알파-디2피브이",
+   "name_en": "α-D2PV",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "150"
+  },
+  {
+   "name_ko": "디에프-엠디비피",
+   "name_en": "DF-MDBP",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "151"
+  },
+  {
+   "name_ko": "4-에이씨오-디이티",
+   "name_en": "4-AcO-DET",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "152"
+  },
+  {
+   "name_ko": "4-에이씨오-디엠티",
+   "name_en": "4-AcO-DMT",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "153"
+  },
+  {
+   "name_ko": "4-오에이치-엠이티",
+   "name_en": "4-OH-MET",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "154"
+  },
+  {
+   "name_ko": "4-에이씨오-엠이티",
+   "name_en": "4-AcO-MET",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "155"
+  },
+  {
+   "name_ko": "4-오에이치-엠아이피티",
+   "name_en": "4-OH-MiPT",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "156"
+  },
+  {
+   "name_ko": "4-에이씨오-이피티",
+   "name_en": "4-AcO-EPT",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "157"
+  },
+  {
+   "name_ko": "4-에이씨오-디에이엘티",
+   "name_en": "4-AcO-DALT",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "158"
+  },
+  {
+   "name_ko": "5-엠이오-2-티엠티",
+   "name_en": "5-MeO-2-TMT",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(가목)",
+   "reference": "법 제2조제3호가목",
+   "table": "별표 3",
+   "no": "159"
+  },
+  {
+   "name_ko": "암페타민",
+   "name_en": "Amphetamine",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(나목)",
+   "reference": "법 제2조제3호나목",
+   "table": "별표 4",
+   "no": "1"
+  },
+  {
+   "name_ko": "덱스암페타민",
+   "name_en": "Dexamphetamine",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(나목)",
+   "reference": "법 제2조제3호나목",
+   "table": "별표 4",
+   "no": "2"
+  },
+  {
+   "name_ko": "레보암페타민",
+   "name_en": "Levoamphetamine",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(나목)",
+   "reference": "법 제2조제3호나목",
+   "table": "별표 4",
+   "no": "3"
+  },
+  {
+   "name_ko": "메트암페타민",
+   "name_en": "Methamphetamine",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(나목)",
+   "reference": "법 제2조제3호나목",
+   "table": "별표 4",
+   "no": "4"
+  },
+  {
+   "name_ko": "히드록시암페타민",
+   "name_en": "Hydoxyampheta mine",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(나목)",
+   "reference": "법 제2조제3호나목",
+   "table": "별표 4",
+   "no": "5"
+  },
+  {
+   "name_ko": "메틸페니데이트",
+   "name_en": "Methylphenidate",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(나목)",
+   "reference": "법 제2조제3호나목",
+   "table": "별표 4",
+   "no": "6"
+  },
+  {
+   "name_ko": "펜메트라진",
+   "name_en": "Phenmetrazine",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(나목)",
+   "reference": "법 제2조제3호나목",
+   "table": "별표 4",
+   "no": "7"
+  },
+  {
+   "name_ko": "메클로쿠알론",
+   "name_en": "Mecloqualone",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(나목)",
+   "reference": "법 제2조제3호나목",
+   "table": "별표 4",
+   "no": "8"
+  },
+  {
+   "name_ko": "메타쿠알론",
+   "name_en": "Methaqualone",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(나목)",
+   "reference": "법 제2조제3호나목",
+   "table": "별표 4",
+   "no": "9"
+  },
+  {
+   "name_ko": "펜사이클리딘",
+   "name_en": "Phencyclidine",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(나목)",
+   "reference": "법 제2조제3호나목",
+   "table": "별표 4",
+   "no": "10"
+  },
+  {
+   "name_ko": "펜프로포렉스",
+   "name_en": "Fenproporex",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(나목)",
+   "reference": "법 제2조제3호나목",
+   "table": "별표 4",
+   "no": "11"
+  },
+  {
+   "name_ko": "2,5-디메톡시-4-에틸-암페타민",
+   "name_en": "2,5-Dimethoxy-4-ethylamphetami ne, DOET",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(나목)",
+   "reference": "법 제2조제3호나목",
+   "table": "별표 4",
+   "no": "12"
+  },
+  {
+   "name_ko": "3,4-메틸렌디옥시-엔-메틸암페타민",
+   "name_en": "3,4-Methylenedioxy-N-methylam phetamine, MDMA",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(나목)",
+   "reference": "법 제2조제3호나목",
+   "table": "별표 4",
+   "no": "13"
+  },
+  {
+   "name_ko": "페네틸린",
+   "name_en": "Fenetylline",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(나목)",
+   "reference": "법 제2조제3호나목",
+   "table": "별표 4",
+   "no": "14"
+  },
+  {
+   "name_ko": "엔-에틸-암페타민",
+   "name_en": "N-ethylamphetamine",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(나목)",
+   "reference": "법 제2조제3호나목",
+   "table": "별표 4",
+   "no": "15"
+  },
+  {
+   "name_ko": "펜캄파민",
+   "name_en": "Fencamfamine",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(나목)",
+   "reference": "법 제2조제3호나목",
+   "table": "별표 4",
+   "no": "16"
+  },
+  {
+   "name_ko": "벤즈페타민",
+   "name_en": "Benzphetamine",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(나목)",
+   "reference": "법 제2조제3호나목",
+   "table": "별표 4",
+   "no": "17"
+  },
+  {
+   "name_ko": "세코바르비탈",
+   "name_en": "Secobarbital",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(나목)",
+   "reference": "법 제2조제3호나목",
+   "table": "별표 4",
+   "no": "18"
+  },
+  {
+   "name_ko": "지페프롤",
+   "name_en": "Zipeprol",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(나목)",
+   "reference": "법 제2조제3호나목",
+   "table": "별표 4",
+   "no": "19"
+  },
+  {
+   "name_ko": "2시-비",
+   "name_en": "2C-B",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(나목)",
+   "reference": "법 제2조제3호나목",
+   "table": "별표 4",
+   "no": "20"
+  },
+  {
+   "name_ko": "아민엡틴",
+   "name_en": "Amineptine",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(나목)",
+   "reference": "법 제2조제3호나목",
+   "table": "별표 4",
+   "no": "21"
+  },
+  {
+   "name_ko": "살비아 디비노럼",
+   "name_en": "Salvia Divinorum",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(나목)",
+   "reference": "법 제2조제3호나목",
+   "table": "별표 4",
+   "no": "22"
+  },
+  {
+   "name_ko": "살비노린 에이",
+   "name_en": "Salvinorin A",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(나목)",
+   "reference": "법 제2조제3호나목",
+   "table": "별표 4",
+   "no": "23"
+  },
+  {
+   "name_ko": "케타민",
+   "name_en": "Ketamine",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(나목)",
+   "reference": "법 제2조제3호나목",
+   "table": "별표 4",
+   "no": "24"
+  },
+  {
+   "name_ko": "디메틸암페타민",
+   "name_en": "Dimethylamphetamine",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(나목)",
+   "reference": "법 제2조제3호나목",
+   "table": "별표 4",
+   "no": "25"
+  },
+  {
+   "name_ko": "2시-아이",
+   "name_en": "2C-I",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(나목)",
+   "reference": "법 제2조제3호나목",
+   "table": "별표 4",
+   "no": "26"
+  },
+  {
+   "name_ko": "벤질피페라진",
+   "name_en": "Benzylpiperazine",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(나목)",
+   "reference": "법 제2조제3호나목",
+   "table": "별표 4",
+   "no": "27"
+  },
+  {
+   "name_ko": "메타-클로로페닐피페라진",
+   "name_en": "meta-Chlorophenylpiperazine, mC PP",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(나목)",
+   "reference": "법 제2조제3호나목",
+   "table": "별표 4",
+   "no": "28"
+  },
+  {
+   "name_ko": "트리플루오로메틸페닐피페라진",
+   "name_en": "Trifluoromethylphenylpiperazine, TFMPP",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(나목)",
+   "reference": "법 제2조제3호나목",
+   "table": "별표 4",
+   "no": "29"
+  },
+  {
+   "name_ko": "파라-메톡시페닐피페라진",
+   "name_en": "para-Methoxyphenylpiperazine, M eOPP",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(나목)",
+   "reference": "법 제2조제3호나목",
+   "table": "별표 4",
+   "no": "30"
+  },
+  {
+   "name_ko": "메틸렌디옥시벤질피페라진",
+   "name_en": "Methylenedioxybenzylpiperazine, MDBZP",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(나목)",
+   "reference": "법 제2조제3호나목",
+   "table": "별표 4",
+   "no": "31"
+  },
+  {
+   "name_ko": "2시-디",
+   "name_en": "2C-D",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(나목)",
+   "reference": "법 제2조제3호나목",
+   "table": "별표 4",
+   "no": "32"
+  },
+  {
+   "name_ko": "2시-이",
+   "name_en": "2C-E",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(나목)",
+   "reference": "법 제2조제3호나목",
+   "table": "별표 4",
+   "no": "33"
+  },
+  {
+   "name_ko": "2시-티-2",
+   "name_en": "2C-T-2",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(나목)",
+   "reference": "법 제2조제3호나목",
+   "table": "별표 4",
+   "no": "34"
+  },
+  {
+   "name_ko": "2시-티-7",
+   "name_en": "2C-T-7",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(나목)",
+   "reference": "법 제2조제3호나목",
+   "table": "별표 4",
+   "no": "35"
+  },
+  {
+   "name_ko": "1,3-벤조이디옥소일-엔-메틸부탄아 민",
+   "name_en": "1,3-Benzodioxlyl-N-methylbutana mine, MBDB",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(나목)",
+   "reference": "법 제2조제3호나목",
+   "table": "별표 4",
+   "no": "36"
+  },
+  {
+   "name_ko": "메틸렌디옥시디메틸암페타민",
+   "name_en": "Methylenedioxydimethylamphetam ine, MDDMA",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(나목)",
+   "reference": "법 제2조제3호나목",
+   "table": "별표 4",
+   "no": "37"
+  },
+  {
+   "name_ko": "부틸론",
+   "name_en": "Butylone, bk-MBDB",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(나목)",
+   "reference": "법 제2조제3호나목",
+   "table": "별표 4",
+   "no": "38"
+  },
+  {
+   "name_ko": "메틸벤질피페라진",
+   "name_en": "Methylbenzylpiperazine, MBZP",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(나목)",
+   "reference": "법 제2조제3호나목",
+   "table": "별표 4",
+   "no": "39"
+  },
+  {
+   "name_ko": "파라플루오로페닐피페라진",
+   "name_en": "p-fluorophenyl piperazine, pFPP",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(나목)",
+   "reference": "법 제2조제3호나목",
+   "table": "별표 4",
+   "no": "40"
+  },
+  {
+   "name_ko": "틸레타민",
+   "name_en": "Tiletamine",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(나목)",
+   "reference": "법 제2조제3호나목",
+   "table": "별표 4",
+   "no": "41"
+  },
+  {
+   "name_ko": "졸라제팜",
+   "name_en": "Zolazepam",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(나목)",
+   "reference": "법 제2조제3호나목",
+   "table": "별표 4",
+   "no": "42"
+  },
+  {
+   "name_ko": "리스덱스암페타민",
+   "name_en": "Lisdexamphetamine",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(나목)",
+   "reference": "법 제2조제3호나목",
+   "table": "별표 4",
+   "no": "43"
+  },
+  {
+   "name_ko": "프로린탄",
+   "name_en": "Prolintane",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(나목)",
+   "reference": "법 제2조제3호나목",
+   "table": "별표 4",
+   "no": "44"
+  },
+  {
+   "name_ko": "헥사히드로칸나비놀",
+   "name_en": "Hexahydrocannabinol",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(나목)",
+   "reference": "법 제2조제3호나목",
+   "table": "별표 4",
+   "no": "45"
+  },
+  {
+   "name_ko": "3-플루오로펜메트라진",
+   "name_en": "3-Fluorophenmetrazine, 3-FPM",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(나목)",
+   "reference": "법 제2조제3호나목",
+   "table": "별표 4",
+   "no": "46"
+  },
+  {
+   "name_ko": "알로바르비탈",
+   "name_en": "Allobarbital",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(다목)",
+   "reference": "법 제2조제3호다목",
+   "table": "별표 5",
+   "no": "1"
+  },
+  {
+   "name_ko": "알페날",
+   "name_en": "Alphenal",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(다목)",
+   "reference": "법 제2조제3호다목",
+   "table": "별표 5",
+   "no": "2"
+  },
+  {
+   "name_ko": "아모바르비탈",
+   "name_en": "Amobarbital",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(다목)",
+   "reference": "법 제2조제3호다목",
+   "table": "별표 5",
+   "no": "3"
+  },
+  {
+   "name_ko": "아프로바르비탈",
+   "name_en": "Aprobarbital",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(다목)",
+   "reference": "법 제2조제3호다목",
+   "table": "별표 5",
+   "no": "4"
+  },
+  {
+   "name_ko": "바르비탈",
+   "name_en": "Barbital",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(다목)",
+   "reference": "법 제2조제3호다목",
+   "table": "별표 5",
+   "no": "5"
+  },
+  {
+   "name_ko": "브랄로바르비탈",
+   "name_en": "Brallobarbital",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(다목)",
+   "reference": "법 제2조제3호다목",
+   "table": "별표 5",
+   "no": "6"
+  },
+  {
+   "name_ko": "섹부타바르비탈",
+   "name_en": "Secbutabarbital",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(다목)",
+   "reference": "법 제2조제3호다목",
+   "table": "별표 5",
+   "no": "7"
+  },
+  {
+   "name_ko": "부탈비탈",
+   "name_en": "Butalbital",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(다목)",
+   "reference": "법 제2조제3호다목",
+   "table": "별표 5",
+   "no": "8"
+  },
+  {
+   "name_ko": "부탈리로날",
+   "name_en": "Butallylonal",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(다목)",
+   "reference": "법 제2조제3호다목",
+   "table": "별표 5",
+   "no": "9"
+  },
+  {
+   "name_ko": "부토바르비탈",
+   "name_en": "Butobarbital",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(다목)",
+   "reference": "법 제2조제3호다목",
+   "table": "별표 5",
+   "no": "10"
+  },
+  {
+   "name_ko": "시클로바르비탈",
+   "name_en": "Cyclobarbital",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(다목)",
+   "reference": "법 제2조제3호다목",
+   "table": "별표 5",
+   "no": "11"
+  },
+  {
+   "name_ko": "시클로펜토바르비탈",
+   "name_en": "Cyclopentobarbital",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(다목)",
+   "reference": "법 제2조제3호다목",
+   "table": "별표 5",
+   "no": "12"
+  },
+  {
+   "name_ko": "엔알릴프로피말",
+   "name_en": "Enallylpropymal",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(다목)",
+   "reference": "법 제2조제3호다목",
+   "table": "별표 5",
+   "no": "13"
+  },
+  {
+   "name_ko": "에트알로바르비탈",
+   "name_en": "Ethallobarbital",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(다목)",
+   "reference": "법 제2조제3호다목",
+   "table": "별표 5",
+   "no": "14"
+  },
+  {
+   "name_ko": "헵타바르비탈",
+   "name_en": "Heptabarbital",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(다목)",
+   "reference": "법 제2조제3호다목",
+   "table": "별표 5",
+   "no": "15"
+  },
+  {
+   "name_ko": "헵토바르비탈",
+   "name_en": "Heptobarbital",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(다목)",
+   "reference": "법 제2조제3호다목",
+   "table": "별표 5",
+   "no": "16"
+  },
+  {
+   "name_ko": "헥세탈",
+   "name_en": "Hexethal",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(다목)",
+   "reference": "법 제2조제3호다목",
+   "table": "별표 5",
+   "no": "17"
+  },
+  {
+   "name_ko": "헥소바르비탈",
+   "name_en": "Hexobarbital",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(다목)",
+   "reference": "법 제2조제3호다목",
+   "table": "별표 5",
+   "no": "18"
+  },
+  {
+   "name_ko": "메타아르비탈",
+   "name_en": "Metharbital",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(다목)",
+   "reference": "법 제2조제3호다목",
+   "table": "별표 5",
+   "no": "19"
+  },
+  {
+   "name_ko": "메토헥시탈",
+   "name_en": "Methohexital",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(다목)",
+   "reference": "법 제2조제3호다목",
+   "table": "별표 5",
+   "no": "20"
+  },
+  {
+   "name_ko": "메틸페노바르비탈",
+   "name_en": "Methylphenobarbital",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(다목)",
+   "reference": "법 제2조제3호다목",
+   "table": "별표 5",
+   "no": "21"
+  },
+  {
+   "name_ko": "나르코바르비탈",
+   "name_en": "Narcobarbital",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(다목)",
+   "reference": "법 제2조제3호다목",
+   "table": "별표 5",
+   "no": "22"
+  },
+  {
+   "name_ko": "네알바르비탈",
+   "name_en": "Nealbarbital",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(다목)",
+   "reference": "법 제2조제3호다목",
+   "table": "별표 5",
+   "no": "23"
+  },
+  {
+   "name_ko": "펜토바르비탈",
+   "name_en": "Pentobarbital",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(다목)",
+   "reference": "법 제2조제3호다목",
+   "table": "별표 5",
+   "no": "24"
+  },
+  {
+   "name_ko": "페노바르비탈",
+   "name_en": "Phenobarbital",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(다목)",
+   "reference": "법 제2조제3호다목",
+   "table": "별표 5",
+   "no": "25"
+  },
+  {
+   "name_ko": "페타르비탈",
+   "name_en": "Phetharbital",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(다목)",
+   "reference": "법 제2조제3호다목",
+   "table": "별표 5",
+   "no": "26"
+  },
+  {
+   "name_ko": "프로바르비탈",
+   "name_en": "Probarbital",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(다목)",
+   "reference": "법 제2조제3호다목",
+   "table": "별표 5",
+   "no": "27"
+  },
+  {
+   "name_ko": "프로팔리로날",
+   "name_en": "Propallylonal",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(다목)",
+   "reference": "법 제2조제3호다목",
+   "table": "별표 5",
+   "no": "28"
+  },
+  {
+   "name_ko": "프로필바르비탈",
+   "name_en": "Propylbarbital",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(다목)",
+   "reference": "법 제2조제3호다목",
+   "table": "별표 5",
+   "no": "29"
+  },
+  {
+   "name_ko": "스피로티오바르비탈",
+   "name_en": "Spirothiobarbital",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(다목)",
+   "reference": "법 제2조제3호다목",
+   "table": "별표 5",
+   "no": "30"
+  },
+  {
+   "name_ko": "테트라바르비탈",
+   "name_en": "Tetrabarbital",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(다목)",
+   "reference": "법 제2조제3호다목",
+   "table": "별표 5",
+   "no": "31"
+  },
+  {
+   "name_ko": "티오펜탈",
+   "name_en": "Thiopental",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(다목)",
+   "reference": "법 제2조제3호다목",
+   "table": "별표 5",
+   "no": "32"
+  },
+  {
+   "name_ko": "빈바르비탈",
+   "name_en": "Vinbarbital",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(다목)",
+   "reference": "법 제2조제3호다목",
+   "table": "별표 5",
+   "no": "33"
+  },
+  {
+   "name_ko": "바로탈룸",
+   "name_en": "Barotalum",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(다목)",
+   "reference": "법 제2조제3호다목",
+   "table": "별표 5",
+   "no": "34"
+  },
+  {
+   "name_ko": "디베랄",
+   "name_en": "Diberal",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(다목)",
+   "reference": "법 제2조제3호다목",
+   "table": "별표 5",
+   "no": "35"
+  },
+  {
+   "name_ko": "도르모비트",
+   "name_en": "Dormovit",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(다목)",
+   "reference": "법 제2조제3호다목",
+   "table": "별표 5",
+   "no": "36"
+  },
+  {
+   "name_ko": "이도부탈",
+   "name_en": "Idobutal",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(다목)",
+   "reference": "법 제2조제3호다목",
+   "table": "별표 5",
+   "no": "37"
+  },
+  {
+   "name_ko": "레포살",
+   "name_en": "Reposal",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(다목)",
+   "reference": "법 제2조제3호다목",
+   "table": "별표 5",
+   "no": "38"
+  },
+  {
+   "name_ko": "비닐비탈",
+   "name_en": "Vinylbital",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(다목)",
+   "reference": "법 제2조제3호다목",
+   "table": "별표 5",
+   "no": "39"
+  },
+  {
+   "name_ko": "카르부바르비탈",
+   "name_en": "Carbubarbital",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(다목)",
+   "reference": "법 제2조제3호다목",
+   "table": "별표 5",
+   "no": "40"
+  },
+  {
+   "name_ko": "시그모달",
+   "name_en": "Sigmodal",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(다목)",
+   "reference": "법 제2조제3호다목",
+   "table": "별표 5",
+   "no": "41"
+  },
+  {
+   "name_ko": "엘도랄",
+   "name_en": "Eldoral",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(다목)",
+   "reference": "법 제2조제3호다목",
+   "table": "별표 5",
+   "no": "42"
+  },
+  {
+   "name_ko": "티아미랄",
+   "name_en": "Thiamylal",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(다목)",
+   "reference": "법 제2조제3호다목",
+   "table": "별표 5",
+   "no": "43"
+  },
+  {
+   "name_ko": "클로르헥사돌",
+   "name_en": "Chlorhexadol",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(다목)",
+   "reference": "법 제2조제3호다목",
+   "table": "별표 5",
+   "no": "44"
+  },
+  {
+   "name_ko": "글루테티미드",
+   "name_en": "Glutethimide",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(다목)",
+   "reference": "법 제2조제3호다목",
+   "table": "별표 5",
+   "no": "45"
+  },
+  {
+   "name_ko": "리저직산",
+   "name_en": "Lysergic acid",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(다목)",
+   "reference": "법 제2조제3호다목",
+   "table": "별표 5",
+   "no": "46"
+  },
+  {
+   "name_ko": "리저직산 아미드",
+   "name_en": "Lysergic acid ami de",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(다목)",
+   "reference": "법 제2조제3호다목",
+   "table": "별표 5",
+   "no": "47"
+  },
+  {
+   "name_ko": "메프로바메이트",
+   "name_en": "Meprobamate",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(다목)",
+   "reference": "법 제2조제3호다목",
+   "table": "별표 5",
+   "no": "48"
+  },
+  {
+   "name_ko": "메티프릴론",
+   "name_en": "Methyprylon",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(다목)",
+   "reference": "법 제2조제3호다목",
+   "table": "별표 5",
+   "no": "49"
+  },
+  {
+   "name_ko": "설폰디에틸메탄",
+   "name_en": "Sulfondiethylmetha ne",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(다목)",
+   "reference": "법 제2조제3호다목",
+   "table": "별표 5",
+   "no": "50"
+  },
+  {
+   "name_ko": "설폰에틸메탄",
+   "name_en": "Sulfonethylmethane",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(다목)",
+   "reference": "법 제2조제3호다목",
+   "table": "별표 5",
+   "no": "51"
+  },
+  {
+   "name_ko": "설폰메탄",
+   "name_en": "Sulfonmethane",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(다목)",
+   "reference": "법 제2조제3호다목",
+   "table": "별표 5",
+   "no": "52"
+  },
+  {
+   "name_ko": "펜타조신",
+   "name_en": "Pentazocine",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(다목)",
+   "reference": "법 제2조제3호다목",
+   "table": "별표 5",
+   "no": "53"
+  },
+  {
+   "name_ko": "알릴이소프로필아세틸우레아",
+   "name_en": "Allylisopropylacetylurea, apronalid e",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(다목)",
+   "reference": "법 제2조제3호다목",
+   "table": "별표 5",
+   "no": "54"
+  },
+  {
+   "name_ko": "브롬디에틸아세틸우레아",
+   "name_en": "Bromdiethylacetylurea, carbromal",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(다목)",
+   "reference": "법 제2조제3호다목",
+   "table": "별표 5",
+   "no": "55"
+  },
+  {
+   "name_ko": "브롬바레릴우레아",
+   "name_en": "Bromvalerylurea, bromisoval",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(다목)",
+   "reference": "법 제2조제3호다목",
+   "table": "별표 5",
+   "no": "56"
+  },
+  {
+   "name_ko": "부프레노르핀",
+   "name_en": "Buprenorphine",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(다목)",
+   "reference": "법 제2조제3호다목",
+   "table": "별표 5",
+   "no": "57"
+  },
+  {
+   "name_ko": "에프타조신",
+   "name_en": "Eptazocine",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(다목)",
+   "reference": "법 제2조제3호다목",
+   "table": "별표 5",
+   "no": "58"
+  },
+  {
+   "name_ko": "플루니트라제팜",
+   "name_en": "Flunitrazepam",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(다목)",
+   "reference": "법 제2조제3호다목",
+   "table": "별표 5",
+   "no": "59"
+  },
+  {
+   "name_ko": "알프라졸람",
+   "name_en": "Alprazolam",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "1"
+  },
+  {
+   "name_ko": "암페프라몬",
+   "name_en": "Amfepramone",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "2"
+  },
+  {
+   "name_ko": "브로마제팜",
+   "name_en": "Bromazepam",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "3"
+  },
+  {
+   "name_ko": "브로티졸람",
+   "name_en": "Brotizolam",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "4"
+  },
+  {
+   "name_ko": "부토르파놀",
+   "name_en": "Butorphanol",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "5"
+  },
+  {
+   "name_ko": "카마제팜",
+   "name_en": "Camazepam",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "6"
+  },
+  {
+   "name_ko": "카틴",
+   "name_en": "Cathine",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "7"
+  },
+  {
+   "name_ko": "클로랄베타인",
+   "name_en": "Chloral betaine",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "8"
+  },
+  {
+   "name_ko": "클로랄히드레이트",
+   "name_en": "Chloral hydrate",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "9"
+  },
+  {
+   "name_ko": "클로르디아제폭시드",
+   "name_en": "Chlordiazepoxide",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "10"
+  },
+  {
+   "name_ko": "클로바잠",
+   "name_en": "Clobazam",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "11"
+  },
+  {
+   "name_ko": "클로나제팜",
+   "name_en": "Clonazepam",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "12"
+  },
+  {
+   "name_ko": "클로라제페이트",
+   "name_en": "Clorazepate",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "13"
+  },
+  {
+   "name_ko": "클로티아제팜",
+   "name_en": "Clotiazepam",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "14"
+  },
+  {
+   "name_ko": "클록사졸람",
+   "name_en": "Cloxazolam",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "15"
+  },
+  {
+   "name_ko": "델로라제팜",
+   "name_en": "Delorazepam",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "16"
+  },
+  {
+   "name_ko": "디아제팜",
+   "name_en": "Diazepam",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "17"
+  },
+  {
+   "name_ko": "에스타졸람",
+   "name_en": "Estazolam",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "18"
+  },
+  {
+   "name_ko": "에트클로르비놀",
+   "name_en": "Ethchlorvinol",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "19"
+  },
+  {
+   "name_ko": "에티나메이트",
+   "name_en": "Ethinamate",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "20"
+  },
+  {
+   "name_ko": "에틸로플라제페이트",
+   "name_en": "Ethyl Loflazepate",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "21"
+  },
+  {
+   "name_ko": "에티졸람",
+   "name_en": "Etizolam",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "22"
+  },
+  {
+   "name_ko": "펜플루라민",
+   "name_en": "Fenfluramine",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "23"
+  },
+  {
+   "name_ko": "플루디아제팜",
+   "name_en": "Fludiazepam",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "24"
+  },
+  {
+   "name_ko": "플루라제팜",
+   "name_en": "Flurazepam",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "25"
+  },
+  {
+   "name_ko": "할라제팜",
+   "name_en": "Halazepam",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "26"
+  },
+  {
+   "name_ko": "할록사졸람",
+   "name_en": "Haloxazolam",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "27"
+  },
+  {
+   "name_ko": "케타졸람",
+   "name_en": "Ketazolam",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "28"
+  },
+  {
+   "name_ko": "레페타민",
+   "name_en": "Lefetamine",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "29"
+  },
+  {
+   "name_ko": "로프라졸람",
+   "name_en": "Loprazolam",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "30"
+  },
+  {
+   "name_ko": "로라제팜",
+   "name_en": "Lorazepam",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "31"
+  },
+  {
+   "name_ko": "로르메타제팜",
+   "name_en": "Lormetazepam",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "32"
+  },
+  {
+   "name_ko": "마진돌",
+   "name_en": "Mazindol",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "33"
+  },
+  {
+   "name_ko": "메다제팜",
+   "name_en": "Medazepam",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "34"
+  },
+  {
+   "name_ko": "메페노렉스",
+   "name_en": "Mefenorex",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "35"
+  },
+  {
+   "name_ko": "미다졸람",
+   "name_en": "Midazolam",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "36"
+  },
+  {
+   "name_ko": "니메타제팜",
+   "name_en": "Nimetazepam",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "37"
+  },
+  {
+   "name_ko": "니트라제팜",
+   "name_en": "Nitrazepam",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "38"
+  },
+  {
+   "name_ko": "노르다제팜",
+   "name_en": "Nordazepam",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "39"
+  },
+  {
+   "name_ko": "옥사제팜",
+   "name_en": "Oxazepam",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "40"
+  },
+  {
+   "name_ko": "옥사졸람",
+   "name_en": "Oxazolam",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "41"
+  },
+  {
+   "name_ko": "옥시페르틴",
+   "name_en": "Oxypertine",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "42"
+  },
+  {
+   "name_ko": "파라알데히드",
+   "name_en": "Paraldehyde",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "43"
+  },
+  {
+   "name_ko": "페몰린",
+   "name_en": "Pemoline",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "44"
+  },
+  {
+   "name_ko": "페트리클로랄",
+   "name_en": "Petrichloral",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "45"
+  },
+  {
+   "name_ko": "펜디메트라진",
+   "name_en": "Phendimetrazine",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "46"
+  },
+  {
+   "name_ko": "펜터민",
+   "name_en": "Phentermine",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "47"
+  },
+  {
+   "name_ko": "피나제팜",
+   "name_en": "Pinazepam",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "48"
+  },
+  {
+   "name_ko": "피프라드롤 [Pipradrol(α,γ)]",
+   "name_en": "알파 또는 감마",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "49"
+  },
+  {
+   "name_ko": "프라제팜",
+   "name_en": "Prazepam",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "50"
+  },
+  {
+   "name_ko": "프로필헥세드린",
+   "name_en": "Propylhexedrine",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "51"
+  },
+  {
+   "name_ko": "피리틸디온",
+   "name_en": "Pyrithyldione",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "52"
+  },
+  {
+   "name_ko": "피로발레론",
+   "name_en": "Pyrovalerone",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "53"
+  },
+  {
+   "name_ko": "테마제팜",
+   "name_en": "Temazepam",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "54"
+  },
+  {
+   "name_ko": "테트라제팜",
+   "name_en": "Tetrazepam",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "55"
+  },
+  {
+   "name_ko": "트리아졸람",
+   "name_en": "Triazolam",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "56"
+  },
+  {
+   "name_ko": "조피클론",
+   "name_en": "Zopiclone",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "57"
+  },
+  {
+   "name_ko": "플루토프라제팜",
+   "name_en": "Flutoprazepam",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "58"
+  },
+  {
+   "name_ko": "멕사졸람",
+   "name_en": "Mexazolam",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "59"
+  },
+  {
+   "name_ko": "졸피뎀",
+   "name_en": "Zolpidem",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "60"
+  },
+  {
+   "name_ko": "아미노렉스",
+   "name_en": "Aminorex",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "61"
+  },
+  {
+   "name_ko": "메소카브",
+   "name_en": "Mesocarb",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "62"
+  },
+  {
+   "name_ko": "날부핀",
+   "name_en": "Nalbuphine",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "63"
+  },
+  {
+   "name_ko": "지에이치비",
+   "name_en": "GHB",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "64"
+  },
+  {
+   "name_ko": "덱스트로메토르판",
+   "name_en": "Dextromethorphan",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "65"
+  },
+  {
+   "name_ko": "카리소프로돌",
+   "name_en": "Carisoprodol",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "66"
+  },
+  {
+   "name_ko": "쿠아제팜",
+   "name_en": "Quazepam",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "67"
+  },
+  {
+   "name_ko": "프로포폴",
+   "name_en": "Propofol",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "68"
+  },
+  {
+   "name_ko": "로카세린",
+   "name_en": "Lorcaserin",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "69"
+  },
+  {
+   "name_ko": "페나제팜",
+   "name_en": "Phenazepam",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "70"
+  },
+  {
+   "name_ko": "레미마졸람",
+   "name_en": "Remimazolam",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "71"
+  },
+  {
+   "name_ko": "페니부트",
+   "name_en": "Phenibut",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "72"
+  },
+  {
+   "name_ko": "디클라제팜",
+   "name_en": "Diclazepam",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "73"
+  },
+  {
+   "name_ko": "잘레플론",
+   "name_en": "Zaleplon",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "74"
+  },
+  {
+   "name_ko": "수보렉산트",
+   "name_en": "Suvorexant",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "75"
+  },
+  {
+   "name_ko": "디날부핀 세바케이트",
+   "name_en": "Dinalbuphine sebacate",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "76"
+  },
+  {
+   "name_ko": "클로나졸람",
+   "name_en": "Clonazolam",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "77"
+  },
+  {
+   "name_ko": "플루브로마졸람",
+   "name_en": "Flubromazolam",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "78"
+  },
+  {
+   "name_ko": "플루알프라졸람",
+   "name_en": "Flualprazolam",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "79"
+  },
+  {
+   "name_ko": "브로마졸람",
+   "name_en": "Bromazolam",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "80"
+  },
+  {
+   "name_ko": "노르플루디아제팜",
+   "name_en": "Norfludiazepam",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "81"
+  },
+  {
+   "name_ko": "메클로나제팜",
+   "name_en": "Meclonazepam",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "82"
+  },
+  {
+   "name_ko": "에토미데이트",
+   "name_en": "Etomidate",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "83"
+  },
+  {
+   "name_ko": "렘보렉산트",
+   "name_en": "Lemborexant",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "84"
+  },
+  {
+   "name_ko": "다리도렉산트",
+   "name_en": "Daridorexant",
+   "class": "PSYCHOTROPIC",
+   "class_ko": "향정신성의약품(라목)",
+   "reference": "법 제2조제3호라목",
+   "table": "별표 6",
+   "no": "85"
+  },
+  {
+   "name_ko": "칸나비놀",
+   "name_en": "Cannabinol",
+   "class": "CANNABIS_SYNTHETIC",
+   "class_ko": "대마와 동일한 화학적합성품",
+   "reference": "법 제2조제4호다목",
+   "table": "별표 7",
+   "no": "1"
+  },
+  {
+   "name_ko": "테트라히드로칸나비놀",
+   "name_en": "Δ9-Tetra hydrocannabinol",
+   "class": "CANNABIS_SYNTHETIC",
+   "class_ko": "대마와 동일한 화학적합성품",
+   "reference": "법 제2조제4호다목",
+   "table": "별표 7",
+   "no": "2"
+  },
+  {
+   "name_ko": "칸나비디올",
+   "name_en": "Cannabidiol",
+   "class": "CANNABIS_SYNTHETIC",
+   "class_ko": "대마와 동일한 화학적합성품",
+   "reference": "법 제2조제4호다목",
+   "table": "별표 7",
+   "no": "3"
+  }
+ ],
+ "precursors": [
+  {
+   "name_ko": "에페드린",
+   "name_en": "Ephedrine",
+   "class": "PRECURSOR",
+   "class_ko": "마약류 원료물질",
+   "reference": "법 제2조제6호",
+   "table": "별표 8",
+   "no": "1"
+  },
+  {
+   "name_ko": "에르고메트린",
+   "name_en": "Ergometrine",
+   "class": "PRECURSOR",
+   "class_ko": "마약류 원료물질",
+   "reference": "법 제2조제6호",
+   "table": "별표 8",
+   "no": "2"
+  },
+  {
+   "name_ko": "에르고타민",
+   "name_en": "Ergotamine",
+   "class": "PRECURSOR",
+   "class_ko": "마약류 원료물질",
+   "reference": "법 제2조제6호",
+   "table": "별표 8",
+   "no": "3"
+  },
+  {
+   "name_ko": "리서직산",
+   "name_en": "Lysergic acid",
+   "class": "PRECURSOR",
+   "class_ko": "마약류 원료물질",
+   "reference": "법 제2조제6호",
+   "table": "별표 8",
+   "no": "4"
+  },
+  {
+   "name_ko": "1-페닐-2-프로파논",
+   "name_en": "1-phenyl-2-propanone",
+   "class": "PRECURSOR",
+   "class_ko": "마약류 원료물질",
+   "reference": "법 제2조제6호",
+   "table": "별표 8",
+   "no": "5"
+  },
+  {
+   "name_ko": "슈도에페드린",
+   "name_en": "Pseudoephedrine",
+   "class": "PRECURSOR",
+   "class_ko": "마약류 원료물질",
+   "reference": "법 제2조제6호",
+   "table": "별표 8",
+   "no": "6"
+  },
+  {
+   "name_ko": "엔-아세틸안트라닐산",
+   "name_en": "N-acetyl-anthranilic acid",
+   "class": "PRECURSOR",
+   "class_ko": "마약류 원료물질",
+   "reference": "법 제2조제6호",
+   "table": "별표 8",
+   "no": "7"
+  },
+  {
+   "name_ko": "이소사프롤",
+   "name_en": "Isosafrole",
+   "class": "PRECURSOR",
+   "class_ko": "마약류 원료물질",
+   "reference": "법 제2조제6호",
+   "table": "별표 8",
+   "no": "8"
+  },
+  {
+   "name_ko": "3,4-메틸렌디옥시페닐-2-프로파논",
+   "name_en": "3,4- Methylenedioxy-phenyl-2-propanone",
+   "class": "PRECURSOR",
+   "class_ko": "마약류 원료물질",
+   "reference": "법 제2조제6호",
+   "table": "별표 8",
+   "no": "9"
+  },
+  {
+   "name_ko": "피페로날",
+   "name_en": "Piperonal",
+   "class": "PRECURSOR",
+   "class_ko": "마약류 원료물질",
+   "reference": "법 제2조제6호",
+   "table": "별표 8",
+   "no": "10"
+  },
+  {
+   "name_ko": "사프롤",
+   "name_en": "Safrole",
+   "class": "PRECURSOR",
+   "class_ko": "마약류 원료물질",
+   "reference": "법 제2조제6호",
+   "table": "별표 8",
+   "no": "11"
+  },
+  {
+   "name_ko": "노르에페드린",
+   "name_en": "Norephedrine",
+   "class": "PRECURSOR",
+   "class_ko": "마약류 원료물질",
+   "reference": "법 제2조제6호",
+   "table": "별표 8",
+   "no": "12"
+  },
+  {
+   "name_ko": "무수초산",
+   "name_en": "Acetic anhydride",
+   "class": "PRECURSOR",
+   "class_ko": "마약류 원료물질",
+   "reference": "법 제2조제6호",
+   "table": "별표 8",
+   "no": "13"
+  },
+  {
+   "name_ko": "아세톤",
+   "name_en": "Acetone",
+   "class": "PRECURSOR",
+   "class_ko": "마약류 원료물질",
+   "reference": "법 제2조제6호",
+   "table": "별표 8",
+   "no": "14"
+  },
+  {
+   "name_ko": "과망간산칼륨",
+   "name_en": "Potassium Permanganate",
+   "class": "PRECURSOR",
+   "class_ko": "마약류 원료물질",
+   "reference": "법 제2조제6호",
+   "table": "별표 8",
+   "no": "15"
+  },
+  {
+   "name_ko": "감마부티롤락톤",
+   "name_en": "gamma-butyrolactone",
+   "class": "PRECURSOR",
+   "class_ko": "마약류 원료물질",
+   "reference": "법 제2조제6호",
+   "table": "별표 8",
+   "no": "16"
+  },
+  {
+   "name_ko": "1,4-부탄디올",
+   "name_en": "1,4-Butanediol",
+   "class": "PRECURSOR",
+   "class_ko": "마약류 원료물질",
+   "reference": "법 제2조제6호",
+   "table": "별표 8",
+   "no": "17"
+  },
+  {
+   "name_ko": "디히드로리서직산메틸에스테르",
+   "name_en": "Dihydrolysergic acid methyl ester",
+   "class": "PRECURSOR",
+   "class_ko": "마약류 원료물질",
+   "reference": "법 제2조제6호",
+   "table": "별표 8",
+   "no": "18"
+  },
+  {
+   "name_ko": "페닐초산",
+   "name_en": "Phenylacetic acid",
+   "class": "PRECURSOR",
+   "class_ko": "마약류 원료물질",
+   "reference": "법 제2조제6호",
+   "table": "별표 8",
+   "no": "19"
+  },
+  {
+   "name_ko": "벤질시아니드",
+   "name_en": "Benzyl cyanide",
+   "class": "PRECURSOR",
+   "class_ko": "마약류 원료물질",
+   "reference": "법 제2조제6호",
+   "table": "별표 8",
+   "no": "20"
+  },
+  {
+   "name_ko": "벤즈알데히드",
+   "name_en": "Benzaldehyde",
+   "class": "PRECURSOR",
+   "class_ko": "마약류 원료물질",
+   "reference": "법 제2조제6호",
+   "table": "별표 8",
+   "no": "21"
+  },
+  {
+   "name_ko": "메틸아민",
+   "name_en": "Methylamine",
+   "class": "PRECURSOR",
+   "class_ko": "마약류 원료물질",
+   "reference": "법 제2조제6호",
+   "table": "별표 8",
+   "no": "22"
+  },
+  {
+   "name_ko": "에틸아민",
+   "name_en": "Ethylamine",
+   "class": "PRECURSOR",
+   "class_ko": "마약류 원료물질",
+   "reference": "법 제2조제6호",
+   "table": "별표 8",
+   "no": "23"
+  },
+  {
+   "name_ko": "알파페닐아세토아세토니트릴",
+   "name_en": "alpha-Phenylacetoacetonitrile, APAAN",
+   "class": "PRECURSOR",
+   "class_ko": "마약류 원료물질",
+   "reference": "법 제2조제6호",
+   "table": "별표 8",
+   "no": "24"
+  },
+  {
+   "name_ko": "엔-펜에틸-4-피페리돈",
+   "name_en": "N-Phenethyl-4-piperidone, NPP",
+   "class": "PRECURSOR",
+   "class_ko": "마약류 원료물질",
+   "reference": "법 제2조제6호",
+   "table": "별표 8",
+   "no": "25"
+  },
+  {
+   "name_ko": "4-아닐리노-엔-펜에틸피페리딘",
+   "name_en": "4-Anilino-N-phenethylpiperidine, ANPP",
+   "class": "PRECURSOR",
+   "class_ko": "마약류 원료물질",
+   "reference": "법 제2조제6호",
+   "table": "별표 8",
+   "no": "26"
+  },
+  {
+   "name_ko": "3,4-메틸렌디옥시페닐-2- 프로파논메틸글리시딕엑시드",
+   "name_en": "3,4-methylenedioxyphenyl-2-propanone methyl glycidic acid, 3,4-MDP-2-P methyl glycidic acid",
+   "class": "PRECURSOR",
+   "class_ko": "마약류 원료물질",
+   "reference": "법 제2조제6호",
+   "table": "별표 8",
+   "no": "27"
+  },
+  {
+   "name_ko": "3,4-메틸렌디옥시페닐-2- 프로파논메틸글리시딕엑시드메틸에스테르",
+   "name_en": "3,4-methylenedioxyphenyl-2-propanone methyl glycidic acid methyl ester, 3,4-M DP-2-P methyl glycidic acid methyl ester",
+   "class": "PRECURSOR",
+   "class_ko": "마약류 원료물질",
+   "reference": "법 제2조제6호",
+   "table": "별표 8",
+   "no": "28"
+  },
+  {
+   "name_ko": "알파-페닐아세토아세트아마이드",
+   "name_en": "alpha-Phenylacetoacetamide, APAA",
+   "class": "PRECURSOR",
+   "class_ko": "마약류 원료물질",
+   "reference": "법 제2조제6호",
+   "table": "별표 8",
+   "no": "29"
+  },
+  {
+   "name_ko": "메틸-알파-페닐-아세토아세테이트",
+   "name_en": "Methyl-alpha-phenyl-acetoacetate, MAPA",
+   "class": "PRECURSOR",
+   "class_ko": "마약류 원료물질",
+   "reference": "법 제2조제6호",
+   "table": "별표 8",
+   "no": "30"
+  },
+  {
+   "name_ko": "4-피페리돈",
+   "name_en": "4-piperidone",
+   "class": "PRECURSOR",
+   "class_ko": "마약류 원료물질",
+   "reference": "법 제2조제6호",
+   "table": "별표 8",
+   "no": "31"
+  },
+  {
+   "name_ko": "1-삼차-부틸옥시카르보닐-4-피페리돈",
+   "name_en": "1-tert-Butyloxycarbonyl-4-piperidone, 1-Boc-4-piperidone",
+   "class": "PRECURSOR",
+   "class_ko": "마약류 원료물질",
+   "reference": "법 제2조제6호",
+   "table": "별표 8",
+   "no": "32"
+  },
+  {
+   "name_ko": "피-2-피 메틸 글리시드산",
+   "name_en": "P-2-P methyl glycidic acid",
+   "class": "PRECURSOR",
+   "class_ko": "마약류 원료물질",
+   "reference": "법 제2조제6호",
+   "table": "별표 8",
+   "no": "33"
+  },
+  {
+   "name_ko": "피-2-피 메틸 글리시드산, 메틸 에스테르",
+   "name_en": "P-2-P methyl glycidic acid, methyl este r",
+   "class": "PRECURSOR",
+   "class_ko": "마약류 원료물질",
+   "reference": "법 제2조제6호",
+   "table": "별표 8",
+   "no": "34"
+  },
+  {
+   "name_ko": "피-2-피 메틸 글리시드산, 에틸 에스테르",
+   "name_en": "P-2-P methyl glycidic acid, ethyl ester",
+   "class": "PRECURSOR",
+   "class_ko": "마약류 원료물질",
+   "reference": "법 제2조제6호",
+   "table": "별표 8",
+   "no": "35"
+  },
+  {
+   "name_ko": "피-2-피 메틸 글리시드산, 프로필 에스테르",
+   "name_en": "P-2-P methyl glycidic acid, propyl este r",
+   "class": "PRECURSOR",
+   "class_ko": "마약류 원료물질",
+   "reference": "법 제2조제6호",
+   "table": "별표 8",
+   "no": "36"
+  },
+  {
+   "name_ko": "피-2-피 메틸 글리시드산, 이소프로필 에스테르",
+   "name_en": "P-2-P methyl glycidic acid, isopropyl e ster",
+   "class": "PRECURSOR",
+   "class_ko": "마약류 원료물질",
+   "reference": "법 제2조제6호",
+   "table": "별표 8",
+   "no": "37"
+  },
+  {
+   "name_ko": "피-2-피 메틸 글리시드산, 부틸 에스테르",
+   "name_en": "P-2-P methyl glycidic acid, butyl ester",
+   "class": "PRECURSOR",
+   "class_ko": "마약류 원료물질",
+   "reference": "법 제2조제6호",
+   "table": "별표 8",
+   "no": "38"
+  },
+  {
+   "name_ko": "피-2-피 메틸 글리시드산, 이소부틸 에스테르",
+   "name_en": "P-2-P methyl glycidic acid, isobutyl es ter",
+   "class": "PRECURSOR",
+   "class_ko": "마약류 원료물질",
+   "reference": "법 제2조제6호",
+   "table": "별표 8",
+   "no": "39"
+  },
+  {
+   "name_ko": "피-2-피 메틸 글리시드산, 이차-부틸 에스테르",
+   "name_en": "P-2-P methyl glycidic acid, sec-butyl e ster",
+   "class": "PRECURSOR",
+   "class_ko": "마약류 원료물질",
+   "reference": "법 제2조제6호",
+   "table": "별표 8",
+   "no": "40"
+  },
+  {
+   "name_ko": "피-2-피 메틸 글리시드산, 삼차-부틸 에스테르",
+   "name_en": "P-2-P methyl glycidic acid, tert-butyl ester",
+   "class": "PRECURSOR",
+   "class_ko": "마약류 원료물질",
+   "reference": "법 제2조제6호",
+   "table": "별표 8",
+   "no": "41"
+  },
+  {
+   "name_ko": "3,4-엠디피-2-피 메틸 글리시드산, 에틸 에스테르",
+   "name_en": "3,4-MDP-2-P methyl glycidic acid, eth yl ester",
+   "class": "PRECURSOR",
+   "class_ko": "마약류 원료물질",
+   "reference": "법 제2조제6호",
+   "table": "별표 8",
+   "no": "42"
+  },
+  {
+   "name_ko": "3,4-엠디피-2-피 메틸 글리시드산, 프로필 에스테르",
+   "name_en": "3,4-MDP-2-P methyl glycidic acid, pro pyl ester",
+   "class": "PRECURSOR",
+   "class_ko": "마약류 원료물질",
+   "reference": "법 제2조제6호",
+   "table": "별표 8",
+   "no": "43"
+  },
+  {
+   "name_ko": "3,4-엠디피-2-피 메틸 글리시드산, 이소프로필 에스테르",
+   "name_en": "3,4-MDP-2-P methyl glycidic acid, iso propyl ester",
+   "class": "PRECURSOR",
+   "class_ko": "마약류 원료물질",
+   "reference": "법 제2조제6호",
+   "table": "별표 8",
+   "no": "44"
+  },
+  {
+   "name_ko": "3,4-엠디피-2-피 메틸 글리시드산, 부틸 에스테르",
+   "name_en": "3,4-MDP-2-P methyl glycidic acid, but yl ester",
+   "class": "PRECURSOR",
+   "class_ko": "마약류 원료물질",
+   "reference": "법 제2조제6호",
+   "table": "별표 8",
+   "no": "45"
+  },
+  {
+   "name_ko": "3,4-엠디피-2-피 메틸 글리시드산, 이소부틸 에스테르",
+   "name_en": "3,4-MDP-2-P methyl glycidic acid, iso butyl ester",
+   "class": "PRECURSOR",
+   "class_ko": "마약류 원료물질",
+   "reference": "법 제2조제6호",
+   "table": "별표 8",
+   "no": "46"
+  },
+  {
+   "name_ko": "3,4-엠디피-2-피 메틸 글리시드산, 이차- 부틸 에스테르",
+   "name_en": "3,4-MDP-2-P methyl glycidic acid, sec -butyl ester",
+   "class": "PRECURSOR",
+   "class_ko": "마약류 원료물질",
+   "reference": "법 제2조제6호",
+   "table": "별표 8",
+   "no": "47"
+  },
+  {
+   "name_ko": "3,4-엠디피-2-피 메틸 글리시드산, 삼차- 부틸 에스테르",
+   "name_en": "3,4-MDP-2-P methyl glycidic acid, tert -butyl ester",
+   "class": "PRECURSOR",
+   "class_ko": "마약류 원료물질",
+   "reference": "법 제2조제6호",
+   "table": "별표 8",
+   "no": "48"
+  },
+  {
+   "name_ko": "안트라닐산",
+   "name_en": "Anthranilic acid",
+   "class": "PRECURSOR",
+   "class_ko": "마약류 원료물질",
+   "reference": "법 제2조제6호",
+   "table": "별표 8",
+   "no": "1"
+  },
+  {
+   "name_ko": "에틸에테르",
+   "name_en": "Ethyl ether",
+   "class": "PRECURSOR",
+   "class_ko": "마약류 원료물질",
+   "reference": "법 제2조제6호",
+   "table": "별표 8",
+   "no": "2"
+  },
+  {
+   "name_ko": "피페리딘",
+   "name_en": "Piperidine",
+   "class": "PRECURSOR",
+   "class_ko": "마약류 원료물질",
+   "reference": "법 제2조제6호",
+   "table": "별표 8",
+   "no": "3"
+  },
+  {
+   "name_ko": "염산 (Hydrochloric acid)",
+   "name_en": "염류 제외",
+   "class": "PRECURSOR",
+   "class_ko": "마약류 원료물질",
+   "reference": "법 제2조제6호",
+   "table": "별표 8",
+   "no": "4"
+  },
+  {
+   "name_ko": "메틸에틸케톤",
+   "name_en": "Methyl ethyl Ketone, 2-Butanone",
+   "class": "PRECURSOR",
+   "class_ko": "마약류 원료물질",
+   "reference": "법 제2조제6호",
+   "table": "별표 8",
+   "no": "5"
+  },
+  {
+   "name_ko": "황산 (Sulphuric acid)",
+   "name_en": "염류 제외",
+   "class": "PRECURSOR",
+   "class_ko": "마약류 원료물질",
+   "reference": "법 제2조제6호",
+   "table": "별표 8",
+   "no": "6"
+  },
+  {
+   "name_ko": "톨루엔",
+   "name_en": "Toluene",
+   "class": "PRECURSOR",
+   "class_ko": "마약류 원료물질",
+   "reference": "법 제2조제6호",
+   "table": "별표 8",
+   "no": "7"
+  }
+ ]
+}

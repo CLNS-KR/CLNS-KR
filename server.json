@@ -3,7 +3,7 @@
   "name": "io.github.CLNS-KR/clns",
   "title": "CLNS — Korea Import Compliance",
   "description": "Korea import pre-check: clearance requirements, MFDS history, recalls, RRA conformity, statutes.",
-  "version": "0.1.4",
+  "version": "0.2.0",
   "websiteUrl": "https://clns-kr.onrender.com/",
   "repository": {
     "url": "https://github.com/CLNS-KR/CLNS-KR",

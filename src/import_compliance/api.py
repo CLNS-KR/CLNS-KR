@@ -1,7 +1,8 @@
-"""API / MCP 툴 8종."""
+"""API / MCP 툴 11종."""
 from __future__ import annotations
 
 import json
+import os
 
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Callable, Dict, List, Optional
@@ -16,11 +17,13 @@ from .standards import (
     SCHEMA_VERSION,
     apply_geography,
     apply_status,
+    tags_for_findings,
     testset_meta,
 )
 from .engine import assess
 from .models import VERDICT_LABEL_EN, VERDICT_LABEL_KO, VERDICT_SEVERITY
 from .policy import PAID_TIER_NOTICE_KO, SCOPE_LIMITS_KO, TIER_BOUNDARIES
+from .version import __version__ as PACKAGE_VERSION
 from .store import (
     FREE_MONTHLY_CALLS,
     QuotaExceeded,
@@ -532,6 +535,105 @@ def tool_assess_import_case(args: Dict[str, Any], store: Store, client_id: str, 
 
 
 def _add_rra_hint(result: Dict[str, Any], store: Any = None) -> None:
+
+    guidance = result.setdefault("answer", {}).setdefault("guidance", [])
+    provenance = result.get("data_provenance")
+    already = False
+    if isinstance(provenance, dict):
+        for entry in provenance.get("sources") or []:
+            if entry.get("source_id") == SOURCE_RRA:
+                already = True
+                entry.setdefault("state", "certificate_number_required")
+                entry["official_url"] = RRA_OFFICIAL_URL
+                entry["lookup_field"] = "rra_cert_no"
+    if not already:
+        _mark_live_provenance(result, SOURCE_RRA, state="certificate_number_required",
+                              fresh=None, official_url=RRA_OFFICIAL_URL,
+                              lookup_field="rra_cert_no")
+    guidance.append(
+        "전파 적합성평가(적합인증·적합등록)는 인증·등록번호가 있어야 실시간 확인됩니다. "
+        "번호를 facts.rra_cert_no 로 알려주면 국립전파연구원 DB에서 바로 조회하고, "
+        f"번호가 없으면 모델명으로 {RRA_OFFICIAL_URL} 에서 확인해야 합니다."
+    )
+
+
+def tool_check_drug_import(args: Dict[str, Any], store: Store, client_id: str, tier: str,
+                           live: Any = None) -> Dict[str, Any]:
+    """의약품·영양제의 반입 금지성분·제한성분을 확인한다.
+
+    성분 사전(시행령 별표 1~8) + 자가사용 인정기준(6병·3개월분) 대조를 한 번에 하고,
+    마약류·원료물질·국내 전용 성분 쟁점(TRAP-23·24)과 근거 조항을 함께 돌려준다.
+    """
+    from . import drugs
+
+    product = str(args.get("product_name") or args.get("ingredient") or "").strip()
+    if len(product) < 2:
+        raise ValueError("product_name_required")
+    channel = str(args.get("channel") or "unknown").strip().lower()
+    if channel not in ("carry", "online", "unknown"):
+        raise ValueError("channel_must_be_carry_or_online")
+    quantity = args.get("quantity")
+    if quantity not in (None, ""):
+        try:
+            quantity = int(quantity)
+        except (TypeError, ValueError) as exc:
+            raise ValueError("quantity_must_be_integer") from exc
+    else:
+        quantity = None
+
+    parts = [product]
+    if channel == "online":
+        parts.append("해외직구 온라인 구매")
+    elif channel == "carry":
+        parts.append("휴대 반입")
+    if quantity:
+        parts.append(f"{quantity}{args.get('unit') or '병'}")
+    if str(args.get("purpose") or "") == "resale":
+        parts.append("판매용")
+    query = " ".join(parts)
+
+    facts: Dict[str, Any] = {"drug_name": product, "drug_ingredient": product}
+    if channel in ("carry", "online"):
+        facts["channel"] = channel
+    if quantity:
+        facts["quantity"] = quantity
+        facts["quantity_unit"] = str(args.get("unit") or "병")
+    if args.get("purpose"):
+        facts["purpose"] = str(args["purpose"])
+    if args.get("prescription"):
+        facts["prescription"] = str(args["prescription"])
+
+    result = assess(query, facts, store=store, client_id=client_id, tier=tier,
+                    limit=int(args.get("limit", 3)), live=live)
+    screening = result.get("drug_screening")
+    if screening is None:  # 의약품 힌트가 없는 입력이면 직접 스크리닝해 블록을 반드시 만든다
+        screening = drugs.assess(query, facts)
+        result["drug_screening"] = screening
+    prescription = str(args.get("prescription") or "").strip().lower()
+    if prescription and screening.get("matches"):
+        screening["prescription_status"] = prescription
+        screening.setdefault("guidance_ko", []).append(
+            "처방전 유무는 6병·3개월분 자가사용 판단의 소명자료로 쓰이지만,"
+            " 마약류·원료물질·요건확인 대상 성분에는 그 자체로 반입 근거가 되지 않습니다."
+        )
+    result["drug_import_check"] = {
+        "product_name": product,
+        "state": screening.get("state"),
+        "schedule_version": screening.get("schedule_version"),
+        "schedule_generated_on": screening.get("schedule_generated_on"),
+        "checked_counts": screening.get("checked_counts"),
+        "channel": screening.get("channel"),
+        "quantity": screening.get("quantity"),
+        "self_use_status": screening.get("self_use_status"),
+        "self_use_rule": screening.get("self_use_rule"),
+        "coverage_ko": screening.get("coverage_ko"),
+        "api_candidates": screening.get("api_candidates"),
+        "official_urls": screening.get("official_urls"),
+    }
+    return _envelope("check_drug_import", result)
+
+
+def _add_rra_hint(result: Dict[str, Any], store: Any = None) -> None:
     """인증·등록번호가 없을 때: '미연결'이 아니라 '번호를 주면 조회 가능'을 안내한다."""
     from .live_api import RRA_OFFICIAL_URL, SOURCE_RRA
 
@@ -829,8 +931,11 @@ def tool_explain_trap(args: Dict[str, Any], store: Store, client_id: str, tier: 
 
 def tool_get_service_meta(args: Dict[str, Any], store: Store, client_id: str, tier: str,
                           live: Any = None) -> Dict[str, Any]:
+    from . import advertising, drugs, labeling, mfds_dispositions
+
     corpus = load_corpus()
     testset = testset_meta()
+    schedules = drugs.load_schedules()
     return _envelope("get_service_meta", {
         "service": "CLNS",
         "service_subtitle_en": "PRODUCT COMPLIANCE INTELLIGENCE · KOREA",
@@ -846,6 +951,35 @@ def tool_get_service_meta(args: Dict[str, Any], store: Store, client_id: str, ti
         "jurisdiction": DEFAULT_JURISDICTION,
         "regulation_tags": REGULATION_TAGS,
         "testset": testset,
+        "drug_testset": testset_meta(os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "drug_testset.json")),
+        "drug_schedules": {
+            "version": schedules.get("schedule_version"),
+            "generated_on": schedules.get("generated_on"),
+            "law": schedules.get("decree"),
+            "controlled_substances": len(schedules.get("substances") or []),
+            "precursors": len(schedules.get("precursors") or []),
+            "self_use_limit": drugs.SELF_USE_RULE,
+            "api_candidates": [{"dataset_id": row["dataset_id"], "name_ko": row["name_ko"],
+                                "state": row["state"]} for row in drugs.API_CANDIDATES],
+        },
+        "ad_labeling": {
+            "rules": len(advertising.CLAIM_RULES),
+            "rule_ids": [rule["id"] for rule in advertising.CLAIM_RULES],
+            "risk_levels": ["high", "caution"],
+            "product_types": [{"code": code, "label_ko": meta["label_ko"]}
+                              for code, meta in advertising.PRODUCT_TYPES.items()],
+            "label_items": {code: len(rows) for code, rows in labeling.CHECKLISTS.items()},
+            "checked_on": advertising.VERIFIED_ON,
+            "ad_content_standard_ko": "식품등의 부당한 표시 또는 광고의 내용 기준(식약처고시 제2025-79호)",
+        },
+        "mfds_dispositions": {
+            "datasets": [{"dataset_id": meta["dataset_id"], "name_ko": meta["name_ko"],
+                          "industry_ko": meta["industry_ko"]}
+                         for meta in mfds_dispositions.DATASETS.values()],
+            "fallback_patterns": len(mfds_dispositions.BUILTIN_PATTERNS),
+            "pii_policy_ko": "원본의 업소명ㆍ대표자명ㆍ전화번호ㆍ주소ㆍ인허가번호는 저장하지 않습니다.",
+        },
         "tiers": TIER_BOUNDARIES,
         "free_tier": {"monthly_calls": FREE_MONTHLY_CALLS, "used": store.quota_used(client_id)},
         "paid_notice_ko": PAID_TIER_NOTICE_KO,
@@ -854,7 +988,7 @@ def tool_get_service_meta(args: Dict[str, Any], store: Store, client_id: str, ti
             live.capabilities() if live is not None else
             {"customs_checkpoint": False, "mfds_import_permit": False,
              "mfds_product_db": False, "law_search": False,
-             "rra_conformity": False}
+             "rra_conformity": False, "mfds_drug_api": False}
         ),
         "principles": [
             "원본 API 1:1 재전송 금지",
@@ -866,8 +1000,394 @@ def tool_get_service_meta(args: Dict[str, Any], store: Store, client_id: str, ti
     })
 
 
-TOOL_DEFS: List[Dict[str, Any]] = [
-    {
+PRODUCT_KIND_KO = {
+    "general_food": "식품",
+    "health_functional_food": "건강기능식품",
+    "cosmetics": "화장품",
+    "functional_cosmetics": "기능성화장품",
+}
+
+
+def _ad_finding(entry: Dict[str, Any]) -> Dict[str, Any]:
+    """광고 검수 결과를 기존 findings 와 같은 모양으로 바꾼다(UI·후속 처리 호환)."""
+    verdict = "check_likely" if entry.get("risk") == "high" else "info_needed"
+    return {
+        "case_id": entry.get("rule_id"),
+        "title": entry.get("name_ko"),
+        "issue_ko": "광고 문구에서 " + ", ".join(entry.get("matched_phrases") or []) + " 표현이 탐지됨",
+        "category": "advertising",
+        "regulation_tags": [],
+        "verdict": verdict,
+        "verdict_label_ko": VERDICT_LABEL_KO[verdict],
+        "verdict_label_en": VERDICT_LABEL_EN[verdict],
+        "confidence": 0.8 if verdict == "check_likely" else 0.6,
+        "reason": "광고문구 패턴 대조(위험도 " + str(entry.get("risk_label_ko")) + ")",
+        "matched_signals": list(entry.get("matched_phrases") or []),
+        "missing_inputs": [],
+        "misconception": "",
+        "explanation": entry.get("why_ko", ""),
+        "scenario": "",
+        "next_steps": [entry.get("safer_ko", "")],
+        "notes": entry.get("category_note_ko", ""),
+        "legal_basis": list(entry.get("legal_basis") or []),
+    }
+
+
+def _label_finding(label_check: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """라벨 누락을 findings 모양으로 만든다(누락이 있을 때만)."""
+    missing = label_check.get("missing") or []
+    conditional = label_check.get("conditional_missing") or []
+    if not missing and not conditional:
+        return None
+    verdict = "check_likely" if missing else "info_needed"
+    target = missing or conditional
+    basis: List[Dict[str, str]] = []
+    for row in label_check.get("checklist") or []:
+        if row.get("label_ko") in target:
+            basis.append(row.get("legal_basis") or {})
+    return {
+        "case_id": "LABEL-01",
+        "title": "한글표시사항 필수 항목 점검",
+        "issue_ko": "입력한 라벨에서 확인되지 않은 항목: " + ", ".join(target[:6]),
+        "category": "label",
+        "regulation_tags": ["KOREAN_LABELING"],
+        "verdict": verdict,
+        "verdict_label_ko": VERDICT_LABEL_KO[verdict],
+        "verdict_label_en": VERDICT_LABEL_EN[verdict],
+        "confidence": 0.75 if missing else 0.55,
+        "reason": "필수 표시항목 대조",
+        "matched_signals": target[:6],
+        "missing_inputs": [],
+        "misconception": "",
+        "explanation": label_check.get("verdict_note_ko", ""),
+        "scenario": "",
+        "next_steps": label_check.get("next_actions") or [],
+        "notes": "",
+        "legal_basis": [b for b in basis if b],
+    }
+
+
+def tool_check_ad_labeling(args: Dict[str, Any], store: Store, client_id: str, tier: str,
+                           live: Any = None) -> Dict[str, Any]:
+    """과대광고 문구 검수 + 한글표시사항 필수항목 점검을 한 번에 수행한다.
+
+    품목 유형(일반식품/건강기능식품/화장품/기능성화장품)에 따라 허용·금지 기준을 다르게
+    적용하고, 같은 문구가 유형별로 어떻게 달라지는지(`category_comparison`)도 함께 보여준다.
+    """
+    from . import advertising, labeling
+
+    product_name = str(args.get("product_name") or "").strip()
+    ad_copy = str(args.get("ad_copy") or args.get("ad_text") or "").strip()
+    label_text = str(args.get("label_text") or "").strip()
+    if len(ad_copy) > 4000:
+        raise ValueError("ad_copy_too_long")
+    if len(label_text) > 4000:
+        raise ValueError("label_text_too_long")
+    label_items = args.get("label_items")
+    if label_items is not None and not isinstance(label_items, dict):
+        raise ValueError("label_items_must_be_object")
+    label_items = label_items or {}
+    probe = " ".join(part for part in (product_name, ad_copy, label_text) if part)
+    if not probe and not label_items:
+        raise ValueError("ad_copy_or_label_text_required")
+    if ad_copy and len(ad_copy) < 2:
+        raise ValueError("ad_copy_too_short")
+    if label_text and len(label_text) < 2:
+        raise ValueError("label_text_too_short")
+
+    product_type = advertising.normalize_product_type(args.get("product_type"), probe)
+    limit = max(1, min(int(args.get("limit", 8) or 8), 20))
+    ad_review = advertising.review(ad_copy, product_type, functional=args.get("functional"), limit=limit)
+    label_check = labeling.check(product_type, label_text=label_text, provided=label_items,
+                                 imported=args.get("imported"))
+
+    kind_ko = PRODUCT_KIND_KO.get(product_type, "식품")
+    if product_type in ("cosmetics", "functional_cosmetics"):
+        query = " ".join(part for part in (
+            product_name or "화장품", "화장품", "수입 판매 기재사항 광고",
+        ) if part)
+    else:
+        query = " ".join(part for part in (
+            product_name or kind_ko, kind_ko, "수입 판매 표시 광고 한글표시",
+        ) if part)
+    facts: Dict[str, Any] = {"purpose": str(args.get("purpose") or "resale")}
+    if args.get("functional") is not None:
+        facts["functional"] = str(args["functional"])
+    if args.get("imported") is not None:
+        facts["imported"] = str(args["imported"])
+    result = assess(query, facts, store=store, client_id=client_id, tier=tier, limit=3, live=live)
+
+    findings = list(result.get("findings") or [])
+    ad_findings = [_ad_finding(entry) for entry in ad_review.get("findings") or []]
+    for finding in ad_findings:
+        finding["regulation_tags"] = [advertising.tag_for_rule(
+            str(finding.get("case_id") or ""), product_type)]
+    findings.extend(ad_findings)
+    label_finding = _label_finding(label_check)
+    if label_finding is not None:
+        findings.append(label_finding)
+
+    codes = [str((result.get("verdict") or {}).get("code") or "info_needed")]
+    if ad_copy:
+        codes.append(str(ad_review.get("verdict") or "info_needed"))
+    if label_text or label_items:
+        codes.append(str(label_check.get("verdict") or "info_needed"))
+    overall = max(codes, key=lambda code: VERDICT_SEVERITY.get(code, 1))
+    result["verdict"] = {"code": overall, "label_ko": VERDICT_LABEL_KO[overall],
+                         "label_en": VERDICT_LABEL_EN[overall], "determinative": False,
+                         "note_ko": "광고·표시 검수는 문구·라벨 패턴 대조 결과이며, 최종 판단은 식약처 기준과 전문가 검토를 따릅니다."}
+    result["findings"] = findings
+    result["regulation_tags"] = tags_for_findings(findings)
+
+    answer = result.setdefault("answer", {})
+    if ad_review.get("risk_high"):
+        answer["headline"] = "광고 문구에서 금지 위험 표현이 확인되었습니다. 문구를 수정하고 근거를 확인하세요."
+    elif label_check.get("missing"):
+        answer["headline"] = "한글표시사항 필수 항목의 누락 가능성이 있습니다. 라벨을 보완하세요."
+    guidance = answer.setdefault("guidance", [])
+    if ad_copy:
+        guidance.extend(advertising.summarize(ad_review))
+    if label_text or label_items:
+        guidance.extend(labeling.summarize(label_check))
+    if not ad_copy:
+        guidance.append("상세페이지·상품명 등 광고 문구를 ad_copy 로 넣으면 유형별 금지 표현을 함께 검수합니다.")
+    if not label_text and not label_items:
+        guidance.append("라벨 문구를 label_text 로 넣으면 필수 표시항목 누락을 대조합니다.")
+
+    evidence = list(result.get("evidence") or [])
+    seen = {(row.get("law"), row.get("article")) for row in evidence}
+    extra_basis: List[Dict[str, str]] = []
+    for finding in ad_findings + ([label_finding] if label_finding else []):
+        extra_basis.extend(finding.get("legal_basis") or [])
+    for row in extra_basis:
+        key = (row.get("law"), row.get("article"))
+        if key in seen or not row.get("law"):
+            continue
+        seen.add(key)
+        evidence.append(row)
+    result["evidence"] = evidence
+
+    missing = [m for m in result.get("missing_information") or []]
+    if not ad_copy and "ad_copy" not in missing:
+        missing.append("ad_copy")
+    if not label_text and not label_items and "label_text" not in missing:
+        missing.append("label_text")
+    result["missing_information"] = missing
+
+    result["ad_review"] = ad_review
+    result["labeling_check"] = label_check
+    result["ad_labeling"] = {
+        "product_type": product_type,
+        "product_type_label_ko": advertising.product_type_label(product_type),
+        "ad_copy_chars": len(ad_copy),
+        "label_text_chars": len(label_text),
+        "ad_finding_count": len(ad_findings),
+        "ad_risk_high": ad_review.get("risk_high"),
+        "ad_risk_caution": ad_review.get("risk_caution"),
+        "label_missing_count": len(label_check.get("missing") or []),
+        "label_completion_rate": label_check.get("completion_rate"),
+        "combined_verdict": overall,
+    }
+    result["next_actions"] = (label_check.get("next_actions") or []) + list(result.get("next_actions") or [])[:2] + [
+        "광고 문구는 근거자료(시험성적서ㆍ인증번호)와 함께 보관하세요(식품표시광고법 제9조 실증 의무).",
+    ]
+    apply_status(result)
+    return _envelope("check_ad_labeling", result)
+
+
+def tool_lookup_mfds_disposition(args: Dict[str, Any], store: Store, client_id: str, tier: str,
+                                 live: Any = None) -> Dict[str, Any]:
+    """식약처 행정처분 이력(식품제조가공업ㆍ식품판매업)을 조회한다.
+
+    실시간 API → 로컬 적재분 → 내장 대표 적발 패턴 순으로 폴백하고, 원본의 개인정보
+    (업소명ㆍ대표자ㆍ연락처ㆍ주소ㆍ인허가번호)는 읽지 않고 버린다.
+    """
+    from . import mfds_dispositions
+    from .policy import DISCLAIMER_EN, DISCLAIMER_KO
+
+    raw_industry = str(args.get("industry") or "all").strip().lower()
+    if raw_industry not in mfds_dispositions.INDUSTRY_ALIASES:
+        raise ValueError("industry_must_be_manufacturing_sales_or_all")
+    confirmed_on = str(args.get("confirmed_on") or "").strip()
+    if confirmed_on and len("".join(ch for ch in confirmed_on if ch.isdigit())) != 8:
+        raise ValueError("confirmed_on_must_be_yyyymmdd")
+    rows = max(1, min(int(args.get("rows", 20) or 20), 100))
+    limit = max(1, min(int(args.get("limit", 5) or 5), 20))
+    block = mfds_dispositions.lookup(store, live, industry=raw_industry,
+                                     keyword=str(args.get("keyword") or "")[:60],
+                                     license_no=str(args.get("license_no") or "").strip(),
+                                     confirmed_on=confirmed_on, rows=rows, limit=limit)
+
+    basis_by_law = _disposition_basis()
+    findings: List[Dict[str, Any]] = []
+    for match in block.get("matches") or []:
+        law = str(match.get("law_reference") or "")
+        basis = next((row for key, row in basis_by_law.items() if key in law), None)
+        pattern = next((p for p in block.get("patterns") or []
+                        if str(p.get("law_reference", "")).split("(")[0] in law), None)
+        findings.append({
+            "case_id": "MFDS-" + str(match.get("disposition_seq") or "0"),
+            "title": (law or "행정처분") + " 위반",
+            "issue_ko": str(match.get("violation_summary") or ""),
+            "category": "disposition",
+            "regulation_tags": ["MFDS_DISPOSITION"],
+            "verdict": "check_likely",
+            "verdict_label_ko": VERDICT_LABEL_KO["check_likely"],
+            "verdict_label_en": VERDICT_LABEL_EN["check_likely"],
+            "confidence": 0.8,
+            "reason": "식약처 행정처분결과 조회",
+            "matched_signals": [str(match.get("disposition_type") or "")],
+            "missing_inputs": [],
+            "misconception": "",
+            "explanation": str(match.get("disposition_summary") or ""),
+            "scenario": "",
+            "next_steps": [pattern.get("check_ko", "")] if pattern else [],
+            "notes": "개인정보(업소명ㆍ대표자ㆍ연락처ㆍ주소ㆍ인허가번호)는 표시하지 않습니다.",
+            "legal_basis": [basis] if basis else [],
+        })
+
+    state = block.get("state")
+    if not findings and block.get("patterns"):
+        top = block["patterns"][:3]
+        first = top[0]
+        basis = next((row for key, row in basis_by_law.items()
+                      if key in str(first.get("law_reference", ""))), None)
+        findings.append({
+            "case_id": "MFDS-PATTERN",
+            "title": "업종별 빈발 위반 유형(내장 패턴)",
+            "issue_ko": ", ".join(str(p.get("name_ko")) for p in top),
+            "category": "disposition",
+            "regulation_tags": ["MFDS_DISPOSITION"],
+            "verdict": "info_needed",
+            "verdict_label_ko": VERDICT_LABEL_KO["info_needed"],
+            "verdict_label_en": VERDICT_LABEL_EN["info_needed"],
+            "confidence": 0.5,
+            "reason": "실시간 조회 불가로 내장 패턴 사전 적용",
+            "matched_signals": [str(p.get("pattern_id")) for p in top],
+            "missing_inputs": [],
+            "misconception": "",
+            "explanation": block.get("coverage_ko", ""),
+            "scenario": "",
+            "next_steps": [str(p.get("check_ko")) for p in top],
+            "notes": "개별 업소 이력이 아니라 업종별 빈발 위반 유형입니다.",
+            "legal_basis": [basis] if basis else [],
+        })
+
+    if findings and block.get("source") != "pattern_fallback":
+        headline = "해당 조건에서 행정처분 이력이 조회되었습니다. 위반법령과 처분유형을 확인하세요."
+        overall = "check_likely"
+    elif state == "approval_pending":
+        headline = "이 데이터셋은 활용신청 승인 전파 전입니다. 내장 대표 적발 패턴으로 안내합니다."
+        overall = "info_needed"
+    elif block.get("source") == "pattern_fallback" and state == "live":
+        headline = "실시간 조회는 되었지만 이 조건의 결과가 0건이라 내장 대표 적발 패턴으로 안내합니다."
+        overall = "info_needed"
+    elif block.get("source") == "pattern_fallback" or state in ("corpus_only", "key_missing", "error"):
+        headline = "실시간 행정처분 조회가 불가능해 내장 대표 적발 패턴으로 안내합니다."
+        overall = "info_needed"
+    else:
+        headline = "조회 결과 0건입니다. 0건은 '위반 이력 없음'을 뜻하지 않습니다."
+        overall = "info_needed"
+
+    guidance: List[str] = [headline, block.get("pii_policy_ko") or ""]
+    for pattern in (block.get("patterns") or [])[:4]:
+        observed = pattern.get("observed_2026_11_19")
+        share = f"(2026-11-19 스냅샷 {observed}건)" if observed else ""
+        guidance.append(f"{pattern['name_ko']}{share} — {pattern['check_ko']}")
+    if not block.get("patterns"):
+        guidance.append("업종을 manufacturing 또는 sales 로 지정하면 해당 업종의 대표 적발 패턴을 함께 보여줍니다.")
+
+    evidence: List[Dict[str, str]] = []
+    for pattern in block.get("patterns") or []:
+        law = str(pattern.get("law_reference") or "")
+        basis = next((row for key, row in basis_by_law.items() if key in law), None)
+        if basis and basis not in evidence:
+            evidence.append(basis)
+
+    payload: Dict[str, Any] = {
+        "verdict": {"code": overall, "label_ko": VERDICT_LABEL_KO[overall],
+                    "label_en": VERDICT_LABEL_EN[overall], "determinative": False,
+                    "note_ko": "행정처분 이력은 과거 처분 사실이며, 현재 영업 상태나 제품 안전성을 뜻하지 않습니다."},
+        "answer": {"headline": headline, "guidance": [g for g in guidance if g]},
+        "findings": findings,
+        "evidence": evidence,
+        "regulation_tags": ["MFDS_DISPOSITION"],
+        "missing_information": [] if findings else ["industry"],
+        "disposition_lookup": block,
+        "next_actions": [
+            "처분 이력이 있는 업소와 거래할 때는 처분일ㆍ처분 종료 여부를 확인하세요.",
+            "내장 패턴은 업종별 빈발 위반 유형이며 개별 업소 이력이 아닙니다.",
+        ],
+        "data_provenance": {
+            "policy": "원본 API 1:1 재전송 금지 · 개인정보 필드 폐기 · 정규화 결과만 제공",
+            "sources": [
+                {"source_id": row.get("source_id"), "dataset_id": row.get("dataset_id"),
+                 "state": row.get("state"), "item_count": row.get("item_count"),
+                 "checked_at": row.get("checked_at"), "note_ko": row.get("note_ko")}
+                for row in block.get("datasets") or []
+            ] or [{"state": "corpus_only", "note_ko": "내장 패턴 사전만 사용"}],
+            "checked_at": iso(now_kst()),
+        },
+        "disclaimer": {"ko": DISCLAIMER_KO, "en": DISCLAIMER_EN},
+        "scope_limits_ko": SCOPE_LIMITS_KO,
+        "tier": {"name": tier, "boundaries": TIER_BOUNDARIES["free"], "paid_notice_ko": PAID_TIER_NOTICE_KO},
+        "client_id": client_id,
+    }
+    apply_status(payload)
+    return _envelope("lookup_mfds_disposition", payload)
+
+
+def _disposition_basis() -> Dict[str, Dict[str, str]]:
+    """행정처분 단골 위반법령의 근거 조문(2026-11-19 법제처 API 조회본)."""
+    law_url = "https://www.law.go.kr/법령/식품위생법"
+
+    def _row(article: str, title: str, quote: str) -> Dict[str, str]:
+        return {"law": "식품위생법", "article": article, "effective_date": "2026-10-08",
+                "url": law_url, "quote": quote, "verified_on": "2026-11-19"}
+
+    return {
+        "제36조": _row("제36조", "시설기준",
+                      "다음의 영업을 하려는 자는 총리령으로 정하는 시설기준에 맞는 시설을 갖추어야 한다."),
+        "제37조": _row("제37조", "영업허가 등",
+                      "허가받은 사항 중 대통령령으로 정하는 중요한 사항을 변경할 때에도 허가를 받아야 하고, "
+                      "폐업하거나 경미한 사항을 변경할 때에는 신고하여야 한다."),
+        "제31조": _row("제31조", "자가품질검사 의무",
+                      "식품등을 제조ㆍ가공하는 영업자는 총리령으로 정하는 바에 따라 기준과 규격에 맞는지를 "
+                      "검사하여야 한다."),
+        "제44조": _row("제44조", "영업자 등의 준수사항",
+                      "영업자와 그 종업원은 영업의 위생관리와 질서유지, 국민의 보건위생 증진을 위하여 "
+                      "영업의 종류에 따라 정해진 사항을 지켜야 하며, 소비기한이 경과된 제품을 판매 목적으로 "
+                      "보관ㆍ진열해서는 아니 된다."),
+        "제7조": _row("제7조", "기준 및 규격",
+                     "식품의약품안전처장은 판매를 목적으로 하는 식품 또는 식품첨가물에 관한 제조ㆍ가공 "
+                     "기준과 성분에 관한 규격을 정하여 고시한다."),
+        "제4조": _row("제4조", "위해식품등의 판매 등 금지",
+                     "누구든지 위해식품등을 판매하거나 판매할 목적으로 제조ㆍ수입ㆍ가공ㆍ사용ㆍ저장ㆍ"
+                     "운반 또는 진열하여서는 아니 된다."),
+        "표시ㆍ광고에 관한 법률 제4조": {
+            "law": "식품등의 표시ㆍ광고에 관한 법률", "article": "제4조제1항", "effective_date": "2025-09-19",
+            "url": "https://www.law.go.kr/법령/식품등의표시ㆍ광고에관한법률",
+            "quote": "식품ㆍ건강기능식품 등에는 제품명ㆍ원재료명ㆍ영업소ㆍ소비기한 등 정해진 사항을 표시하여야 한다.",
+            "verified_on": "2026-11-19",
+        },
+        "표시ㆍ광고에 관한 법률 제8조": {
+            "law": "식품등의 표시ㆍ광고에 관한 법률", "article": "제8조제1항", "effective_date": "2025-09-19",
+            "url": "https://www.law.go.kr/법령/식품등의표시ㆍ광고에관한법률",
+            "quote": "질병의 예방ㆍ치료 효능, 의약품 오인, 거짓ㆍ과장 등에 해당하는 표시 또는 광고를 "
+                      "하여서는 아니 된다.",
+            "verified_on": "2026-11-19",
+        },
+        "수입식품안전관리 특별법 제20조": {
+            "law": "수입식품안전관리 특별법", "article": "제20조제1항", "effective_date": "2026-10-08",
+            "url": "https://www.law.go.kr/법령/수입식품안전관리특별법",
+            "quote": "영업자가 판매를 목적으로 수입식품등을 수입하려면 식품의약품안전청장에게 수입신고를 "
+                      "하여야 한다.",
+            "verified_on": "2026-11-19",
+        },
+    }
+
+
+TOOL_DEFS: List[Dict[str, Any]] = [    {
         "name": "assess_import_case",
         "title_ko": "수입 컴플라이언스 종합 판정",
         "description_ko": "품목·상황을 자연어로 받아 수입요건·인증·표시·통관 함정을 3단계로 판정하고 근거 조항과 면책을 반환합니다.",
@@ -928,6 +1448,67 @@ TOOL_DEFS: List[Dict[str, Any]] = [
                 "functional": {"type": "string", "enum": ["yes", "no", "unknown"]},
             },
             "required": ["product_name", "kind"],
+        },
+    },
+    {
+        "name": "check_drug_import",
+        "title_ko": "의약품·영양제 금지성분·반입 제한",
+        "description_ko": "성분명·제품명(한·영)으로 마약류(마약·향정신성의약품·대마)·마약류 원료물질·국내 전용 성분 여부를 대조하고, 휴대 반입/직구와 수량을 자가사용 인정기준(6병·3개월분)과 비교해 판정합니다.",
+        "handler": tool_check_drug_import,
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "product_name": {"type": "string", "description": "성분명 또는 제품명(한글·영어 모두 가능, 예: '졸피뎀', 'Zolpidem', 'Adderall')"},
+                "ingredient": {"type": "string", "description": "성분명을 따로 넘길 때(있으면 product_name 보다 우선)"},
+                "channel": {"type": "string", "enum": ["carry", "online", "unknown"], "default": "unknown"},
+                "quantity": {"type": "integer", "minimum": 1, "description": "수량(병·정 등). 6병 기준과 대조"},
+                "unit": {"type": "string", "description": "수량 단위(병·정·캡슐 등)"},
+                "prescription": {"type": "string", "enum": ["yes", "no", "unknown"], "description": "처방전 보유 여부(소명자료 힌트)"},
+                "purpose": {"type": "string", "enum": ["self_use", "resale"]},
+                "limit": {"type": "integer", "minimum": 1, "maximum": 3, "default": 3},
+            },
+            "required": ["product_name"],
+        },
+    },
+    {
+        "name": "check_ad_labeling",
+        "title_ko": "과대광고·한글표시사항 검수",
+        "description_ko": "상세페이지·상품명 문구와 라벨 문구를 품목 유형(일반식품/건강기능식품/화장품/기능성화장품)별로 대조해 질병 효능·의약품 오인·거짓과장·체험기·기능성 오인 등 위험 표현과 한글표시사항 누락 항목을 근거 법령·대체 표현과 함께 반환합니다.",
+        "handler": tool_check_ad_labeling,
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "product_name": {"type": "string", "description": "제품명(선택). 있으면 수입요건도 함께 판정"},
+                "product_type": {"type": "string",
+                                 "enum": ["general_food", "health_functional_food", "cosmetics", "functional_cosmetics"],
+                                 "description": "품목 유형. 생략하면 문구·제품명에서 판단"},
+                "ad_copy": {"type": "string", "description": "상세페이지·상품명·홍보 문구(최대 4,000자)"},
+                "label_text": {"type": "string", "description": "라벨·한글표시사항을 텍스트로 옮긴 내용(최대 4,000자)"},
+                "label_items": {"type": "object", "description": "항목별 체크(예: {'product_name': true, 'expiry_storage': false})"},
+                "functional": {"type": "string", "enum": ["yes", "no", "unknown"], "description": "기능성 여부(화장품이면 기능성화장품)"},
+                "imported": {"type": "string", "enum": ["yes", "no", "unknown"], "description": "수입 제품 여부"},
+                "purpose": {"type": "string", "enum": ["resale", "self_use"]},
+                "limit": {"type": "integer", "minimum": 1, "maximum": 20, "default": 8},
+            },
+            "required": [],
+        },
+    },
+    {
+        "name": "lookup_mfds_disposition",
+        "title_ko": "식약처 행정처분 이력 조회",
+        "description_ko": "식품제조가공업(15124560)·식품판매업(15124559) 행정처분결과를 조회합니다. 승인 전파 전·오프라인이면 내장 대표 적발 패턴으로 안내하며, 업소명·대표자·연락처·주소·인허가번호는 반환하지 않습니다.",
+        "handler": tool_lookup_mfds_disposition,
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "industry": {"type": "string", "enum": ["manufacturing", "sales", "all"], "default": "all"},
+                "keyword": {"type": "string", "description": "위반법령·위반내용 키워드(예: '표시', '자가품질검사')"},
+                "license_no": {"type": "string", "description": "인허가번호로 조회할 때(응답·저장에는 남기지 않음)"},
+                "confirmed_on": {"type": "string", "description": "처분확정일 YYYYMMDD"},
+                "rows": {"type": "integer", "minimum": 1, "maximum": 100, "default": 20},
+                "limit": {"type": "integer", "minimum": 1, "maximum": 20, "default": 5},
+            },
+            "required": [],
         },
     },
     {
@@ -1007,7 +1588,7 @@ def mcp_manifest() -> Dict[str, Any]:
     """`GET /v1/mcp` — 사람이 읽는 툴 매니페스트(JSON-RPC 는 POST /mcp 가 담당)."""
     server_info = {
         "name": "clns",
-        "version": "clns/0.1",
+        "version": "clns/" + PACKAGE_VERSION,
         "description": "CLNS — Korea Import Compliance MCP & API · PRODUCT COMPLIANCE INTELLIGENCE · KOREA",
     }
     return {

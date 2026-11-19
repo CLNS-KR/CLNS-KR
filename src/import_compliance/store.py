@@ -9,7 +9,7 @@ import sqlite3
 import threading
 import time
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 KST = timezone(timedelta(hours=9))
 FREE_MONTHLY_CALLS = 250
@@ -118,6 +118,27 @@ CREATE TABLE IF NOT EXISTS recall_stats (
     count           INTEGER NOT NULL DEFAULT 0,
     PRIMARY KEY (dataset_id, year, category, disposition)
 );
+
+-- 식약처 행정처분결과 적재분(15124560 식품제조가공업 · 15124559 식품판매업)
+-- 원본의 업소명·대표자명·전화번호·주소·인허가번호는 저장하지 않는다.
+CREATE TABLE IF NOT EXISTS disposition_items (
+    dataset_id          TEXT NOT NULL,
+    disposition_seq     TEXT NOT NULL,      -- 원본 행정처분전산키(식별정보 아님)
+    industry            TEXT,
+    disposition_type    TEXT,
+    confirmed_on        TEXT,               -- YYYY-MM-DD
+    disposition_from    TEXT,
+    disposition_to      TEXT,
+    violation_summary   TEXT,               -- 개인정보 패턴 마스킹본
+    law_reference       TEXT,
+    disposition_summary TEXT,
+    agency              TEXT,
+    last_updated        TEXT,
+    loaded_at           TEXT,
+    PRIMARY KEY (dataset_id, disposition_seq)
+);
+CREATE INDEX IF NOT EXISTS idx_disposition_law ON disposition_items(law_reference);
+CREATE INDEX IF NOT EXISTS idx_disposition_confirmed ON disposition_items(confirmed_on DESC);
 """
 
 
@@ -217,6 +238,92 @@ class Store:
         if not isinstance(payload, dict):
             return None
         return payload, age_hours
+
+    # --- 식약처 행정처분 적재분 -------------------------------------------------
+    def save_dispositions(self, rows: List[Dict[str, Any]]) -> int:
+        """정규화된 행정처분 행을 중복 없이 적재한다(개인정보 필드는 받지 않는다)."""
+        if not rows:
+            return 0
+        stamp = iso(now_kst())
+        saved = 0
+        with self._lock:
+            for row in rows:
+                cur = self.conn.execute(
+                    "INSERT OR IGNORE INTO disposition_items("
+                    "dataset_id, disposition_seq, industry, disposition_type, confirmed_on, "
+                    "disposition_from, disposition_to, violation_summary, law_reference, "
+                    "disposition_summary, agency, last_updated, loaded_at) "
+                    "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                    (str(row.get("dataset_id", "")), str(row.get("disposition_seq", "")),
+                     str(row.get("industry", "")), str(row.get("disposition_type", "")),
+                     str(row.get("confirmed_on", "")), str(row.get("disposition_from", "")),
+                     str(row.get("disposition_to", "")), str(row.get("violation_summary", "")),
+                     str(row.get("law_reference", "")), str(row.get("disposition_summary", "")),
+                     str(row.get("agency", "")), str(row.get("last_updated", "")), stamp),
+                )
+                saved += 1 if cur.rowcount > 0 else 0
+            self.conn.commit()
+        return saved
+
+    def disposition_count(self, dataset_id: Optional[str] = None) -> int:
+        with self._lock:
+            if dataset_id:
+                row = self.conn.execute(
+                    "SELECT COUNT(*) AS c FROM disposition_items WHERE dataset_id=?",
+                    (dataset_id,)).fetchone()
+            else:
+                row = self.conn.execute("SELECT COUNT(*) AS c FROM disposition_items").fetchone()
+        return int(row["c"] if row else 0)
+
+    def disposition_summary(self, dataset_ids: Optional[List[str]] = None) -> List[Dict[str, Any]]:
+        """위반법령별 건수·비중(마지막 콤마 기준 첫 법령으로 집계)."""
+        selected = set(dataset_ids or [])
+        with self._lock:
+            if selected:
+                rows = self.conn.execute(
+                    "SELECT law_reference, COUNT(*) AS c FROM disposition_items "
+                    "WHERE dataset_id IN (%s) GROUP BY law_reference ORDER BY c DESC"
+                    % ",".join("?" for _ in selected), tuple(selected)).fetchall()
+            else:
+                rows = self.conn.execute(
+                    "SELECT law_reference, COUNT(*) AS c FROM disposition_items "
+                    "GROUP BY law_reference ORDER BY c DESC").fetchall()
+        counts: Dict[str, int] = {}
+        for row in rows:
+            law = str(row["law_reference"] or "").split(",")[0].strip()
+            if not law:
+                continue
+            counts[law] = counts.get(law, 0) + int(row["c"])
+        total = sum(counts.values()) or 1
+        return [{"law_reference": law, "count": count, "share": round(count / total, 3)}
+                for law, count in sorted(counts.items(), key=lambda kv: -kv[1])]
+
+    def search_dispositions(self, *, keyword: str = "", confirmed_on: str = "",
+                            dataset_ids: Optional[List[str]] = None,
+                            limit: int = 5) -> List[Dict[str, Any]]:
+        """로컬 적재분 검색(개인정보 없는 필드만 돌려준다)."""
+        clauses: List[str] = []
+        params: List[Any] = []
+        if keyword:
+            probe = f"%{keyword}%"
+            clauses.append("(law_reference LIKE ? OR violation_summary LIKE ? "
+                           "OR disposition_type LIKE ? OR industry LIKE ?)")
+            params.extend([probe, probe, probe, probe])
+        if confirmed_on:
+            clauses.append("confirmed_on = ?")
+            params.append(confirmed_on)
+        if dataset_ids:
+            clauses.append("dataset_id IN (%s)" % ",".join("?" for _ in dataset_ids))
+            params.extend(dataset_ids)
+        where = (" WHERE " + " AND ".join(clauses)) if clauses else ""
+        sql = ("SELECT dataset_id, disposition_seq, industry, disposition_type, confirmed_on, "
+               "disposition_from, disposition_to, violation_summary, law_reference, "
+               "disposition_summary, agency FROM disposition_items" + where +
+               " ORDER BY confirmed_on DESC LIMIT ?")
+        params.append(max(1, int(limit)))
+        with self._lock:
+            cur = self.conn.execute(sql, tuple(params))
+            return [dict(row) for row in cur.fetchall()]
 
     # --- quota ---------------------------------------------------------------
     def quota_used(self, client_id: str, period: Optional[str] = None) -> int:
@@ -319,6 +426,10 @@ class SourceGateway:
             # 적합성평가(전파법)는 인증·등록번호가 있어야 조회되는 소스라, 번호가 없을 때
             # '연결 실패(unavailable)'로 뭉개지 않고 '번호 필요' 상태를 따로 돌려준다.
             return self._rra(query_key, live_query)
+        if source_id == "mfds_drug_schedule":
+            # 의약품 성분 사전은 법제처 시행령 별표에서 생성한 로컬 인덱스다.
+            # 식약처 의약품 계열 API는 활용승인 전이라 '승인 필요'로 사실대로 밝힌다.
+            return self._drug_schedule()
         if self.live is not None and live_query:
             live_state = self._live(source_id, query_key, live_query)
             if live_state is not None:
@@ -385,6 +496,30 @@ class SourceGateway:
             "item_count": len(normalized),
             "result_code": fetch.result_code,
             "data": {"items": normalized},
+        }
+
+    # --- 의약품 성분 사전(법제처 시행령 별표 기반 로컬 인덱스) --------------------
+    def _drug_schedule(self) -> Dict[str, Any]:
+        from . import drugs
+
+        data = drugs.load_schedules()
+        return {
+            "source_id": "mfds_drug_schedule",
+            "state": "local_index",
+            "fresh": None,
+            "age_hours": None,
+            "schedule_version": data.get("schedule_version"),
+            "generated_on": data.get("generated_on"),
+            "substance_count": len(data.get("substances") or []),
+            "precursor_count": len(data.get("precursors") or []),
+            "data": None,
+            "note_ko": (
+                "마약류·원료물질은 법제처 시행령 별표 1~8에서 생성한 로컬 사전으로 대조했습니다. "
+                "식약처 의약품 허가정보·e약은요·DUR·마약류 API는 이 계정에 활용승인이 없어 실시간 "
+                "전수 대조는 제공하지 않습니다."
+            ),
+            "api_state": [{"dataset_id": row["dataset_id"], "name_ko": row["name_ko"],
+                           "state": row["state"]} for row in drugs.API_CANDIDATES],
         }
 
     def _age_hours(self, stamp: str) -> float:

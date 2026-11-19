@@ -35,6 +35,8 @@ SOURCE_MFDS_PERMIT = "mfds_import_food"      # 식약처 수입식품 허가정�
 SOURCE_MFDS_PRODUCT = "mfds_import_product_db"  # 식약처 수입식품 제품DB (15073949)
 SOURCE_LAW = "law_api"                        # 법제처 국가법령정보 공동활용
 SOURCE_RRA = "rra_conformity"                 # 국립전파연구원 적합성평가(인증·등록번호 조회, 키 불필요)
+SOURCE_DISPOSITION_MFG = "mfds_disposition_manufacturing"   # 식약처 행정처분결과(식품제조가공업, 15124560)
+SOURCE_DISPOSITION_SALES = "mfds_disposition_sales"         # 식약처 행정처분결과(식품판매업, 15124559)
 
 # --- 검증된 엔드포인트 (2026-11-18 data.go.kr 상세페이지 swagger·요청주소 기준) ---
 CUSTOMS_URL = "https://apis.data.go.kr/1220000/retrieveCcctLworCd/getRetrieveCcctLworCd"
@@ -43,6 +45,19 @@ MFDS_IMPROPER_URL = "https://apis.data.go.kr/1471000/ImportFoodPrmisnInfoService
 MFDS_PRODUCT_URL = "https://apis.data.go.kr/1471000/IprtFoodPrdtDBService02/getIprtFoodPrdtDBInq02"
 LAW_SEARCH_URL = "https://www.law.go.kr/DRF/lawSearch.do"
 LAW_SERVICE_URL = "https://www.law.go.kr/DRF/lawService.do"
+
+# 식약처 행정처분결과 API (2026-11-19 data.go.kr 상세페이지·실호출로 확인).
+# 두 데이터셋은 승인·게이트웨이 전파 상태가 따로 움직인다(한쪽만 코드 30이 나올 수 있다).
+MFDS_DISPOSITION_ENDPOINTS: Dict[str, str] = {
+    "manufacturing": "https://apis.data.go.kr/1471000/AdmmRsltFoodMnftPrcsService01"
+                     "/getAdmmRsltFoodMnftPrcsBssh01",
+    "sales": "https://apis.data.go.kr/1471000/AdmmRsltFoodSaleService01"
+             "/getAdmmRsltFoodSaleBssh01",
+}
+MFDS_DISPOSITION_SOURCES: Dict[str, str] = {
+    "manufacturing": SOURCE_DISPOSITION_MFG,
+    "sales": SOURCE_DISPOSITION_SALES,
+}
 
 # 국립전파연구원 적합성평가 Open API — **키가 필요 없는 공개 엔드포인트**.
 # data.go.kr 3034183(적합성평가 DB정보)은 '제공형태: LINK' 로, 실제 호출은 아래 주소로 한다.
@@ -101,6 +116,22 @@ SOURCE_CATALOG = [
         "provider": "과학기술정보통신부 국립전파연구원",
         "license_scope": "이용허락범위 제한 없음(data.go.kr 3034183, 키 불필요 공개 API)",
         "base_url": "http://emsit.go.kr/openapi/service/AuthenticationInfoService",
+        "update_cycle": "realtime",
+    },
+    {
+        "source_id": SOURCE_DISPOSITION_MFG,
+        "name_ko": "식약처_행정처분결과(식품제조가공업)",
+        "provider": "식품의약품안전처",
+        "license_scope": "이용허락범위 제한 없음(data.go.kr 15124560)",
+        "base_url": "https://apis.data.go.kr/1471000/AdmmRsltFoodMnftPrcsService01",
+        "update_cycle": "realtime",
+    },
+    {
+        "source_id": SOURCE_DISPOSITION_SALES,
+        "name_ko": "식약처_행정처분결과(식품판매업)",
+        "provider": "식품의약품안전처",
+        "license_scope": "이용허락범위 제한 없음(data.go.kr 15124559)",
+        "base_url": "https://apis.data.go.kr/1471000/AdmmRsltFoodSaleService01",
         "update_cycle": "realtime",
     },
 ]
@@ -596,6 +627,7 @@ class LiveApiClient:
             "mfds_product_db": self.has_mfds,
             "law_search": self.has_law,
             "rra_conformity": self.has_rra,
+            "mfds_disposition": self.has_mfds,
         }
 
     def __repr__(self) -> str:  # 키가 repr 로 새지 않게 고정 문자열
@@ -781,6 +813,43 @@ class LiveApiClient:
         payload = json.loads(body)
         header, items, total = parse_mfds_json(payload)
         return header, items, total, payload
+
+    # --- 3-1) 식약처 행정처분결과 (15124560 / 15124559) --------------------
+    def mfds_disposition(self, dataset: str = "manufacturing", *, license_no: Optional[str] = None,
+                         confirmed_on: Optional[str] = None, updated_after: Optional[str] = None,
+                         page: int = 1, rows: int = 20,
+                         retry_on_unregistered: bool = True) -> LiveFetch:
+        """행정처분결과를 조회한다. 데이터셋별로 승인 상태가 달라 코드 30이 날 수 있다.
+
+        승인 전파 전에는 `LiveApiError(code="30")`이 나고, 호출부는 이를
+        `approval_pending` 상태로 내보낸 뒤 내장 패턴 사전으로 폴백한다.
+        """
+        key = str(dataset or "").strip().lower()
+        if key not in MFDS_DISPOSITION_ENDPOINTS:
+            raise LiveApiError("mfds_disposition", f"알 수 없는 데이터셋: {dataset}")
+        source_id = MFDS_DISPOSITION_SOURCES[key]
+        if not self.has_mfds:
+            raise LiveApiError(source_id, "서비스키 없음(DATA_GO_KR_SERVICE_KEY)")
+        params: Dict[str, Any] = {"serviceKey": self._service_key, "pageNo": page,
+                                  "numOfRows": max(1, min(int(rows), 100)), "type": "json"}
+        if license_no:
+            params["LCNS_NO"] = str(license_no).strip()
+        if confirmed_on:
+            params["DSPS_DCSNDT"] = "".join(ch for ch in str(confirmed_on) if ch.isdigit())[:8]
+        if updated_after:
+            params["LAST_UPDT_DTM"] = str(updated_after).strip()
+        url = self._url(MFDS_DISPOSITION_ENDPOINTS[key], params)
+        _, fetch = self._call(source_id, url, parse=self._parse_disposition,
+                              retry_on_unregistered=retry_on_unregistered)
+        # 인허가번호는 요청 메타에도 남기지 않는다(개인ㆍ사업자 식별정보).
+        fetch.request_echo = {"dataset": key, "page": page, "rows": rows}
+        return fetch
+
+    @staticmethod
+    def _parse_disposition(body: str):
+        payload = json.loads(body)
+        header, items, total = parse_mfds_json(payload)
+        return header, items, total, None
 
     # --- 4) 법제처 국가법령정보 공동활용 ----------------------------------
     def law_search(self, query: str, *, target: str = "law", display: int = 5,

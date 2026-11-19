@@ -37,6 +37,7 @@ from import_compliance.server import (  # noqa: E402
     make_handler,
 )
 from import_compliance.store import Store  # noqa: E402
+from import_compliance.version import __version__  # noqa: E402
 
 FAKE_KEY = "FAKE_SERVICE_KEY_9f3c1d7b"
 FAKE_OC = "fakeoc"
@@ -250,12 +251,12 @@ class HttpTest(unittest.TestCase):
         _, _, manifest = url_get(self.port, "/v1/mcp")
         mcp = json.loads(manifest.decode("utf-8"))
         self.assertEqual(mcp["name"], "clns")
-        self.assertEqual(mcp["version"], "clns/0.1")
+        self.assertEqual(mcp["version"], "clns/" + __version__)
         self.assertIn("CLNS — Korea Import Compliance MCP & API", mcp["description"])
         self.assertEqual(mcp["serverInfo"],
-                         {"name": "clns", "version": "clns/0.1",
+                         {"name": "clns", "version": "clns/" + __version__,
                           "description": "CLNS — Korea Import Compliance MCP & API · PRODUCT COMPLIANCE INTELLIGENCE · KOREA"})
-        self.assertEqual(len(mcp["tools"]), 8)
+        self.assertEqual(len(mcp["tools"]), 11)
 
     def test_healthz_reports_clns_service(self):
         _, _, body = url_get(self.port, "/healthz")

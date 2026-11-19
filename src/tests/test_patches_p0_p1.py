@@ -135,7 +135,7 @@ class McpTransportTest(ServerHarness):
     def test_tools_list_exposes_eight_tools_with_schemas(self):
         _, _, body = self.rpc({"jsonrpc": "2.0", "id": 3, "method": "tools/list"})
         tools = body["result"]["tools"]
-        self.assertEqual(len(tools), 8)
+        self.assertEqual(len(tools), 11)
         names = {tool["name"] for tool in tools}
         for expected in ("assess_import_case", "lookup_hs_requirements", "check_food_cosmetics",
                          "lookup_recall", "get_legal_basis", "get_service_meta"):
@@ -240,7 +240,7 @@ class CorsAndServerCardTest(ServerHarness):
         self.assertEqual(card["prompts"], [])
         self.assertEqual([tool["name"] for tool in card["tools"]],
                          [tool["name"] for tool in mcp_tools()])
-        self.assertEqual(len(card["tools"]), 8)
+        self.assertEqual(len(card["tools"]), 11)
         self.assertIn("corpus", card)
 
 

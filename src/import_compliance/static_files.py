@@ -73,7 +73,7 @@ def llms_txt(base: Optional[str] = None) -> str:
 
 > 한국 수입 규제(세관장확인 요건·식약처 수입 이력·국내 리콜·근거 법령)를 3단계로 판정하는 무료 사전 점검 서비스.
 > 확정 판정이 아니라 "확인해야 할 항목의 목록"을 제시하며, 모든 응답에 근거 조항·시행일·원문 URL·국/영문 면책이 함께 온다.
-> 데이터: 관세청 세관장확인대상물품(15101589), 식약처 수입식품 계열(15058273·15073949), 법제처 국가법령정보, 국표원 리콜 파일데이터(15040696), 국립전파연구원 적합성평가 DB정보(3034183, 인증·등록번호 조회·키 불필요).
+> 데이터: 관세청 세관장확인대상물품(15101589), 식약처 수입식품 계열(15058273·15073949), 식약처 행정처분결과(15124560·15124559), 법제처 국가법령정보, 국표원 리콜 파일데이터(15040696), 국립전파연구원 적합성평가 DB정보(3034183, 인증·등록번호 조회·키 불필요), 마약류 관리에 관한 법률 시행령 별표 1~8에서 생성한 의약품 성분 사전.
 > 서비스는 관세사법상 관세 상담·대리 업무를 수행하지 않으며, 품목분류(HS) 확정·인증 대행·통관 대리를 하지 않는다.
 
 ## 사람용
@@ -84,8 +84,8 @@ def llms_txt(base: Optional[str] = None) -> str:
 
 ## 기계용 (MCP · JSON-RPC 2.0)
 - [MCP 엔드포인트]({root}/mcp): POST. `initialize` → `tools/list` → `tools/call` 순서로 쓰는 JSON-RPC 2.0 서버. 인증 불필요, 응답은 `application/json` 한 덩어리(SSE 스트리밍 없음).
-- [MCP 서버 카드]({root}/.well-known/mcp/server-card.json): 서버 정보·인증 방식·툴 8종 스키마.
-- [툴 매니페스트]({root}/v1/mcp): GET. 툴 8종의 이름·설명·inputSchema(사람이 읽는 JSON).
+- [MCP 서버 카드]({root}/.well-known/mcp/server-card.json): 서버 정보·인증 방식·툴 11종 스키마.
+- [툴 매니페스트]({root}/v1/mcp): GET. 툴 11종의 이름·설명·inputSchema(사람이 읽는 JSON).
 
 ## 기계용 (REST JSON)
 - [종합 판정]({root}/v1/tools/assess_import_case): POST. `{{"query": "...", "facts": {{"purpose": "resale", "hs_code": "8414519000", "rf_tx": "no"}}}}`
@@ -93,6 +93,9 @@ def llms_txt(base: Optional[str] = None) -> str:
 - [식품·화장품·기구용기 요건]({root}/v1/tools/check_food_cosmetics): POST. `{{"product_name": "오메가3", "kind": "health_functional"}}`
 - [KC·전파 적합성평가]({root}/v1/tools/check_kc_certification): POST. `{{"product_name": "블루투스 스피커", "rf_tx": "yes", "rra_cert_no": "R-LARN-00-0210"}}`
 - [국내 리콜 이력]({root}/v1/tools/lookup_recall): POST. `{{"product_name": "전지"}}`
+- [의약품·영양제 금지성분]({root}/v1/tools/check_drug_import): POST. `{{"product_name": "졸피뎀", "channel": "online", "quantity": 30}}` — 마약류·원료물질·국내 전용 성분과 자가사용 인정기준(6병·3개월분)을 대조
+- [과대광고·한글표시사항 검수]({root}/v1/tools/check_ad_labeling): POST. `{{"product_type": "general_food", "ad_copy": "먹기만 하면 100% 다이어트, 항암 효과", "label_text": "제품명 … 소비기한 …"}}` — 유형별 금지 표현과 필수 표시항목 누락을 대조
+- [식약처 행정처분 이력]({root}/v1/tools/lookup_mfds_disposition): POST. `{{"industry": "manufacturing", "keyword": "표시"}}` — 식품제조가공업·식품판매업 처분 이력(개인정보 필드는 폐기)
 - [근거 조항]({root}/v1/tools/get_legal_basis): POST. `{{"law": "관세법", "article": "제226조"}}`
 
 ## 읽는 법
@@ -101,6 +104,9 @@ def llms_txt(base: Optional[str] = None) -> str:
 - 전파 적합성평가는 인증·등록번호로만 실시간 조회되며(`rra_conformity`), 번호가 없으면 국립전파연구원 조회 화면에서 모델명으로 확인해야 한다.
 - 리콜 데이터는 2023-08-09 배포본(등록일 2019-10~2022-07) 정적 스냅샷이라 최신 리콜은 반영되지 않는다.
 - 실시간 조회 결과가 7일 TTL 캐시에서 나온 경우 `state: "cached_fallback"` 과 `age_hours` 로 캐시 시점을 밝힌다.
+- 의약품 성분은 마약류 관리에 관한 법률 시행령 별표 1~8에서 생성한 로컬 사전으로 대조한다. 시행령 별표에 없다고 마약류가 아니라고 단정할 수 없으며(임시마약류 지정·개정 시차), 식약처 의약품 허가정보·e약은요·DUR API는 활용승인 전이어서 실시간 전수 대조를 제공하지 않는다.
+- 과대광고·표시 검수는 문구 패턴 대조이며, 근거는 식품등의 표시·광고에 관한 법률 제8조·시행령 제3조·화장품법 제13조와 식약처 고시(식품등의 부당한 표시 또는 광고의 내용 기준)다. 같은 단어도 문맥에 따라 판단이 달라진다.
+- 행정처분 이력은 과거 처분 사실이며 현재 영업 상태를 뜻하지 않는다. 원본의 업소명·연락처·주소·인허가번호는 읽지 않고 버린다. 데이터셋 승인 전파 전이면 내장 대표 적발 패턴으로 안내한다.
 """
 
 
