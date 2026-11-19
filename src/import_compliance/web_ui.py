@@ -1095,8 +1095,12 @@ footer strong{color:var(--ink)}
         '<h3>확인 필요 체크리스트</h3>' + checklist(result) +
         '</div>';
 
-      html += section("쟁점 " + String((result.findings || []).length) + "건", findingsTable(result.findings) + findingsDetail(result.findings),
-        "신뢰도는 입력 정보의 충족 정도를 반영합니다. 100% 확정 판정이 아닙니다.");
+      var fCount = (result.findings || []).length;
+      html += section("쟁점 요약 " + String(fCount) + "건", findingsTable(result.findings),
+        "각 쟁점의 상세 설명과 오해 포인트는 아래에서 눌러 펼쳐 볼 수 있습니다.");
+      if (fCount > 0) {
+        html += sectionCollapsible("쟁점 상세 설명", findingsDetail(result.findings), String(fCount) + "건 상세 펼쳐 보기");
+      }
 
       if (result.cosmetic_screening) {
         var prohCnt = (result.cosmetic_screening.prohibited || []).length;
@@ -1258,7 +1262,11 @@ footer strong{color:var(--ink)}
         '<h3>판정 요지</h3>' + guidanceBlock(result) +
         '<h3>성분 대조</h3>' + drugScreenBlock(result.drug_screening, check) +
         '</div>';
-      html += section("쟁점 " + String((result.findings || []).length) + "건", findingsTable(result.findings) + findingsDetail(result.findings));
+      var dfCount = (result.findings || []).length;
+      html += section("쟁점 요약 " + String(dfCount) + "건", findingsTable(result.findings));
+      if (dfCount > 0) {
+        html += sectionCollapsible("쟁점 상세 설명", findingsDetail(result.findings), String(dfCount) + "건 상세 펼쳐 보기");
+      }
       html += sectionCollapsible("근거 법령·조항", evidenceBlock(result.evidence), String((result.evidence || []).length) + "건 펼쳐 보기",
         "인용문은 요지 발췌입니다. 조문·별표 전체는 원문에서 확인해야 하며, 출처 표시 없이 재배포할 수 없습니다.");
       html += sectionCollapsible("면책·이용 범위", disclaimerBlock(result), "안내 보기");
