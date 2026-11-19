@@ -345,6 +345,13 @@ footer strong{color:var(--ink)}
                         placeholder="예: 먹기만 하면 100% 다이어트! 면역력 강화·암 예방 (비워 두면 수입·인증 요건만 체크합니다)"></textarea>
               <span class="hint">입력하면 수입·인증 요건과 함께 과대광고 위험 표현·대체 문구까지 한 번에 검수합니다.</span>
             </label>
+
+            <label class="field full" for="cosmetic-ingredients-onestop">
+              <span class="lab">화장품 전성분<span class="opt">선택 · 배합금지/한도 대조</span></span>
+              <textarea id="cosmetic-ingredients-onestop" name="cosmetic-ingredients-onestop" rows="2" maxlength="4000"
+                        placeholder="예: Water, Hydroquinone, Salicylic Acid, Phenoxyethanol (쉼표 또는 줄바꿈 구분)"></textarea>
+              <span class="hint">화장품·속눈썹영양제·스킨케어라면 전성분(한글·INCI)을 넣어 배합금지·한도 성분을 함께 확인하세요.</span>
+            </label>
           </div>
 
           <div class="actions">
@@ -853,6 +860,44 @@ footer strong{color:var(--ink)}
     return head;
   }
 
+  function tariffFtaBlock(tf){
+    tf = tf || {};
+    var fta = tf.fta || {};
+    var ags = (fta.agreements && fta.agreements.length) ? fta.agreements.join(", ") : "해당 없음 / 미지정";
+    var rows = [
+      { k: "품목군 기준", v: tf.category_label || "-" },
+      { k: "예상 기본관세", v: tf.base_rate_hint || "-" },
+      { k: "부가가치세", v: tf.vat_rate || "10%" },
+      { k: "원산지·협정", v: (tf.origin || "미지정") + " · " + ags },
+      { k: "원산지증명서(CO)", v: fta.co_type || "-" },
+      { k: "면세·과세 기준", v: tf.duty_free_note || "-" }
+    ];
+    var out = table([["항목", "k"], ["내용", "v"]], rows);
+    if (fta.tip) out += '<p class="note-inline" style="margin-top:8px">실무 팁: ' + esc(fta.tip) + "</p>";
+    if (tf.unipass_url) out += '<p class="note-inline"><a href="' + esc(tf.unipass_url) + '" target="_blank" rel="noopener noreferrer">관세법령정보포털(UNIPASS)에서 10자리 세율 직접 조회</a></p>';
+    return out;
+  }
+
+  function cosmeticScreenBlock(cs){
+    cs = cs || {};
+    var proh = cs.prohibited || [];
+    var rest = cs.restricted || [];
+    var html = '<p class="sub">' + esc(cs.summary || "") + "</p>";
+    if (proh.length){
+      html += '<h3 style="color:#b91c1c;margin-top:10px">배합금지 의심 성분 (' + proh.length + '건)</h3>';
+      html += table([["입력 성분", "m"], ["규정 원료명", "k"], ["사유·근거", "r"]], proh.map(function(p){
+        return { m: p.matched_input, k: p.ingredient_ko, r: p.reason + " (" + p.basis + ")" };
+      }));
+    }
+    if (rest.length){
+      html += '<h3 style="margin-top:10px">배합한도 지정 성분 (' + rest.length + '건)</h3>';
+      html += table([["입력 성분", "m"], ["규정 원료명", "k"], ["허용 한도·근거", "l"]], rest.map(function(r){
+        return { m: r.matched_input, k: r.ingredient_ko, l: r.limit + " (" + r.basis + ")" };
+      }));
+    }
+    return html;
+  }
+
   function drugScreenBlock(screen, check){
     screen = screen || {};
     check = check || {};
@@ -999,6 +1044,9 @@ footer strong{color:var(--ink)}
     var facts = { purpose: data.purpose, rf_tx: data.wire, target_age: data.child === "yes" ? "어린이" : "성인" };
     if (data.hs.length === 10) facts.hs_code = data.hs;
     if (data.rra) facts.rra_cert_no = data.rra;
+    if (data.origin) facts.origin = data.origin;
+    var cosIng = (document.getElementById("cosmetic-ingredients-onestop") && document.getElementById("cosmetic-ingredients-onestop").value || "").trim();
+    if (cosIng) facts.cosmetic_ingredients = cosIng;
     var query = buildQuery(data);
 
     submitBtn.disabled = true;
@@ -1049,6 +1097,23 @@ footer strong{color:var(--ink)}
 
       html += section("쟁점 " + String((result.findings || []).length) + "건", findingsTable(result.findings) + findingsDetail(result.findings),
         "신뢰도는 입력 정보의 충족 정도를 반영합니다. 100% 확정 판정이 아닙니다.");
+
+      if (result.cosmetic_screening) {
+        var prohCnt = (result.cosmetic_screening.prohibited || []).length;
+        var restCnt = (result.cosmetic_screening.restricted || []).length;
+        if (prohCnt > 0 || restCnt > 0) {
+          html += section("화장품 배합금지·한도 대조", cosmeticScreenBlock(result.cosmetic_screening),
+            "식약처 「화장품 안전기준 등에 관한 규정」 별표 1·2 핵심 성분 기준입니다.");
+        } else {
+          html += sectionCollapsible("화장품 배합금지·한도 대조", cosmeticScreenBlock(result.cosmetic_screening),
+            "주요 금지·한도 성분 0건");
+        }
+      }
+
+      if (result.tariff_fta) {
+        html += section("관세율·FTA 원산지 가이드", tariffFtaBlock(result.tariff_fta),
+          result.tariff_fta.disclaimer || "");
+      }
 
       if (result.drug_screening) {
         var drugMatches = (result.drug_screening.matches || []).length;

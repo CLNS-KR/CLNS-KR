@@ -529,8 +529,40 @@ def tool_assess_import_case(args: Dict[str, Any], store: Store, client_id: str, 
     elif any("RF_CONFORMITY" in (finding.get("regulation_tags") or [])
              for finding in result.get("findings") or []):
         _add_rra_hint(result, store)
+    # 관세율·FTA 원산지 가이드 및 화장품 배합금지 대조(선택)
+    from . import cosmetic_ingredients, tariff_fta
+
+    origin_val = str(facts.get("origin") or resolved.get("origin") or "").strip()
+    if not origin_val:
+        for country in tariff_fta.FTA_BY_ORIGIN:
+            if country in query:
+                origin_val = country
+                break
+    result["tariff_fta"] = tariff_fta.assess_tariff_fta(
+        product=query,
+        hs_code=hs_code,
+        origin=origin_val,
+        purpose=str(facts.get("purpose") or resolved.get("purpose") or "resale"),
+    )
+
+    cos_ing = str(facts.get("cosmetic_ingredients") or "").strip()
+    if cos_ing:
+        cos_res = cosmetic_ingredients.screen_cosmetic_ingredients(cos_ing)
+        result["cosmetic_screening"] = cos_res
+        if cos_res.get("prohibited"):
+            _raise_verdict(result, "check_likely")
+
     # 실시간 조회로 verdict 가 올라갔으면 표준 판정 상태도 함께 맞춘다.
     apply_status(result)
+    verdict_obj = result.get("verdict") or {}
+    result.setdefault("summary_en", {
+        "verdict_code": verdict_obj.get("code"),
+        "verdict_label_en": verdict_obj.get("label_en"),
+        "findings_count": len(result.get("findings") or []),
+        "origin": origin_val or None,
+        "hs_code": hs_code or None,
+        "has_prohibited_cosmetic_ingredient": bool((result.get("cosmetic_screening") or {}).get("prohibited")),
+    })
     return _envelope("assess_import_case", result)
 
 
