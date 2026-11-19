@@ -1061,7 +1061,7 @@ footer strong{color:var(--ink)}
       return "food";
     }
 
-    var mainP = postTool("assess_import_case", { query: query, facts: facts, limit: 3 });
+    var mainP = postTool("assess_import_case", { query: query, facts: facts, limit: 5 });
     var hsP = data.hs.length === 10 ? soft(postTool("lookup_hs_requirements", { hs_code: data.hs, direction: "import" })) : Promise.resolve(null);
     var recallP = soft(postTool("lookup_recall", { product_name: data.product, brand: "", limit: 5 }));
     var adP = adCopy ? soft(postTool("check_ad_labeling", {
