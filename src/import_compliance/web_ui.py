@@ -113,13 +113,13 @@ nav.tabs button .tab-ko{display:block; margin-top:1px; font-size:10.5px; font-we
   nav.tabs button{font-size:12.5px; padding:8px 11px}
   nav.tabs button .tab-ko{font-size:9.5px}
 }
-/* 390px 폭에서 3번째 탭(CLNS API & MCP)이 잘리지 않게 3등분 그리드로 고정한다. */
+/* 390px 폭에서 4개 탭이 잘리지 않게 2x2 그리드로 정렬한다. */
 @media (max-width:430px){
-  nav.tabs{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:4px;
+  nav.tabs{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px;
     overflow:visible; padding-top:12px}
-  nav.tabs button{width:100%; font-size:11px; padding:8px 4px; line-height:1.25;
+  nav.tabs button{width:100%; font-size:11.5px; padding:8px 6px; line-height:1.25;
     white-space:normal; word-break:keep-all; text-align:center}
-  nav.tabs button .tab-ko{font-size:9px}
+  nav.tabs button .tab-ko{font-size:9.5px}
 }
 nav.tabs button:focus-visible{outline:2px solid var(--brand); outline-offset:2px}
 main{padding-top:18px}
@@ -338,10 +338,18 @@ footer strong{color:var(--ink)}
               </div>
               <span class="hint">판매 목적이면 표시·인증·영업등록 요건이 함께 걸립니다. 자가소비는 개인 반입 면제 범위를 따집니다.</span>
             </div>
+
+            <label class="field full" for="ad-copy-onestop">
+              <span class="lab">상세페이지·광고 문구<span class="opt">선택 · 원스톱 검수</span></span>
+              <textarea id="ad-copy-onestop" name="ad-copy-onestop" rows="2" maxlength="4000"
+                        placeholder="예: 먹기만 하면 100% 다이어트! 면역력 강화·암 예방 (비워 두면 수입·인증 요건만 체크합니다)"></textarea>
+              <span class="hint">입력하면 수입·인증 요건과 함께 과대광고 위험 표현·대체 문구까지 한 번에 검수합니다.</span>
+            </label>
           </div>
 
           <div class="actions">
             <button type="submit" class="primary" id="check-submit">리스크 체크</button>
+            <button type="button" class="ghost" id="check-demo">예시로 채워 보기</button>
             <button type="button" class="ghost" id="check-reset">입력 지우기</button>
             <span class="note-inline" id="form-note" aria-live="polite"></span>
           </div>
@@ -399,6 +407,7 @@ footer strong{color:var(--ink)}
 
           <div class="actions">
             <button type="submit" class="primary" id="drug-submit">성분·수량 체크</button>
+            <button type="button" class="ghost" id="drug-demo">예시로 채워 보기</button>
             <span class="note-inline" id="drug-note" aria-live="polite"></span>
           </div>
         </form>
@@ -470,6 +479,7 @@ footer strong{color:var(--ink)}
 
           <div class="actions">
             <button type="submit" class="primary" id="ad-submit">광고·라벨 검수</button>
+            <button type="button" class="ghost" id="ad-demo">예시로 채워 보기</button>
             <span class="note-inline" id="ad-note" aria-live="polite"></span>
           </div>
         </form>
@@ -500,6 +510,7 @@ footer strong{color:var(--ink)}
           </div>
           <div class="actions">
             <button type="submit" class="primary" id="hs-submit">요건 조회</button>
+            <button type="button" class="ghost" id="hs-demo">예시로 채워 보기</button>
             <span class="note-inline" id="hs-note" aria-live="polite"></span>
           </div>
         </form>
@@ -618,6 +629,23 @@ footer strong{color:var(--ink)}
     return promise.then(function(v){ return v; }, function(err){ return { __error: err && err.message ? err.message : "조회 실패" }; });
   }
 
+  var FIELD_LABELS_KO = {
+    claim_type: "표시·광고 문구 유형",
+    ingredient: "주요 원료·성분명",
+    import_channel: "수입 경로(판매/자가소비)",
+    label_text: "라벨·한글표시사항 문구",
+    hs_code: "HS 10자리 코드",
+    origin: "원산지",
+    rf_tx: "무선·블루투스 여부",
+    target_age: "어린이 대상 여부",
+    purpose: "수입 목적",
+    quantity: "수량",
+    prescription: "처방전 유무",
+    product_name: "제품명",
+    rra_cert_no: "적합성평가 번호"
+  };
+  function fieldKo(key){ return FIELD_LABELS_KO[key] || key; }
+
   // ---------- 조각 렌더 ----------
   function verdictBlock(v, result){
     if (!v) return "";
@@ -628,23 +656,26 @@ footer strong{color:var(--ink)}
     if (result.jurisdiction) geo.push("법령 " + result.jurisdiction);
     if (result.origin) geo.push("원산지 " + result.origin);
     if (result.assessment_status){
-      extra += '<div class="statusrow"><span class="tag">표준 상태</span>' +
+      extra += '<div class="statusrow"><span class="tag">상태</span>' +
         esc(result.assessment_status_label_ko || result.assessment_status) +
-        ' <code>' + esc(result.assessment_status) + '</code>' +
         (geo.length ? '<span class="note-inline">' + esc(geo.join(" · ")) + '</span>' : '') + '</div>';
     }
     if ((result.missing_information || []).length){
-      extra += '<div class="missrow"><span class="tag info">빠진 정보</span>' +
-        result.missing_information.map(function(m){ return '<code>' + esc(m) + '</code>'; }).join(" ") + '</div>';
+      extra += '<div class="missrow"><span class="tag info">추가 확인 항목</span>' +
+        result.missing_information.map(function(m){ return '<code>' + esc(fieldKo(m)) + '</code>'; }).join(" ") + '</div>';
     }
     return '<div class="verdict v-' + esc(v.code) + '">' +
       '<div class="code">종합 판정</div>' +
-      '<div class="lab">' + esc(v.label_ko) + '<span class="en">' + esc(v.label_en) + '</span></div>' +
+      '<div class="lab">' + esc(v.label_ko) + '</div>' +
       '<p>' + esc(v.note_ko) + '</p>' + extra + '</div>';
   }
   function section(title, inner, sub){
     return '<div class="card"><h2>' + esc(title) + '</h2>' +
       (sub ? '<p class="sub">' + esc(sub) + '</p>' : '') + inner + '</div>';
+  }
+  function sectionCollapsible(title, inner, summaryText, sub){
+    return '<div class="card"><details><summary>' + esc(title) + (summaryText ? ' · ' + esc(summaryText) : '') + '</summary>' +
+      '<div class="body">' + (sub ? '<p class="sub">' + esc(sub) + '</p>' : '') + inner + '</div></details></div>';
   }
   function emptyBox(msg){ return '<div class="empty">' + esc(msg) + '</div>'; }
   function table(headers, rows){
@@ -686,9 +717,9 @@ footer strong{color:var(--ink)}
     if (!findings || !findings.length) return emptyBox("입력에서 규정 신호를 찾지 못했습니다. 품목명·HS 10자리·수입 목적을 보강해 다시 조회해 보세요.");
     var rows = findings.map(function(f){
       var chips = '<span class="tag ' + (f.verdict === "check_likely" ? "warn" : (f.verdict === "low_risk" ? "ok" : "info")) + '">' + esc(f.verdict_label_ko) + '</span>';
-      return "<tr><td><strong>" + esc(f.case_id) + "</strong></td><td>" + esc(f.title) + "<br><span class='note-inline'>" + esc(f.issue_ko) + "</span></td><td>" + chips + "</td><td>" + esc(String(Math.round((f.confidence || 0) * 100)) + "%") + "</td></tr>";
+      return "<tr><td><strong>" + esc(f.issue_ko || f.title) + "</strong><br><span class='note-inline'>" + esc(f.title) + "</span></td><td>" + chips + "</td><td>" + esc(String(Math.round((f.confidence || 0) * 100)) + "%") + "</td></tr>";
     }).join("");
-    return '<div class="tbl-wrap"><table><thead><tr><th>케이스</th><th>쟁점</th><th>판정</th><th>신뢰도</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
+    return '<div class="tbl-wrap"><table><thead><tr><th>쟁점</th><th>판정</th><th>신뢰도</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
   }
 
   function findingsDetail(findings){
@@ -696,11 +727,11 @@ footer strong{color:var(--ink)}
     return findings.map(function(f){
       var body = '<div class="body">' +
         (f.explanation ? "<p>" + esc(f.explanation) + "</p>" : "") +
-        (f.misconception ? '<p><span class="tag bad">흔한 오답</span>' + esc(f.misconception) + "</p>" : "") +
+        (f.misconception ? '<p><span class="tag bad">흔한 오해</span>' + esc(f.misconception) + "</p>" : "") +
         (f.notes ? '<p><span class="tag">주의</span>' + esc(f.notes) + "</p>" : "") +
         (f.reason ? '<p class="note-inline">판정 사유: ' + esc(f.reason) + "</p>" : "") +
         "</div>";
-      return '<details><summary>' + esc(f.case_id) + " · " + esc(f.title) + '</summary>' + body + '</details>';
+      return '<details><summary>' + esc(f.issue_ko || f.title) + '</summary>' + body + '</details>';
     }).join("");
   }
 
@@ -725,8 +756,21 @@ footer strong{color:var(--ink)}
     if (block.state !== "live"){
       return emptyBox("관세청 실시간 조회에 실패했습니다(코드 " + esc(text(block.code) || "n/a") + "). " + esc(block.note_ko || "") + " 판정을 요건 없음으로 해석하지 마세요.");
     }
-    var rows = (block.requirements || []).map(function(r){
-      return { law: r.requirement_law, agency: r.requirement_agency, doc: r.requirement_document, from: r.applies_from, timing: r.timing };
+    var grouped = {};
+    var order = [];
+    (block.requirements || []).forEach(function(r){
+      var key = [r.requirement_law || "", r.requirement_document || "", r.applies_from || "", r.timing || ""].join("||");
+      if (!grouped[key]){
+        grouped[key] = { law: r.requirement_law, agencies: [], doc: r.requirement_document, from: r.applies_from, timing: r.timing };
+        order.push(key);
+      }
+      if (r.requirement_agency && grouped[key].agencies.indexOf(r.requirement_agency) === -1){
+        grouped[key].agencies.push(r.requirement_agency);
+      }
+    });
+    var rows = order.map(function(k){
+      var g = grouped[k];
+      return { law: g.law, agency: g.agencies.join(", "), doc: g.doc, from: g.from, timing: g.timing };
     });
     var inner = '<p class="sub">' + esc(block.hs_code) + " · 조회 " + esc(block.checked_at) + " · 요건 " + esc(String(block.requirement_count)) + "건</p>";
     inner += table([["요건 법령", "law"], ["확인 기관", "agency"], ["확인 서류", "doc"], ["적용 시작", "from"], ["시점", "timing"]], rows);
@@ -961,12 +1005,28 @@ footer strong{color:var(--ink)}
     submitBtn.textContent = "확인 중…";
     resultEl.innerHTML = '<div class="card"><p class="sub"><span class="spinner"></span> 판정과 공공데이터를 조회하고 있습니다…</p></div>';
 
+    var adCopy = (document.getElementById("ad-copy-onestop") && document.getElementById("ad-copy-onestop").value || "").trim();
+    function inferAdType(kindVal, prodName){
+      if (kindVal === "health_functional" || kindVal === "cosmetics" || kindVal === "food") return kindVal;
+      if (/(비타민|영양제|루테인|오메가|유산균|프로바이오|콜라겐|홍삼|밀크씨슬|마그네슘|아연)/.test(prodName)) return "health_functional";
+      if (/(화장품|크림|세럼|로션|선크림|토너|에센스|마스크팩|립|파운데이션|샴푸)/.test(prodName)) return "cosmetics";
+      return "food";
+    }
+
     var mainP = postTool("assess_import_case", { query: query, facts: facts, limit: 3 });
     var hsP = data.hs.length === 10 ? soft(postTool("lookup_hs_requirements", { hs_code: data.hs, direction: "import" })) : Promise.resolve(null);
     var recallP = soft(postTool("lookup_recall", { product_name: data.product, brand: "", limit: 5 }));
+    var adP = adCopy ? soft(postTool("check_ad_labeling", {
+      product_name: data.product,
+      product_type: inferAdType(data.kind, data.product),
+      ad_copy: adCopy,
+      imported: true,
+      purpose: data.purpose,
+      limit: 8
+    })) : Promise.resolve(null);
 
-    Promise.all([mainP, hsP, recallP]).then(function(res){
-      var result = res[0], hsResult = res[1], recall = res[2];
+    Promise.all([mainP, hsP, recallP, adP]).then(function(res){
+      var result = res[0], hsResult = res[1], recall = res[2], adResult = res[3];
       var kind = data.kind;
       if (!kind){
         var cats = (result.findings || []).map(function(f){ return f.category; });
@@ -974,9 +1034,9 @@ footer strong{color:var(--ink)}
         else if (cats.indexOf("food") !== -1 || cats.indexOf("label") !== -1) kind = "food";
       }
       var mfdsP = kind ? soft(postTool("check_food_cosmetics", { product_name: data.product, kind: kind, purpose: data.purpose })) : Promise.resolve(null);
-      return Promise.all([Promise.resolve(result), Promise.resolve(hsResult), Promise.resolve(recall), mfdsP]);
+      return Promise.all([Promise.resolve(result), Promise.resolve(hsResult), Promise.resolve(recall), mfdsP, Promise.resolve(adResult)]);
     }).then(function(res){
-      var result = res[0], hsResult = res[1], recall = res[2], mfds = res[3];
+      var result = res[0], hsResult = res[1], recall = res[2], mfds = res[3], adResult = res[4];
       var html = "";
       html += '<div class="card">' +
         '<h2>판정 결과</h2>' +
@@ -991,8 +1051,13 @@ footer strong{color:var(--ink)}
         "신뢰도는 입력 정보의 충족 정도를 반영합니다. 100% 확정 판정이 아닙니다.");
 
       if (result.drug_screening) {
-        html += section("의약품 성분 대조", drugScreenBlock(result.drug_screening, result.drug_import_check),
-          "마약류·원료물질 목록은 마약류 관리에 관한 법률 시행령 별표 1~8, 자가사용 기준은 수입통관 사무처리에 관한 고시 별표 11 기준입니다.");
+        var drugMatches = (result.drug_screening.matches || []).length;
+        if (drugMatches > 0) {
+          html += section("의약품 성분 대조", drugScreenBlock(result.drug_screening, result.drug_import_check),
+            "마약류·원료물질 목록은 마약류 관리에 관한 법률 시행령 별표 1~8, 자가사용 기준은 수입통관 사무처리에 관한 고시 별표 11 기준입니다.");
+        } else {
+          html += sectionCollapsible("의약품 성분 대조", drugScreenBlock(result.drug_screening, result.drug_import_check), "일치 성분 0건");
+        }
       }
 
       var hsDigits = data.hs ? data.hs.length : 0;
@@ -1005,7 +1070,11 @@ footer strong{color:var(--ink)}
         : (customs && customs.state === "live"
             ? "HS " + data.hs + " 실시간 조회 결과입니다."
             : "HS " + data.hs + " 기준입니다. 아래에 실시간 조회 결과 또는 실패 사유가 표시됩니다.");
-      html += section("세관장확인 요건 (관세청)", customsInner, customsSub);
+      if (hsDigits === 10 || (customs && customs.state === "live")) {
+        html += section("세관장확인 요건 (관세청)", customsInner, customsSub);
+      } else {
+        html += sectionCollapsible("세관장확인 요건 (관세청)", customsInner, "HS 10자리 미입력");
+      }
 
       if (result.rra_conformity_live){
         html += section("전파 적합성평가 (국립전파연구원)", rraBlock(result.rra_conformity_live),
@@ -1013,20 +1082,46 @@ footer strong{color:var(--ink)}
       }
 
       if (mfds){
-        html += section("식약처 수입 이력", mfds.__error ? emptyBox("식약처 조회 실패: " + mfds.__error) : mfdsBlock(mfds.food_import_live),
-          "제품DB·수입신고·검사부적합 이력을 참고용으로 보여줍니다.");
+        var fi = mfds.food_import_live || {};
+        var mfdsTotal = ((fi.product_db && fi.product_db.match_count) || 0) +
+          ((fi.import_history && fi.import_history.match_count) || 0) +
+          ((fi.non_compliant && fi.non_compliant.match_count) || 0);
+        if (mfdsTotal > 0 || mfds.__error) {
+          html += section("식약처 수입 이력", mfds.__error ? emptyBox("식약처 조회 실패: " + mfds.__error) : mfdsBlock(mfds.food_import_live),
+            "제품DB·수입신고·검사부적합 이력을 참고용으로 보여줍니다.");
+        } else {
+          html += sectionCollapsible("식약처 수입 이력", mfdsBlock(mfds.food_import_live), "조회 일치 0건");
+        }
       }
 
       var recallInner = (recall && recall.__error)
         ? emptyBox("리콜 조회 실패: " + recall.__error)
         : recallBlock(recall && recall.recall);
-      html += section("로컬 리콜 참고 (국표원)", recallInner,
-        "2023-08-09 배포본 기준 과거 이력입니다. 최신 리콜은 제품안전정보센터에서 확인하세요.");
+      var recallCount = (recall && recall.recall && recall.recall.match_count) || 0;
+      if (recallCount > 0) {
+        html += section("로컬 리콜 참고 (국표원)", recallInner,
+          "2023-08-09 배포본 기준 과거 이력입니다. 최신 리콜은 제품안전정보센터에서 확인하세요.");
+      } else {
+        html += sectionCollapsible("로컬 리콜 참고 (국표원)", recallInner, "일치 0건 (과거 스냅샷)");
+      }
 
-      html += section("근거 법령·조항", evidenceBlock(result.evidence),
+      if (adResult) {
+        if (adResult.__error) {
+          html += section("원스톱 광고 문구 검수", emptyBox("광고 문구 검수 실패: " + adResult.__error));
+        } else {
+          var adRev = adResult.ad_review || {};
+          html += section("원스톱 광고 문구 검수", adFindingsBlock(adRev),
+            "한글표시사항까지 함께 보려면 위 ‘CLNS Ad & Label’ 탭에서 라벨 문구를 추가 검수하세요.");
+          html += sectionCollapsible("같은 문구의 유형별 판단", categoryCompareBlock(adRev.category_comparison),
+            "유형별 허용 범위 비교 펼쳐 보기");
+        }
+      }
+
+      var evCount = (result.evidence || []).length;
+      html += sectionCollapsible("근거 법령·조항", evidenceBlock(result.evidence), String(evCount) + "건 펼쳐 보기",
         "인용문은 요지 발췌입니다. 조문 전체는 원문에서 확인해야 하며, 출처 표시 없이 재배포할 수 없습니다.");
 
-      html += section("면책·이용 범위", disclaimerBlock(result));
+      html += sectionCollapsible("면책·이용 범위", disclaimerBlock(result), "안내 보기");
 
       resultEl.innerHTML = html;
       resultEl.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -1037,6 +1132,19 @@ footer strong{color:var(--ink)}
       submitBtn.disabled = false;
       submitBtn.textContent = "리스크 체크";
     });
+  });
+
+  document.getElementById("check-demo").addEventListener("click", function(){
+    document.getElementById("product").value = "중국산 블루투스 스피커";
+    document.getElementById("hs").value = "8518220000";
+    document.getElementById("origin").value = "중국";
+    var wy = form.querySelector('input[name="wire"][value="yes"]'); if (wy) wy.checked = true;
+    var cn = form.querySelector('input[name="child"][value="no"]'); if (cn) cn.checked = true;
+    document.getElementById("kind").value = "electronics";
+    var pr = form.querySelector('input[name="purpose"][value="resale"]'); if (pr) pr.checked = true;
+    var adOnestop = document.getElementById("ad-copy-onestop");
+    if (adOnestop) adOnestop.value = "KC 인증 완료, 초저지연 완벽 호환 — 무료 체험 이벤트!";
+    formNote.textContent = "예시를 채웠습니다. '리스크 체크'를 눌러 원스톱 검수를 확인해 보세요.";
   });
 
   document.getElementById("check-reset").addEventListener("click", function(){
@@ -1086,9 +1194,9 @@ footer strong{color:var(--ink)}
         '<h3>성분 대조</h3>' + drugScreenBlock(result.drug_screening, check) +
         '</div>';
       html += section("쟁점 " + String((result.findings || []).length) + "건", findingsTable(result.findings) + findingsDetail(result.findings));
-      html += section("근거 법령·조항", evidenceBlock(result.evidence),
+      html += sectionCollapsible("근거 법령·조항", evidenceBlock(result.evidence), String((result.evidence || []).length) + "건 펼쳐 보기",
         "인용문은 요지 발췌입니다. 조문·별표 전체는 원문에서 확인해야 하며, 출처 표시 없이 재배포할 수 없습니다.");
-      html += section("면책·이용 범위", disclaimerBlock(result));
+      html += sectionCollapsible("면책·이용 범위", disclaimerBlock(result), "안내 보기");
       drugResultEl.innerHTML = html;
       drugResultEl.scrollIntoView({ behavior: "smooth", block: "start" });
     }).catch(function(err){
@@ -1147,11 +1255,16 @@ footer strong{color:var(--ink)}
         "위험도 ‘높음’은 문구 수정 없이는 금지 유형에 해당할 수 있는 표현, ‘주의’는 실증·심의 확인이 필요한 표현입니다.");
       html += section("같은 문구의 유형별 판단", categoryCompareBlock(review.category_comparison),
         "일반식품·건강기능식품·화장품·기능성화장품은 허용 범위가 다릅니다.");
-      html += section("한글표시사항 체크", labelChecklistBlock(labelCheck),
-        "누락은 입력한 텍스트에서 항목을 찾지 못했다는 뜻입니다. 세부 서식은 고시를 확인하세요.");
-      html += section("근거 법령·조항", evidenceBlock(result.evidence),
+      if (label) {
+        html += section("한글표시사항 체크", labelChecklistBlock(labelCheck),
+          "누락은 입력한 텍스트에서 항목을 찾지 못했다는 뜻입니다. 세부 서식은 고시를 확인하세요.");
+      } else {
+        html += sectionCollapsible("한글표시사항 체크", labelChecklistBlock(labelCheck), "라벨 문구 미입력 · 체크리스트 펼쳐 보기",
+          "위 라벨 입력칸에 포장 문구를 넣으면 필수 항목 누락을 자동으로 대조합니다.");
+      }
+      html += sectionCollapsible("근거 법령·조항", evidenceBlock(result.evidence), String((result.evidence || []).length) + "건 펼쳐 보기",
         "인용문은 요지 발췌입니다. 조문·별표 전체는 원문에서 확인해야 합니다.");
-      html += section("면책·이용 범위", disclaimerBlock(result));
+      html += sectionCollapsible("면책·이용 범위", disclaimerBlock(result), "안내 보기");
       adResultEl.innerHTML = html;
       adResultEl.scrollIntoView({ behavior: "smooth", block: "start" });
     }).catch(function(err){
@@ -1186,9 +1299,8 @@ footer strong{color:var(--ink)}
           verdictBlock(result.verdict, result) + provenanceLine(result) +
           '<h3>세관장확인 요건</h3>' + customsBlock(result.hs_requirements_live, 10) +
           '</div>';
-        html += section("쟁점", findingsTable(result.findings));
-        html += section("근거 법령·조항", evidenceBlock(result.evidence));
-        html += section("면책·이용 범위", disclaimerBlock(result));
+        html += sectionCollapsible("근거 법령·조항", evidenceBlock(result.evidence), String((result.evidence || []).length) + "건 펼쳐 보기");
+        html += sectionCollapsible("면책·이용 범위", disclaimerBlock(result), "안내 보기");
         hsResultEl.innerHTML = html;
       })
       .catch(function(err){
@@ -1198,6 +1310,30 @@ footer strong{color:var(--ink)}
         hsSubmit.disabled = false;
         hsSubmit.textContent = "요건 조회";
       });
+  });
+
+  document.getElementById("drug-demo").addEventListener("click", function(){
+    document.getElementById("drug-name").value = "Melatonin 5mg";
+    var ch = drugForm.querySelector('input[name="drug-channel"][value="carry_on"]'); if (ch) ch.checked = true;
+    document.getElementById("drug-qty").value = "2";
+    document.getElementById("drug-unit").value = "병";
+    document.getElementById("drug-rx").value = "none";
+    drugNote.textContent = "예시를 채웠습니다. '성분·수량 체크'를 눌러 확인해 보세요.";
+  });
+
+  document.getElementById("ad-demo").addEventListener("click", function(){
+    document.getElementById("ad-name").value = "비타민D3 2000IU";
+    document.getElementById("ad-type").value = "general_food";
+    var imp = adForm.querySelector('input[name="ad-imported"][value="yes"]'); if (imp) imp.checked = true;
+    document.getElementById("ad-copy").value = "먹기만 하면 100% 다이어트! 항암 효과 입증, 의사 추천";
+    document.getElementById("ad-label").value = "제품명 비타민D3 / 내용량 60정 / 원료명 비타민D3 / 소비기한 2027.03.15";
+    adNote.textContent = "예시를 채웠습니다. '광고·라벨 검수'를 눌러 확인해 보세요.";
+  });
+
+  document.getElementById("hs-demo").addEventListener("click", function(){
+    document.getElementById("hs-code").value = "8518220000";
+    document.getElementById("hs-direction").value = "import";
+    hsNote.textContent = "예시를 채웠습니다. '요건 조회'를 눌러 확인해 보세요.";
   });
 
   // ---------- 탭 전환 ----------

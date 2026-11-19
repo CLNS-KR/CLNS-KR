@@ -515,9 +515,9 @@ class PagePatchTest(unittest.TestCase):
         self.assertIn("@media (max-width:430px)", self.page)
         start = self.page.index("@media (max-width:430px)")
         block = self.page[start:start + 420]
-        self.assertIn("grid-template-columns:repeat(3,minmax(0,1fr))", block)
+        self.assertIn("grid-template-columns:repeat(2,minmax(0,1fr))", block)
         self.assertIn("white-space:normal", block)
-        self.assertIn("nav.tabs button .tab-ko{font-size:9px}", block)
+        self.assertIn("nav.tabs button .tab-ko{font-size:9.5px}", block)
 
     def test_mcp_copy_matches_real_transport(self):
         self.assertIn("JSON-RPC 2.0", self.page)

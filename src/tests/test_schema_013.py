@@ -341,8 +341,8 @@ class WebUiSchemaTest(unittest.TestCase):
         page = web_ui.render_page()
         self.assertIn("assessment_status", page)
         self.assertIn("missing_information", page)
-        self.assertIn("표준 상태", page)
-        self.assertIn("빠진 정보", page)
+        self.assertIn("상태", page)
+        self.assertIn("추가 확인 항목", page)
 
     def test_page_still_renders_when_new_fields_absent(self):
         """구버전 응답(새 필드 없음)에도 판정 블록이 깨지지 않아야 한다."""
