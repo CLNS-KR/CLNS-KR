@@ -79,6 +79,7 @@ PAGE_HTML = """<!doctype html>
   }
 }
 *{box-sizing:border-box}
+[hidden]{display:none !important}
 html{-webkit-text-size-adjust:100%}
 body{
   margin:0; background:var(--bg); color:var(--ink);
@@ -201,6 +202,10 @@ details summary::before{content:"+"; display:inline-block; width:16px; color:var
 details[open] summary::before{content:"-" }
 details .body{padding:0 13px 13px; font-size:13px; color:var(--ink-soft)}
 details .body p{margin:6px 0}
+details.card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:0; margin-top:14px; box-shadow:0 1px 2px rgba(16,24,40,.04)}
+details.card > summary{padding:16px 20px; font-size:15px; font-weight:700; color:var(--ink)}
+details.card > summary .sum-sub{display:block; margin-top:3px; padding-left:16px; font-size:12.5px; font-weight:400; color:var(--ink-soft)}
+details.card .card-body{padding:0 20px 20px}
 .tag{display:inline-block; font-size:11px; font-weight:700; padding:2px 7px; border-radius:6px;
   background:var(--brand-soft); color:var(--brand); margin-right:5px}
 .tag.ok{background:var(--ok-soft); color:var(--ok)}
@@ -273,7 +278,7 @@ footer strong{color:var(--ink)}
               <span class="hint">10자리를 넣으면 관세청 세관장확인대상물품을 실시간 조회합니다(6자리는 요건 판정에 부족).</span>
             </label>
 
-            <label class="field" for="rra">
+            <label class="field" id="rra-wrap" for="rra" hidden>
               <span class="lab">적합성평가 번호<span class="opt">선택</span></span>
               <input type="text" id="rra" name="rra" maxlength="40" autocomplete="off"
                      placeholder="예: R-LARN-00-0210">
@@ -339,14 +344,18 @@ footer strong{color:var(--ink)}
               <span class="hint">판매 목적이면 표시·인증·영업등록 요건이 함께 걸립니다. 자가소비는 개인 반입 면제 범위를 따집니다.</span>
             </div>
 
-            <label class="field full" for="ad-copy-onestop">
-              <span class="lab">상세페이지·광고 문구<span class="opt">선택 · 원스톱 검수</span></span>
-              <textarea id="ad-copy-onestop" name="ad-copy-onestop" rows="2" maxlength="4000"
-                        placeholder="예: 먹기만 하면 100% 다이어트! 면역력 강화·암 예방 (비워 두면 수입·인증 요건만 체크합니다)"></textarea>
-              <span class="hint">입력하면 수입·인증 요건과 함께 과대광고 위험 표현·대체 문구까지 한 번에 검수합니다.</span>
-            </label>
+            <div class="field full">
+              <details id="ad-onestop-wrap">
+                <summary>상세페이지·광고 문구 함께 검수하기 <span class="opt" style="font-weight:500;color:var(--ink-soft)">(선택 · 원스톱)</span></summary>
+                <div class="body" style="padding-top:8px">
+                  <textarea id="ad-copy-onestop" name="ad-copy-onestop" rows="2" maxlength="4000"
+                            placeholder="예: 먹기만 하면 100% 다이어트! 면역력 강화·암 예방 (비워 두면 수입·인증 요건만 체크합니다)"></textarea>
+                  <span class="hint">입력하면 수입·인증 요건과 함께 과대광고 위험 표현·대체 문구까지 한 번에 검수합니다.</span>
+                </div>
+              </details>
+            </div>
 
-            <label class="field full" for="cosmetic-ingredients-onestop">
+            <label class="field full" id="cosmetic-ingredients-wrap" for="cosmetic-ingredients-onestop" hidden>
               <span class="lab">화장품 전성분<span class="opt">선택 · 배합금지/한도 대조</span></span>
               <textarea id="cosmetic-ingredients-onestop" name="cosmetic-ingredients-onestop" rows="2" maxlength="4000"
                         placeholder="예: Water, Hydroquinone, Salicylic Acid, Phenoxyethanol (쉼표 또는 줄바꿈 구분)"></textarea>
@@ -363,9 +372,10 @@ footer strong{color:var(--ink)}
         </form>
       </div>
 
-      <div class="card">
-        <h2>의약품·성분 체크</h2>
-        <p class="sub">해외직구·휴대 반입하려는 의약품·영양제의 성분을 <strong>한글·영문 모두</strong> 넣으면 마약류(마약·향정신성의약품·대마), 마약류 원료물질, 국내 전용 성분 여부와 자가사용 인정기준(6병·3개월분)을 함께 대조합니다. 마약류·원료물질 목록은 마약류 관리에 관한 법률 시행령 별표 1~8에서 생성했습니다(출처: 법제처 국가법령정보센터).</p>
+      <details class="card" id="drug-card">
+        <summary>[옵션] 해외직구·휴대 반입 의약품·성분 체크<span class="sum-sub">마약류·국내 금지성분·자가사용 6병 기준 확인이 필요할 때만 펼쳐서 사용하세요.</span></summary>
+        <div class="card-body">
+        <p class="sub" style="margin-top:4px">해외직구·휴대 반입하려는 의약품·영양제의 성분을 <strong>한글·영문 모두</strong> 넣으면 마약류(마약·향정신성의약품·대마), 마약류 원료물질, 국내 전용 성분 여부와 자가사용 인정기준(6병·3개월분)을 함께 대조합니다. 마약류·원료물질 목록은 마약류 관리에 관한 법률 시행령 별표 1~8에서 생성했습니다(출처: 법제처 국가법령정보센터).</p>
         <form id="drug-form" novalidate>
           <div class="grid">
             <label class="field full" for="drug-name">
@@ -418,7 +428,8 @@ footer strong{color:var(--ink)}
             <span class="note-inline" id="drug-note" aria-live="polite"></span>
           </div>
         </form>
-      </div>
+        </div>
+      </details>
 
       <div id="drug-result" aria-live="polite"></div>
       <div id="result" aria-live="polite"></div>
@@ -1043,9 +1054,9 @@ footer strong{color:var(--ink)}
 
     var facts = { purpose: data.purpose, rf_tx: data.wire, target_age: data.child === "yes" ? "어린이" : "성인" };
     if (data.hs.length === 10) facts.hs_code = data.hs;
-    if (data.rra) facts.rra_cert_no = data.rra;
+    if (data.wire === "yes" && data.rra) facts.rra_cert_no = data.rra;
     if (data.origin) facts.origin = data.origin;
-    var cosIng = (document.getElementById("cosmetic-ingredients-onestop") && document.getElementById("cosmetic-ingredients-onestop").value || "").trim();
+    var cosIng = (data.kind === "cosmetics" && document.getElementById("cosmetic-ingredients-onestop") && document.getElementById("cosmetic-ingredients-onestop").value || "").trim();
     if (cosIng) facts.cosmetic_ingredients = cosIng;
     var query = buildQuery(data);
 
@@ -1124,8 +1135,6 @@ footer strong{color:var(--ink)}
         if (drugMatches > 0) {
           html += section("의약품 성분 대조", drugScreenBlock(result.drug_screening, result.drug_import_check),
             "마약류·원료물질 목록은 마약류 관리에 관한 법률 시행령 별표 1~8, 자가사용 기준은 수입통관 사무처리에 관한 고시 별표 11 기준입니다.");
-        } else {
-          html += sectionCollapsible("의약품 성분 대조", drugScreenBlock(result.drug_screening, result.drug_import_check), "일치 성분 0건");
         }
       }
 
@@ -1203,6 +1212,26 @@ footer strong{color:var(--ink)}
     });
   });
 
+  var kindSelect = document.getElementById("kind");
+  var cosWrap = document.getElementById("cosmetic-ingredients-wrap");
+  var rraWrap = document.getElementById("rra-wrap");
+  var adOnestopWrap = document.getElementById("ad-onestop-wrap");
+  function syncConditionalFields(){
+    if (cosWrap && kindSelect){
+      cosWrap.hidden = (kindSelect.value !== "cosmetics");
+    }
+    if (rraWrap){
+      rraWrap.hidden = (radio("wire") !== "yes");
+    }
+  }
+  if (kindSelect){
+    kindSelect.addEventListener("change", syncConditionalFields);
+  }
+  Array.prototype.slice.call(form.querySelectorAll('input[name="wire"]')).forEach(function(el){
+    el.addEventListener("change", syncConditionalFields);
+  });
+  syncConditionalFields();
+
   document.getElementById("check-demo").addEventListener("click", function(){
     document.getElementById("product").value = "중국산 블루투스 스피커";
     document.getElementById("hs").value = "8518220000";
@@ -1213,11 +1242,15 @@ footer strong{color:var(--ink)}
     var pr = form.querySelector('input[name="purpose"][value="resale"]'); if (pr) pr.checked = true;
     var adOnestop = document.getElementById("ad-copy-onestop");
     if (adOnestop) adOnestop.value = "KC 인증 완료, 초저지연 완벽 호환 — 무료 체험 이벤트!";
+    if (adOnestopWrap) adOnestopWrap.open = true;
+    syncConditionalFields();
     formNote.textContent = "예시를 채웠습니다. '리스크 체크'를 눌러 원스톱 검수를 확인해 보세요.";
   });
 
   document.getElementById("check-reset").addEventListener("click", function(){
     form.reset();
+    if (adOnestopWrap) adOnestopWrap.open = false;
+    syncConditionalFields();
     resultEl.innerHTML = "";
     formNote.textContent = "";
   });
@@ -1387,10 +1420,10 @@ footer strong{color:var(--ink)}
 
   document.getElementById("drug-demo").addEventListener("click", function(){
     document.getElementById("drug-name").value = "Melatonin 5mg";
-    var ch = drugForm.querySelector('input[name="drug-channel"][value="carry_on"]'); if (ch) ch.checked = true;
+    var ch = drugForm.querySelector('input[name="drug-channel"][value="carry"]'); if (ch) ch.checked = true;
     document.getElementById("drug-qty").value = "2";
     document.getElementById("drug-unit").value = "병";
-    document.getElementById("drug-rx").value = "none";
+    document.getElementById("drug-rx").value = "no";
     drugNote.textContent = "예시를 채웠습니다. '성분·수량 체크'를 눌러 확인해 보세요.";
   });
 
