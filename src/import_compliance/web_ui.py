@@ -114,9 +114,9 @@ nav.tabs button .tab-ko{display:block; margin-top:1px; font-size:10.5px; font-we
   nav.tabs button{font-size:12.5px; padding:8px 11px}
   nav.tabs button .tab-ko{font-size:9.5px}
 }
-/* 390px 폭에서 4개 탭이 잘리지 않게 2x2 그리드로 정렬한다. */
+/* 390px 폭에서 3개 탭이 잘리지 않게 3열로 정렬한다. */
 @media (max-width:430px){
-  nav.tabs{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px;
+  nav.tabs{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px;
     overflow:visible; padding-top:12px}
   nav.tabs button{width:100%; font-size:11.5px; padding:8px 6px; line-height:1.25;
     white-space:normal; word-break:keep-all; text-align:center}
@@ -250,9 +250,8 @@ footer strong{color:var(--ink)}
   </header>
 
   <nav class="tabs" role="tablist" aria-label="화면 선택">
-    <button type="button" role="tab" id="tabbtn-check" aria-controls="tab-check" aria-selected="true" data-tab="check">CLNS Check<span class="tab-ko">리스크 체크</span></button>
+    <button type="button" role="tab" id="tabbtn-check" aria-controls="tab-check" aria-selected="true" data-tab="check">CLNS Check<span class="tab-ko">통합 리스크 체크</span></button>
     <button type="button" role="tab" id="tabbtn-hs" aria-controls="tab-hs" aria-selected="false" data-tab="hs">CLNS Intelligence<span class="tab-ko">HS·법령·리콜</span></button>
-    <button type="button" role="tab" id="tabbtn-ad" aria-controls="tab-ad" aria-selected="false" data-tab="ad">CLNS Ad &amp; Label<span class="tab-ko">광고·라벨 검수</span></button>
     <button type="button" role="tab" id="tabbtn-api" aria-controls="tab-api" aria-selected="false" data-tab="api">CLNS API &amp; MCP<span class="tab-ko">개발자 연결</span></button>
   </nav>
 
@@ -261,14 +260,14 @@ footer strong{color:var(--ink)}
     <section id="tab-check" role="tabpanel" aria-labelledby="tabbtn-check">
       <div class="card">
         <h2>CLNS Check</h2>
-        <p class="sub">수입 전 10초 리스크 체크 · 품목명만 넣어도 됩니다. HS 10자리를 넣으면 세관장확인 요건까지 함께 조회합니다. 결과는 확정 판정이 아니라 <strong>확인할 항목의 목록</strong>입니다.</p>
+        <p class="sub">수입·반입 전 10초 통합 체크 · 품목명만 넣어도 규제·의약품·리콜을 한 번에 확인합니다. 결과는 확정 판정이 아니라 <strong>확인할 항목의 목록</strong>입니다.</p>
         <form id="check-form" novalidate>
           <div class="grid">
             <label class="field full" for="product">
               <span class="lab">품목명<span class="req">*</span></span>
               <input type="text" id="product" name="product" maxlength="80" autocomplete="off"
-                     placeholder="예: 중국산 블루투스 스피커, 비타민 D3 영양제, 유아용 원목 완구">
-              <span class="hint">제품명·용도가 함께 들어가면 판정이 좁혀집니다. 상호·개인정보는 넣지 마세요.</span>
+                     placeholder="예: 중국산 블루투스 스피커, 비타민 D3, 멜라토닌, 유아용 원목 완구">
+              <span class="hint">제품명·성분명·용도를 적으면 관련 규제(전파·식약처·의약품·어린이제품)를 자동으로 찾아 판정합니다.</span>
             </label>
 
             <label class="field" for="hs">
@@ -329,28 +328,83 @@ footer strong{color:var(--ink)}
                 <option value="food">식품</option>
                 <option value="health_functional">건강기능식품</option>
                 <option value="cosmetics">화장품</option>
+                <option value="drug">의약품·영양제</option>
                 <option value="food_contact">식품용 기구·용기·포장</option>
                 <option value="electronics">전자·생활용품</option>
               </select>
-              <span class="hint">식품·화장품을 고르면 식약처 수입신고·부적합 이력을 함께 조회합니다.</span>
+              <span class="hint">화장품·의약품·식품을 고르거나 품목명에 적으면 추가 대조 항목이 자동으로 열립니다.</span>
             </label>
 
             <div class="field full">
               <span class="lab">수입 목적</span>
               <div class="seg" role="radiogroup" aria-label="수입 목적">
                 <label><input type="radio" name="purpose" value="resale" checked><span>판매·유통</span></label>
-                <label><input type="radio" name="purpose" value="self_use"><span>자가소비</span></label>
+                <label><input type="radio" name="purpose" value="self_use"><span>자가소비·휴대 반입</span></label>
               </div>
-              <span class="hint">판매 목적이면 표시·인증·영업등록 요건이 함께 걸립니다. 자가소비는 개인 반입 면제 범위를 따집니다.</span>
+              <span class="hint">판매 목적이면 표시·인증·영업등록 요건이 함께 걸립니다. 자가소비는 개인 반입 면제 범위(6병 기준 등)를 따집니다.</span>
+            </div>
+
+            <div class="field full" id="drug-fields-wrap" hidden>
+              <div class="grid">
+                <div class="field">
+                  <span class="lab">반입 경로</span>
+                  <div class="seg" role="radiogroup" aria-label="반입 경로">
+                    <label><input type="radio" name="drug-channel" value="carry" checked><span>휴대 반입</span></label>
+                    <label><input type="radio" name="drug-channel" value="online"><span>해외직구</span></label>
+                    <label><input type="radio" name="drug-channel" value="unknown"><span>모름</span></label>
+                  </div>
+                  <span class="hint">직구는 6병 기준 자가사용 반입이 허용되지 않는 경로입니다.</span>
+                </div>
+                <label class="field" for="drug-qty">
+                  <span class="lab">수량·단위<span class="opt">선택</span></span>
+                  <div style="display:flex;gap:8px">
+                    <input type="text" id="drug-qty" name="drug-qty" maxlength="3" inputmode="numeric" autocomplete="off" placeholder="예: 2" style="flex:1">
+                    <select id="drug-unit" name="drug-unit" style="width:92px">
+                      <option value="병">병</option>
+                      <option value="정">정</option>
+                      <option value="캡슐">캡슐</option>
+                      <option value="개">개</option>
+                    </select>
+                  </div>
+                  <span class="hint">자가사용 인정기준(6병·3개월 복용량)과 대조합니다.</span>
+                </label>
+                <label class="field" for="drug-rx">
+                  <span class="lab">처방전 유무<span class="opt">선택</span></span>
+                  <select id="drug-rx" name="drug-rx">
+                    <option value="unknown">모름</option>
+                    <option value="yes">있음</option>
+                    <option value="no">없음</option>
+                  </select>
+                </label>
+              </div>
             </div>
 
             <div class="field full">
               <details id="ad-onestop-wrap">
-                <summary>상세페이지·광고 문구 함께 검수하기 <span class="opt" style="font-weight:500;color:var(--ink-soft)">(선택 · 원스톱)</span></summary>
-                <div class="body" style="padding-top:8px">
-                  <textarea id="ad-copy-onestop" name="ad-copy-onestop" rows="2" maxlength="4000"
-                            placeholder="예: 먹기만 하면 100% 다이어트! 면역력 강화·암 예방 (비워 두면 수입·인증 요건만 체크합니다)"></textarea>
-                  <span class="hint">입력하면 수입·인증 요건과 함께 과대광고 위험 표현·대체 문구까지 한 번에 검수합니다.</span>
+                <summary>상세페이지·광고·라벨 문구 함께 검수하기 <span class="opt" style="font-weight:500;color:var(--ink-soft)">(선택 · 원스톱)</span></summary>
+                <div class="body" style="padding-top:10px">
+                  <div class="grid">
+                    <div class="field full">
+                      <span class="lab">기능성 여부</span>
+                      <div class="seg" role="radiogroup" aria-label="기능성 여부">
+                        <label><input type="radio" name="ad-functional" value="unknown" checked><span>모름</span></label>
+                        <label><input type="radio" name="ad-functional" value="yes"><span>기능성(심사·보고 완료)</span></label>
+                        <label><input type="radio" name="ad-functional" value="no"><span>일반 제품</span></label>
+                      </div>
+                    </div>
+                    <label class="field full" for="ad-copy-onestop">
+                      <span class="lab">상세페이지·광고 문구<span class="opt">선택</span></span>
+                      <textarea id="ad-copy-onestop" name="ad-copy-onestop" rows="3" maxlength="4000"
+                                placeholder="예: 먹기만 하면 100% 다이어트! 면역력 강화·암 예방"></textarea>
+                      <span class="hint">과대광고 위험 표현·대체 문구와 품목 유형별 허용 차이를 함께 검수합니다.</span>
+                    </label>
+                    <label class="field full" for="ad-label-onestop">
+                      <span class="lab">라벨·한글표시사항 문구<span class="opt">선택</span></span>
+                      <textarea id="ad-label-onestop" name="ad-label-onestop" rows="2" maxlength="4000"
+                                placeholder="예: 제품명 비타민D3 / 내용량 60정 / 원료명 … / 소비기한 2027.03.15"></textarea>
+                      <span class="hint">포장에 적힌 항목을 옮기면 필수 한글표시사항 누락을 대조합니다.</span>
+                    </label>
+                  </div>
                 </div>
               </details>
             </div>
@@ -372,137 +426,7 @@ footer strong{color:var(--ink)}
         </form>
       </div>
 
-      <details class="card" id="drug-card">
-        <summary>해외 약·영양제 반입 가능 여부 체크 (직구·휴대 반입)<span class="sum-sub">해외에서 사는 약이나 영양제가 국내 금지성분(마약류 등)에 걸리는지, 6병 기준을 넘는지 확인할 때 열어보세요.</span></summary>
-        <div class="card-body">
-        <p class="sub" style="margin-top:4px">해외직구·휴대 반입하려는 의약품·영양제의 성분을 <strong>한글·영문 모두</strong> 넣으면 마약류(마약·향정신성의약품·대마), 마약류 원료물질, 국내 전용 성분 여부와 자가사용 인정기준(6병·3개월분)을 함께 대조합니다. 마약류·원료물질 목록은 마약류 관리에 관한 법률 시행령 별표 1~8에서 생성했습니다(출처: 법제처 국가법령정보센터).</p>
-        <form id="drug-form" novalidate>
-          <div class="grid">
-            <label class="field full" for="drug-name">
-              <span class="lab">성분·제품명<span class="req">*</span></span>
-              <input type="text" id="drug-name" name="drug-name" maxlength="80" autocomplete="off"
-                     placeholder="예: 졸피뎀, Zolpidem, Adderall, 리탈린, CBD, 멜라토닌(melatonin)">
-              <span class="hint">성분표에 적힌 표기를 그대로 넣어도 됩니다(예: 칸나비디올/Cannabidiol).</span>
-            </label>
-
-            <div class="field">
-              <span class="lab">반입 경로</span>
-              <div class="seg" role="radiogroup" aria-label="반입 경로">
-                <label><input type="radio" name="drug-channel" value="carry" checked><span>휴대 반입</span></label>
-                <label><input type="radio" name="drug-channel" value="online"><span>해외직구</span></label>
-                <label><input type="radio" name="drug-channel" value="unknown"><span>모름</span></label>
-              </div>
-              <span class="hint">직구(온라인 구매)는 6병 기준으로 허용되는 경로가 아닙니다.</span>
-            </div>
-
-            <label class="field" for="drug-qty">
-              <span class="lab">수량<span class="opt">선택</span></span>
-              <input type="text" id="drug-qty" name="drug-qty" maxlength="3" inputmode="numeric" autocomplete="off" placeholder="예: 2">
-              <span class="hint">6병(초과 시 용법상 3개월 복용량)과 대조합니다. 함량(mg)은 세지 않습니다.</span>
-            </label>
-
-            <label class="field" for="drug-unit">
-              <span class="lab">단위</span>
-              <select id="drug-unit" name="drug-unit">
-                <option value="병">병</option>
-                <option value="정">정</option>
-                <option value="캡슐">캡슐</option>
-                <option value="개">개</option>
-              </select>
-            </label>
-
-            <label class="field" for="drug-rx">
-              <span class="lab">처방전<span class="opt">선택</span></span>
-              <select id="drug-rx" name="drug-rx">
-                <option value="unknown">모름</option>
-                <option value="yes">있음</option>
-                <option value="no">없음</option>
-              </select>
-              <span class="hint">처방전은 자가사용 소명자료이며, 마약류·제한성분에는 그 자체로 반입 근거가 되지 않습니다.</span>
-            </label>
-          </div>
-
-          <div class="actions">
-            <button type="submit" class="primary" id="drug-submit">성분·수량 체크</button>
-            <button type="button" class="ghost" id="drug-demo">예시로 채워 보기</button>
-            <span class="note-inline" id="drug-note" aria-live="polite"></span>
-          </div>
-        </form>
-        </div>
-      </details>
-
-      <div id="drug-result" aria-live="polite"></div>
       <div id="result" aria-live="polite"></div>
-    </section>
-
-    <!-- ================= 광고·라벨 검수 ================= -->
-    <section id="tab-ad" role="tabpanel" aria-labelledby="tabbtn-ad" hidden>
-      <div class="card">
-        <h2>CLNS Ad &amp; Label</h2>
-        <p class="sub">상세페이지·상품명 문구와 라벨(한글표시사항) 문구를 <strong>품목 유형별 기준</strong>으로 검수합니다. 같은 문구도 일반식품·건강기능식품·화장품·기능성화장품에서 허용 범위가 다릅니다. 결과는 문구 패턴 대조이며 확정 판정이 아니라 <strong>수정할 표현의 목록</strong>입니다.</p>
-        <form id="ad-form" novalidate>
-          <div class="grid">
-            <label class="field" for="ad-name">
-              <span class="lab">제품명<span class="opt">선택</span></span>
-              <input type="text" id="ad-name" name="ad-name" maxlength="80" autocomplete="off"
-                     placeholder="예: 비타민D3 2000IU">
-              <span class="hint">제품명을 넣으면 수입요건·표시 쟁점도 함께 조회합니다.</span>
-            </label>
-
-            <label class="field" for="ad-type">
-              <span class="lab">품목 유형</span>
-              <select id="ad-type" name="ad-type">
-                <option value="general_food">일반식품(가공·수입식품)</option>
-                <option value="health_functional_food">건강기능식품</option>
-                <option value="cosmetics">화장품(일반)</option>
-                <option value="functional_cosmetics">기능성화장품</option>
-              </select>
-              <span class="hint">유형을 바꾸면 같은 문구의 허용/금지 판단도 바뀝니다.</span>
-            </label>
-
-            <div class="field">
-              <span class="lab">수입 제품</span>
-              <div class="seg" role="radiogroup" aria-label="수입 제품 여부">
-                <label><input type="radio" name="ad-imported" value="unknown" checked><span>모름</span></label>
-                <label><input type="radio" name="ad-imported" value="yes"><span>수입</span></label>
-                <label><input type="radio" name="ad-imported" value="no"><span>국내</span></label>
-              </div>
-              <span class="hint">수입이면 한글표시사항 항목을 필수로 점검합니다.</span>
-            </div>
-
-            <div class="field">
-              <span class="lab">기능성 여부</span>
-              <div class="seg" role="radiogroup" aria-label="기능성 여부">
-                <label><input type="radio" name="ad-functional" value="unknown" checked><span>모름</span></label>
-                <label><input type="radio" name="ad-functional" value="yes"><span>기능성</span></label>
-                <label><input type="radio" name="ad-functional" value="no"><span>아니오</span></label>
-              </div>
-              <span class="hint">화장품에서 ‘기능성’은 미백·주름개선 등 심사·보고를 마친 제품을 말합니다.</span>
-            </div>
-
-            <label class="field full" for="ad-copy">
-              <span class="lab">광고 문구<span class="opt">선택</span></span>
-              <textarea id="ad-copy" name="ad-copy" rows="4" maxlength="4000"
-                        placeholder="예: 먹기만 하면 100% 다이어트! 항암 효과 입증, 의사 추천"></textarea>
-              <span class="hint">상세페이지·상품명·홍보 문구를 그대로 붙여넣으세요. 개인정보는 넣지 마세요.</span>
-            </label>
-
-            <label class="field full" for="ad-label">
-              <span class="lab">라벨·한글표시사항 문구<span class="opt">선택</span></span>
-              <textarea id="ad-label" name="ad-label" rows="4" maxlength="4000"
-                        placeholder="예: 제품명 비타민D3 / 내용량 60정 / 원료명 … / 소비기한 2027.03.15 / 보관방법 …"></textarea>
-              <span class="hint">포장에 적힌 항목을 텍스트로 옮기면 필수 항목 누락을 대조합니다(사진 인식은 하지 않습니다).</span>
-            </label>
-          </div>
-
-          <div class="actions">
-            <button type="submit" class="primary" id="ad-submit">광고·라벨 검수</button>
-            <button type="button" class="ghost" id="ad-demo">예시로 채워 보기</button>
-            <span class="note-inline" id="ad-note" aria-live="polite"></span>
-          </div>
-        </form>
-      </div>
-      <div id="ad-result" aria-live="polite"></div>
     </section>
 
     <!-- ================= HS 조회 ================= -->
@@ -1065,37 +989,60 @@ footer strong{color:var(--ink)}
     resultEl.innerHTML = '<div class="card"><p class="sub"><span class="spinner"></span> 판정과 공공데이터를 조회하고 있습니다…</p></div>';
 
     var adCopy = (document.getElementById("ad-copy-onestop") && document.getElementById("ad-copy-onestop").value || "").trim();
+    var adLabel = (document.getElementById("ad-label-onestop") && document.getElementById("ad-label-onestop").value || "").trim();
+    var adFunctional = radio("ad-functional") || "unknown";
+    var drugMode = (data.kind === "drug") || isDrugHint(data.product);
     function inferAdType(kindVal, prodName){
-      if (kindVal === "health_functional" || kindVal === "cosmetics" || kindVal === "food") return kindVal;
-      if (/(비타민|영양제|루테인|오메가|유산균|프로바이오|콜라겐|홍삼|밀크씨슬|마그네슘|아연)/.test(prodName)) return "health_functional";
-      if (/(화장품|크림|세럼|로션|선크림|토너|에센스|마스크팩|립|파운데이션|샴푸)/.test(prodName)) return "cosmetics";
-      return "food";
+      if (kindVal === "health_functional") return "health_functional_food";
+      if (kindVal === "cosmetics") return adFunctional === "yes" ? "functional_cosmetics" : "cosmetics";
+      if (kindVal === "food") return "general_food";
+      if (/(비타민|영양제|루테인|오메가|유산균|프로바이오|콜라겐|홍삼|밀크씨슬|마그네슘|아연)/.test(prodName)) return "health_functional_food";
+      if (/(화장품|크림|세럼|로션|선크림|토너|에센스|마스크팩|립|파운데이션|샴푸)/.test(prodName)) return adFunctional === "yes" ? "functional_cosmetics" : "cosmetics";
+      return "general_food";
     }
 
     var mainP = postTool("assess_import_case", { query: query, facts: facts, limit: 5 });
     var hsP = data.hs.length === 10 ? soft(postTool("lookup_hs_requirements", { hs_code: data.hs, direction: "import" })) : Promise.resolve(null);
     var recallP = soft(postTool("lookup_recall", { product_name: data.product, brand: "", limit: 5 }));
-    var adP = adCopy ? soft(postTool("check_ad_labeling", {
+    var adPayload = {
       product_name: data.product,
       product_type: inferAdType(data.kind, data.product),
-      ad_copy: adCopy,
-      imported: true,
+      imported: "yes",
+      functional: adFunctional,
       purpose: data.purpose,
       limit: 8
-    })) : Promise.resolve(null);
+    };
+    if (adCopy) adPayload.ad_copy = adCopy;
+    if (adLabel) adPayload.label_text = adLabel;
+    var adP = (adCopy || adLabel) ? soft(postTool("check_ad_labeling", adPayload)) : Promise.resolve(null);
 
-    Promise.all([mainP, hsP, recallP, adP]).then(function(res){
-      var result = res[0], hsResult = res[1], recall = res[2], adResult = res[3];
-      var kind = data.kind;
+    var drugPayload = null;
+    if (drugMode){
+      var dCh = (form.querySelector('input[name="drug-channel"]:checked') || {}).value || (data.purpose === "self_use" ? "carry" : "unknown");
+      var rawQty = (document.getElementById("drug-qty") && document.getElementById("drug-qty").value || "").replace(/[^0-9]/g, "");
+      drugPayload = {
+        product_name: data.product,
+        channel: dCh,
+        unit: (document.getElementById("drug-unit") && document.getElementById("drug-unit").value) || "병",
+        prescription: (document.getElementById("drug-rx") && document.getElementById("drug-rx").value) || "unknown",
+        limit: 3
+      };
+      if (rawQty) drugPayload.quantity = parseInt(rawQty, 10);
+    }
+    var drugP = drugPayload ? soft(postTool("check_drug_import", drugPayload)) : Promise.resolve(null);
+
+    Promise.all([mainP, hsP, recallP, adP, drugP]).then(function(res){
+      var result = res[0], hsResult = res[1], recall = res[2], adResult = res[3], drugResult = res[4];
+      var kind = (data.kind && data.kind !== "drug") ? data.kind : "";
       if (!kind){
         var cats = (result.findings || []).map(function(f){ return f.category; });
         if (cats.indexOf("cosmetics") !== -1) kind = "cosmetics";
         else if (cats.indexOf("food") !== -1 || cats.indexOf("label") !== -1) kind = "food";
       }
       var mfdsP = kind ? soft(postTool("check_food_cosmetics", { product_name: data.product, kind: kind, purpose: data.purpose })) : Promise.resolve(null);
-      return Promise.all([Promise.resolve(result), Promise.resolve(hsResult), Promise.resolve(recall), mfdsP, Promise.resolve(adResult)]);
+      return Promise.all([Promise.resolve(result), Promise.resolve(hsResult), Promise.resolve(recall), mfdsP, Promise.resolve(adResult), Promise.resolve(drugResult)]);
     }).then(function(res){
-      var result = res[0], hsResult = res[1], recall = res[2], mfds = res[3], adResult = res[4];
+      var result = res[0], hsResult = res[1], recall = res[2], mfds = res[3], adResult = res[4], drugResult = res[5];
       var html = "";
       html += '<div class="card">' +
         '<h2>판정 결과</h2>' +
@@ -1130,10 +1077,12 @@ footer strong{color:var(--ink)}
           result.tariff_fta.disclaimer || "");
       }
 
-      if (result.drug_screening) {
-        var drugMatches = (result.drug_screening.matches || []).length;
-        if (drugMatches > 0) {
-          html += section("의약품 성분 대조", drugScreenBlock(result.drug_screening, result.drug_import_check),
+      var drugScreen = (drugResult && !drugResult.__error && drugResult.drug_screening) || result.drug_screening;
+      var drugCheck = (drugResult && !drugResult.__error && drugResult.drug_import_check) || result.drug_import_check;
+      if (drugScreen) {
+        var drugMatches = (drugScreen.matches || []).length;
+        if (drugMatches > 0 || drugMode) {
+          html += section("의약품·성분 및 반입 기준 대조", drugScreenBlock(drugScreen, drugCheck),
             "마약류·원료물질 목록은 마약류 관리에 관한 법률 시행령 별표 1~8, 자가사용 기준은 수입통관 사무처리에 관한 고시 별표 11 기준입니다.");
         }
       }
@@ -1185,13 +1134,20 @@ footer strong{color:var(--ink)}
 
       if (adResult) {
         if (adResult.__error) {
-          html += section("원스톱 광고 문구 검수", emptyBox("광고 문구 검수 실패: " + adResult.__error));
+          html += section("원스톱 광고·라벨 검수", emptyBox("광고·라벨 검수 실패: " + adResult.__error));
         } else {
           var adRev = adResult.ad_review || {};
-          html += section("원스톱 광고 문구 검수", adFindingsBlock(adRev),
-            "한글표시사항까지 함께 보려면 위 ‘CLNS Ad & Label’ 탭에서 라벨 문구를 추가 검수하세요.");
-          html += sectionCollapsible("같은 문구의 유형별 판단", categoryCompareBlock(adRev.category_comparison),
-            "유형별 허용 범위 비교 펼쳐 보기");
+          var adLbl = adResult.labeling_check || {};
+          if (adCopy) {
+            html += section("원스톱 광고 문구 검수", adFindingsBlock(adRev),
+              "위험도 ‘높음’은 문구 수정 없이는 금지 유형에 해당할 수 있는 표현, ‘주의’는 실증·심의 확인이 필요한 표현입니다.");
+            html += sectionCollapsible("같은 문구의 유형별 판단", categoryCompareBlock(adRev.category_comparison),
+              "유형별 허용 범위 비교 펼쳐 보기");
+          }
+          if (adLabel) {
+            html += section("한글표시사항 라벨 체크", labelChecklistBlock(adLbl),
+              "누락은 입력한 텍스트에서 항목을 찾지 못했다는 뜻입니다. 세부 서식은 고시를 확인하세요.");
+          }
         }
       }
 
@@ -1213,9 +1169,14 @@ footer strong{color:var(--ink)}
   });
 
   var kindSelect = document.getElementById("kind");
+  var productInput = document.getElementById("product");
   var cosWrap = document.getElementById("cosmetic-ingredients-wrap");
   var rraWrap = document.getElementById("rra-wrap");
+  var drugWrap = document.getElementById("drug-fields-wrap");
   var adOnestopWrap = document.getElementById("ad-onestop-wrap");
+  function isDrugHint(prodName){
+    return /(멜라토닌|melatonin|졸피뎀|zolpidem|애더럴|adderall|리탈린|cbd|칸나비디올|의약품|처방약|수면제|진통제|타이레놀|이부프로펜|아스피린|항생제|스테로이드)/i.test(prodName || "");
+  }
   function syncConditionalFields(){
     if (cosWrap && kindSelect){
       cosWrap.hidden = (kindSelect.value !== "cosmetics");
@@ -1223,9 +1184,16 @@ footer strong{color:var(--ink)}
     if (rraWrap){
       rraWrap.hidden = (radio("wire") !== "yes");
     }
+    if (drugWrap){
+      var pVal = (productInput && productInput.value || "").trim();
+      drugWrap.hidden = !((kindSelect && kindSelect.value === "drug") || isDrugHint(pVal));
+    }
   }
   if (kindSelect){
     kindSelect.addEventListener("change", syncConditionalFields);
+  }
+  if (productInput){
+    productInput.addEventListener("input", syncConditionalFields);
   }
   Array.prototype.slice.call(form.querySelectorAll('input[name="wire"]')).forEach(function(el){
     el.addEventListener("change", syncConditionalFields);
@@ -1253,132 +1221,6 @@ footer strong{color:var(--ink)}
     syncConditionalFields();
     resultEl.innerHTML = "";
     formNote.textContent = "";
-  });
-
-  // ---------- 의약품·성분 체크 ----------
-  var drugForm = document.getElementById("drug-form");
-  var drugResultEl = document.getElementById("drug-result");
-  var drugSubmit = document.getElementById("drug-submit");
-  var drugNote = document.getElementById("drug-note");
-
-  function drugChannel(){
-    var el = drugForm.querySelector('input[name="drug-channel"]:checked');
-    return el ? el.value : "unknown";
-  }
-
-  drugForm.addEventListener("submit", function(ev){
-    ev.preventDefault();
-    var name = (document.getElementById("drug-name").value || "").trim();
-    if (name.length < 2){
-      drugNote.textContent = "성분·제품명을 2자 이상 입력해 주세요.";
-      document.getElementById("drug-name").focus();
-      return;
-    }
-    var rawQty = (document.getElementById("drug-qty").value || "").replace(/[^0-9]/g, "");
-    var payload = {
-      product_name: name,
-      channel: drugChannel(),
-      unit: document.getElementById("drug-unit").value || "병",
-      prescription: document.getElementById("drug-rx").value || "unknown",
-      limit: 3
-    };
-    if (rawQty) payload.quantity = parseInt(rawQty, 10);
-    drugNote.textContent = "";
-    drugSubmit.disabled = true;
-    drugSubmit.textContent = "확인 중…";
-    drugResultEl.innerHTML = '<div class="card"><p class="sub"><span class="spinner"></span> 성분 사전과 자가사용 인정기준을 대조하고 있습니다…</p></div>';
-    postTool("check_drug_import", payload).then(function(result){
-      var check = result.drug_import_check || {};
-      var html = '<div class="card"><h2>의약품·성분 체크 결과</h2>' +
-        '<p class="sub">입력한 성분·제품명: ' + esc(name) + '</p>' +
-        verdictBlock(result.verdict, result) + provenanceLine(result) +
-        '<h3>판정 요지</h3>' + guidanceBlock(result) +
-        '<h3>성분 대조</h3>' + drugScreenBlock(result.drug_screening, check) +
-        '</div>';
-      var dfCount = (result.findings || []).length;
-      html += section("쟁점 요약 " + String(dfCount) + "건", findingsTable(result.findings));
-      if (dfCount > 0) {
-        html += sectionCollapsible("쟁점 상세 설명", findingsDetail(result.findings), String(dfCount) + "건 상세 펼쳐 보기");
-      }
-      html += sectionCollapsible("근거 법령·조항", evidenceBlock(result.evidence), String((result.evidence || []).length) + "건 펼쳐 보기",
-        "인용문은 요지 발췌입니다. 조문·별표 전체는 원문에서 확인해야 하며, 출처 표시 없이 재배포할 수 없습니다.");
-      html += sectionCollapsible("면책·이용 범위", disclaimerBlock(result), "안내 보기");
-      drugResultEl.innerHTML = html;
-      drugResultEl.scrollIntoView({ behavior: "smooth", block: "start" });
-    }).catch(function(err){
-      drugResultEl.innerHTML = '<div class="card"><div class="empty">' + esc(err.message || "조회에 실패했습니다.") + '</div></div>';
-    }).then(function(){
-      drugSubmit.disabled = false;
-      drugSubmit.textContent = "성분·수량 체크";
-    });
-  });
-
-  // ---------- 광고·라벨 검수 ----------
-  var adForm = document.getElementById("ad-form");
-  var adResultEl = document.getElementById("ad-result");
-  var adSubmit = document.getElementById("ad-submit");
-  var adNote = document.getElementById("ad-note");
-
-  function adRadio(name){
-    var el = adForm.querySelector('input[name="' + name + '"]:checked');
-    return el ? el.value : "unknown";
-  }
-
-  adForm.addEventListener("submit", function(ev){
-    ev.preventDefault();
-    var name = (document.getElementById("ad-name").value || "").trim();
-    var copy = (document.getElementById("ad-copy").value || "").trim();
-    var label = (document.getElementById("ad-label").value || "").trim();
-    if (!copy && !label && name.length < 2){
-      adNote.textContent = "광고 문구·라벨 문구·제품명 중 하나를 2자 이상 입력해 주세요.";
-      document.getElementById("ad-copy").focus();
-      return;
-    }
-    var payload = {
-      product_type: document.getElementById("ad-type").value,
-      imported: adRadio("ad-imported"),
-      functional: adRadio("ad-functional"),
-      purpose: "resale",
-      limit: 8
-    };
-    if (name) payload.product_name = name;
-    if (copy) payload.ad_copy = copy;
-    if (label) payload.label_text = label;
-
-    adNote.textContent = "";
-    adSubmit.disabled = true;
-    adSubmit.textContent = "검수 중…";
-    adResultEl.innerHTML = '<div class="card"><p class="sub"><span class="spinner"></span> 유형별 금지 표현과 한글표시 항목을 대조하고 있습니다…</p></div>';
-    postTool("check_ad_labeling", payload).then(function(result){
-      var review = result.ad_review || {};
-      var labelCheck = result.labeling_check || {};
-      var html = '<div class="card"><h2>광고·라벨 검수 결과</h2>' +
-        '<p class="sub">입력한 제품: ' + esc(name || review.product_type_label_ko || "-") + '</p>' +
-        verdictBlock(result.verdict, result) + provenanceLine(result) +
-        '<h3>판정 요지</h3>' + guidanceBlock(result) +
-        '</div>';
-      html += section("광고 문구 위험 표현", adFindingsBlock(review),
-        "위험도 ‘높음’은 문구 수정 없이는 금지 유형에 해당할 수 있는 표현, ‘주의’는 실증·심의 확인이 필요한 표현입니다.");
-      html += section("같은 문구의 유형별 판단", categoryCompareBlock(review.category_comparison),
-        "일반식품·건강기능식품·화장품·기능성화장품은 허용 범위가 다릅니다.");
-      if (label) {
-        html += section("한글표시사항 체크", labelChecklistBlock(labelCheck),
-          "누락은 입력한 텍스트에서 항목을 찾지 못했다는 뜻입니다. 세부 서식은 고시를 확인하세요.");
-      } else {
-        html += sectionCollapsible("한글표시사항 체크", labelChecklistBlock(labelCheck), "라벨 문구 미입력 · 체크리스트 펼쳐 보기",
-          "위 라벨 입력칸에 포장 문구를 넣으면 필수 항목 누락을 자동으로 대조합니다.");
-      }
-      html += sectionCollapsible("근거 법령·조항", evidenceBlock(result.evidence), String((result.evidence || []).length) + "건 펼쳐 보기",
-        "인용문은 요지 발췌입니다. 조문·별표 전체는 원문에서 확인해야 합니다.");
-      html += sectionCollapsible("면책·이용 범위", disclaimerBlock(result), "안내 보기");
-      adResultEl.innerHTML = html;
-      adResultEl.scrollIntoView({ behavior: "smooth", block: "start" });
-    }).catch(function(err){
-      adResultEl.innerHTML = '<div class="card"><div class="empty">' + esc(err.message || "검수에 실패했습니다.") + '</div></div>';
-    }).then(function(){
-      adSubmit.disabled = false;
-      adSubmit.textContent = "광고·라벨 검수";
-    });
   });
 
   // ---------- HS 조회 ----------
@@ -1418,24 +1260,6 @@ footer strong{color:var(--ink)}
       });
   });
 
-  document.getElementById("drug-demo").addEventListener("click", function(){
-    document.getElementById("drug-name").value = "Melatonin 5mg";
-    var ch = drugForm.querySelector('input[name="drug-channel"][value="carry"]'); if (ch) ch.checked = true;
-    document.getElementById("drug-qty").value = "2";
-    document.getElementById("drug-unit").value = "병";
-    document.getElementById("drug-rx").value = "no";
-    drugNote.textContent = "예시를 채웠습니다. '성분·수량 체크'를 눌러 확인해 보세요.";
-  });
-
-  document.getElementById("ad-demo").addEventListener("click", function(){
-    document.getElementById("ad-name").value = "비타민D3 2000IU";
-    document.getElementById("ad-type").value = "general_food";
-    var imp = adForm.querySelector('input[name="ad-imported"][value="yes"]'); if (imp) imp.checked = true;
-    document.getElementById("ad-copy").value = "먹기만 하면 100% 다이어트! 항암 효과 입증, 의사 추천";
-    document.getElementById("ad-label").value = "제품명 비타민D3 / 내용량 60정 / 원료명 비타민D3 / 소비기한 2027.03.15";
-    adNote.textContent = "예시를 채웠습니다. '광고·라벨 검수'를 눌러 확인해 보세요.";
-  });
-
   document.getElementById("hs-demo").addEventListener("click", function(){
     document.getElementById("hs-code").value = "8518220000";
     document.getElementById("hs-direction").value = "import";
@@ -1444,7 +1268,7 @@ footer strong{color:var(--ink)}
 
   // ---------- 탭 전환 ----------
   var buttons = Array.prototype.slice.call(document.querySelectorAll("nav.tabs button[data-tab]"));
-  var panels = { check: "tab-check", hs: "tab-hs", ad: "tab-ad", api: "tab-api" };
+  var panels = { check: "tab-check", hs: "tab-hs", api: "tab-api" };
   function showTab(key){
     buttons.forEach(function(btn){
       var on = btn.getAttribute("data-tab") === key;

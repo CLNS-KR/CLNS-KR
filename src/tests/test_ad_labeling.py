@@ -313,16 +313,15 @@ class WebUiTest(unittest.TestCase):
         cls.page = web_ui.render_page()
 
     def test_ad_tab_and_form_exist(self):
-        self.assertIn('data-tab="ad"', self.page)
-        self.assertIn('aria-controls="tab-ad"', self.page)
-        self.assertIn('id="tab-ad"', self.page)
-        for field in ("ad-form", "ad-copy", "ad-label", "ad-type", "ad-submit"):
+        self.assertIn('id="ad-onestop-wrap"', self.page)
+        self.assertIn('id="drug-fields-wrap"', self.page)
+        for field in ("check-form", "ad-copy-onestop", "ad-label-onestop", "kind", "check-submit"):
             self.assertIn(f'id="{field}"', self.page)
 
     def test_tab_order_and_endpoints_listed(self):
         self.assertLess(self.page.index("CLNS Check"), self.page.index("CLNS Intelligence"))
-        self.assertLess(self.page.index("CLNS Intelligence"), self.page.index("CLNS Ad &amp; Label"))
-        self.assertLess(self.page.index("CLNS Ad &amp; Label"), self.page.index("CLNS API &amp; MCP"))
+        self.assertLess(self.page.index("CLNS Intelligence"), self.page.index("CLNS API &amp; MCP"))
+        self.assertNotIn('data-tab="ad"', self.page)
         self.assertIn("/v1/tools/check_ad_labeling", self.page)
         self.assertIn("/v1/tools/lookup_mfds_disposition", self.page)
 

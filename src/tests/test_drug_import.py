@@ -442,9 +442,10 @@ class CorpusAndDocsTest(unittest.TestCase):
 
     def test_web_ui_exposes_drug_check_both_languages(self):
         page = web_ui.render_page()
-        self.assertIn("의약품·성분 체크", page)
+        self.assertIn("의약품·영양제", page)
+        self.assertIn("drug-fields-wrap", page)
         self.assertIn("check_drug_import", page)
-        self.assertIn("Zolpidem", page)
+        self.assertIn("zolpidem", page)
         self.assertIn("졸피뎀", page)
         self.assertIn("6병", page)
         for word in ("CLNS Check", "CLNS Intelligence", "CLNS API &amp; MCP"):
