@@ -327,7 +327,7 @@ class EngineIntegrationTest(unittest.TestCase):
         self.assertNotIn("drug_screening", result)
         self.assertNotIn("NARCOTIC_IMPORT_BAN", result["regulation_tags"])
 
-    def test_provenance_reports_local_index_and_pending_apis(self):
+    def test_provenance_reports_local_index_and_live_apis(self):
         result = assess_once("졸피뎀 30정 직구")
         sources = {row.get("source_id"): row for row in result["data_provenance"]["sources"]}
         self.assertIn("mfds_drug_schedule", sources)
@@ -335,8 +335,9 @@ class EngineIntegrationTest(unittest.TestCase):
         self.assertEqual(entry["state"], "local_index")
         self.assertGreater(entry["substance_count"], 100)
         self.assertIn("활용승인", entry["note_ko"])
-        pending = [row for row in entry["api_state"] if row["state"] == "approval_required"]
-        self.assertGreaterEqual(len(pending), 5)
+        # 2026-11-21 식약처 의약품 5종 활용승인 후에는 '승인 필요'가 아니라 'live'로 보고한다.
+        self.assertEqual({row["state"] for row in entry["api_state"]}, {"live"})
+        self.assertGreaterEqual(len(entry["api_state"]), 5)
 
 
 class DrugToolTest(unittest.TestCase):
@@ -362,7 +363,7 @@ class DrugToolTest(unittest.TestCase):
         self.assertEqual(check["self_use_rule"]["limit_bottles"], 6)
         self.assertTrue(check["schedule_version"])
         self.assertTrue(check["coverage_ko"])
-        self.assertEqual({row["state"] for row in check["api_candidates"]}, {"approval_required"})
+        self.assertEqual({row["state"] for row in check["api_candidates"]}, {"live"})
         self.assertEqual(result["drug_screening"]["prescription_status"], "yes")
         self.assertIn("확정하지 않습니다", " ".join(result["answer"]["guidance"]))
         for key in ("schema_version", "destination", "jurisdiction"):

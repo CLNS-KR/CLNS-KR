@@ -63,8 +63,8 @@ NEW_SLUGS = (
     "purchase-agency-withdrawal",
 )
 
-PRESET_LABELS = ("영양제 직구", "강아지 간식", "수입 화장품", "블루투스 이어폰", "유아용 의류")
-PRESET_KEYS = ("supplement", "dog-treat", "cosmetics", "earbuds", "kids-clothes")
+PRESET_LABELS = ("멜라토닌 직구", "강아지 간식", "수입 화장품", "블루투스 이어폰", "유아용 의류")
+PRESET_KEYS = ("melatonin", "dog-treat", "cosmetics", "earbuds", "kids-clothes")
 
 
 def inline_script(html: str) -> str:
@@ -342,14 +342,17 @@ class PresetRuntimeTest(unittest.TestCase):
         context = preset_context()
         self.assertEqual(context.eval("Object.keys(globalThis.__clns.PRESETS).length"), 5)
 
-    def test_supplement_preset_fills_fields_and_runs_check(self):
+    def test_melatonin_preset_fills_fields_and_runs_check(self):
         context = preset_context()
-        context.eval('globalThis.__clns.applyPreset("supplement")')
+        context.eval('globalThis.__clns.applyPreset("melatonin")')
         self.assertEqual(context.eval('document.getElementById("product").value'),
-                         "미국산 멜라토닌 영양제")
-        self.assertEqual(context.eval('document.getElementById("kind").value'), "health_functional")
+                         "미국산 멜라토닌 수면 영양제")
+        self.assertEqual(context.eval('document.getElementById("kind").value'), "drug")
         self.assertEqual(context.eval('document.getElementById("origin").value'), "미국")
+        self.assertEqual(context.eval('document.getElementById("drug-qty").value'), "2")
+        self.assertEqual(context.eval('document.getElementById("drug-unit").value'), "병")
         self.assertEqual(context.eval('__form.querySelector(\'input[name="purpose"][value="self_use"]\').checked'), True)
+        self.assertEqual(context.eval('__form.querySelector(\'input[name="drug-channel"][value="online"]\').checked'), True)
         self.assertEqual(context.eval("__submitCalls"), 1)
 
     def test_earbuds_preset_sets_wire_and_hs(self):

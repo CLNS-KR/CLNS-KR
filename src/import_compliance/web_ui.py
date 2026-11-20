@@ -167,6 +167,11 @@ input[type=text]:focus, select:focus, textarea:focus{outline:2px solid var(--bra
   padding:9px 13px; cursor:pointer; min-height:38px; white-space:nowrap}
 .presets button:hover{border-color:var(--brand)}
 .presets button:focus-visible{outline:2px solid var(--brand); outline-offset:2px}
+.links{display:flex; flex-wrap:wrap; gap:10px; margin-top:4px}
+.links a{display:inline-block; padding:10px 13px; border:1px solid var(--line); border-radius:10px;
+  color:var(--ink); text-decoration:none; font-size:13px; font-weight:600}
+.links a:hover{border-color:var(--brand)}
+.links a:focus-visible{outline:2px solid var(--brand); outline-offset:2px}
 @media (max-width:430px){ .presets button{font-size:12.5px; padding:9px 11px} }
 .actions{display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:18px}
 button.primary{
@@ -285,11 +290,11 @@ footer strong{color:var(--ink)}
     <section id="tab-check" role="tabpanel" aria-labelledby="tabbtn-check">
       <div class="card">
         <h2>CLNS Check</h2>
-        <p class="sub">수입·반입 전 10초 통합 체크 · 품목명만 넣어도 규제·의약품·리콜을 한 번에 확인합니다. 결과는 확정 판정이 아니라 <strong>확인할 항목의 목록</strong>입니다.</p>
+        <p class="sub">수입·반입 전 10초 통합 체크 · 품목명만 넣어도 규제·의약품·리콜을 한 번에 확인합니다. <strong>의약품·영양제</strong>는 식약처 허가정보·DUR·e약은요·마약류 오남용 정보를 실시간으로 함께 조회합니다. 결과는 확정 판정이 아니라 <strong>확인할 항목의 목록</strong>입니다.</p>
         <form id="check-form" novalidate>
           <div class="presets" role="group" aria-label="대표 품목으로 바로 체험">
             <span class="plabel">대표 품목으로 1초 체험</span>
-            <button type="button" class="preset" id="preset-supplement" data-preset="supplement">영양제 직구</button>
+            <button type="button" class="preset" id="preset-melatonin" data-preset="melatonin">멜라토닌 직구</button>
             <button type="button" class="preset" id="preset-dog-treat" data-preset="dog-treat">강아지 간식</button>
             <button type="button" class="preset" id="preset-cosmetics" data-preset="cosmetics">수입 화장품</button>
             <button type="button" class="preset" id="preset-earbuds" data-preset="earbuds">블루투스 이어폰</button>
@@ -584,6 +589,17 @@ footer strong{color:var(--ink)}
         </div>
       </div>
     </section>
+
+    <!-- ================= 같이 쓰는 서비스 ================= -->
+    <section class="card" id="siblings" aria-labelledby="siblings-title">
+      <h2 id="siblings-title">같이 쓰는 서비스</h2>
+      <p class="sub">같은 팀이 무료로 운영하는 두 도구입니다. 세 서비스 모두 회원가입·결제가 없고,
+      판정은 각 기관이 공개한 원본 자료로만 합니다.</p>
+      <div class="links">
+        <a href="https://grnt-kr.onrender.com/" target="_blank" rel="noopener noreferrer"><strong>GRNT</strong> — 개인·창업 지원금 판정기</a>
+        <a href="https://frnc.onrender.com/" target="_blank" rel="noopener noreferrer"><strong>FRNC</strong> — 프랜차이즈 창업 리스크 체크</a>
+      </div>
+    </section>
   </main>
 
   <!-- ================= CLNS Pro 사전 신청 · 도입 문의 ================= -->
@@ -629,7 +645,8 @@ footer strong{color:var(--ink)}
     <p><strong>품목별 수입 요건:</strong> <a href="/p/">선풍기·보조배터리·오메가3·선크림 등 35개 품목의 요건·인증·함정을 정리한 무료 체크 페이지</a></p>
     <p><strong>질문형 가이드:</strong> <a href="/guides/">영양제 6병, 면세 한도 150/200달러, KC·전파 인증, 한글표시사항, 과대광고 금지 표현, 단순변심 환불 불가 문구, 체험단 대가성 표시, 스마트스토어 상표권, 어린이제품 KC, 직구 전자제품 1인 1대 전파 예생, 화장품 미백·주름 문구, 목록통관 배제 품목, 향수 60mL·와인 직구, 콘택트렌즈·유모차 KC, 원두·차 수입신고, 구매대행 청약철회 등 자주 묻는 질문 __GUIDE_COUNT__개에 근거 법령으로 답한 페이지</a></p>
     <p><strong>면책:</strong> 본 결과는 사전 참고용입니다. 법적 효력이 없으며, 최종 법적 판단과 통관·인증 가능 여부는 관세사, 관세청, 국가기술표준원·인증기관, 식품의약품안전처 등 소관 기관의 확인이 필요합니다. 본 서비스는 관세사법상 관세 상담·대리 업무를 수행하지 않습니다.</p>
-    <p><strong>데이터:</strong> 관세청·식품의약품안전처·산업통상부 국가기술표준원·과학기술정보통신부 국립전파연구원·법제처 공공데이터를 활용합니다. 의약품 성분은 마약류 관리에 관한 법률 시행령 별표 1~8을 로컬 사전으로 만들어 대조하며, 식약처 의약품 허가정보·e약은요·DUR API는 활용승인 전이라 실시간 전수 대조를 제공하지 않습니다. 원본을 그대로 중계하지 않고 결합·정규화한 판정만 제공하며, 조회 실패나 개정 지연 시 캐시 시점을 밝히고 판정을 "추가 정보 필요"로 낮춥니다.</p>
+    <p><strong>데이터:</strong> 관세청·식품의약품안전처·산업통상부 국가기술표준원·과학기술정보통신부 국립전파연구원·법제처 공공데이터를 활용합니다. 의약품 성분은 마약류 관리에 관한 법률 시행령 별표 1~8을 로컬 사전으로 만들어 대조하고, 식약처 의약품 제품 허가정보·DUR·e약은요·마약류 오남용 정보 API는 2026-11-21 활용승인 후 실시간으로 함께 조회합니다. 원본을 그대로 중계하지 않고 결합·정규화한 판정만 제공하며, 조회 실패나 개정 지연 시 캐시 시점을 밝히고 판정을 "추가 정보 필요"로 낮춥니다.</p>
+    <p><strong>같이 쓰는 서비스:</strong> <a href="https://grnt-kr.onrender.com/" target="_blank" rel="noopener noreferrer">GRNT 지원금 판정기</a> · <a href="https://frnc.onrender.com/" target="_blank" rel="noopener noreferrer">FRNC 프랜차이즈 창업 리스크 체크</a></p>
     <p><strong>개인정보:</strong> 품목 조회에는 이름·연락처·이메일·사업자 정보를 받지 않습니다. 위 'CLNS Pro 사전 신청·도입 문의'에 남긴 연락처는 회신하는 용도로만 저장하고, 통계·공개 화면에는 쓰지 않습니다. 입력한 품목 정보(품목명·HS·원산지 등)는 판정 이력에 익명으로 저장될 수 있습니다. 상호·주소 등 식별 정보는 입력하지 마세요.</p>
     <p>© 2026 CLNS · 익명 운영 무료 베타 · <span id="version">v__VERSION__</span></p>
   </footer>
@@ -977,6 +994,72 @@ footer strong{color:var(--ink)}
       if (pending.length) inner += '<p class="note-inline">활용신청 전이라 실시간 전수 대조가 어려운 데이터: ' + esc(pending.join(", ")) + '</p>';
     }
     return inner;
+  }
+
+  function drugLiveBlock(dl){
+    dl = dl || {};
+    var out = "";
+    if (dl.summary_ko) out += '<p class="sub" style="margin:6px 0 10px">' + esc(dl.summary_ko) + '</p>';
+
+    function sourceNote(part, label){
+      if (!part || !part.state) return "";
+      if (part.state === "live"){
+        return (part.match_count || 0) === 0
+          ? '<p class="note-inline">' + esc(label) + ': 일치 항목 0건. 0건은 미등록·미허가 확정이 아닙니다.</p>'
+          : "";
+      }
+      return '<p class="note-inline">' + esc(label) + ' 조회 실패: ' + esc(part.error || part.state) + '</p>';
+    }
+
+    var permit = dl.permit || {};
+    if (permit.state === "live" && (permit.samples || []).length){
+      out += '<h3>제품 허가정보 <span class="note-inline">식약처 15095677</span></h3>' +
+        table([["제품명", "name"], ["업체", "company"], ["구분", "cls"], ["제품유형", "type"], ["허가일", "date"]],
+          permit.samples.map(function(s){
+            return { name: s.item_name, company: s.company, cls: s.classification,
+                     type: s.product_type, date: s.permit_date };
+          }));
+      if ((permit.match_count || 0) > permit.samples.length){
+        out += '<p class="note-inline">전체 ' + esc(String(permit.match_count)) + '건 중 상위 ' +
+          esc(String(permit.samples.length)) + '건만 표시합니다.</p>';
+      }
+    }
+
+    var dur = dl.dur || {};
+    if (dur.state === "live" && (dur.samples || []).length){
+      out += '<h3>DUR 품목정보 <span class="note-inline">식약처 15059486</span></h3>' +
+        table([["품목명", "name"], ["구분", "cls"], ["효능군", "group"], ["성분", "material"]],
+          dur.samples.map(function(s){
+            return { name: s.item_name, cls: s.classification, group: s.class_name, material: s.material };
+          }));
+    }
+
+    var easy = dl.easy || {};
+    if (easy.state === "live" && (easy.samples || []).length){
+      out += '<h3>e약은요 <span class="note-inline">식약처 15075057</span></h3>';
+      easy.samples.forEach(function(s){
+        out += '<p class="note-inline" style="margin-top:8px"><strong>' + esc(s.item_name || "") + '</strong>' +
+          (s.company ? ' · ' + esc(s.company) : '') +
+          (s.efficacy ? '<br>효능: ' + esc(s.efficacy) : '') +
+          (s.caution ? '<br>주의: ' + esc(s.caution) : '') + '</p>';
+      });
+    }
+
+    var narcotic = dl.narcotic || {};
+    if (narcotic.state === "live" && (narcotic.matches || []).length){
+      out += '<h3>마약류 약물·오남용 정보 <span class="note-inline">식약처 15058963</span></h3>' +
+        table([["성분", "name"], ["유형", "type"], ["부작용", "side"]],
+          narcotic.matches.map(function(s){
+            return { name: s.ingredient_ko + (s.ingredient_en ? " (" + s.ingredient_en + ")" : ""),
+                     type: s.type, side: s.side_effect };
+          }));
+    }
+
+    out += sourceNote(permit, "제품 허가정보") + sourceNote(dur, "DUR 품목정보") +
+      sourceNote(easy, "e약은요") + sourceNote(narcotic, "마약류 오남용 정보");
+    if (dl.zero_note_ko) out += '<p class="note-inline">' + esc(dl.zero_note_ko) + '</p>';
+    if (dl.source) out += '<p class="note-inline">출처: ' + esc(dl.source) + '</p>';
+    return out;
   }
 
   function riskTag(risk){
@@ -1382,6 +1465,13 @@ footer strong{color:var(--ink)}
         }
       }
 
+      var drugLive = (drugResult && !drugResult.__error && drugResult.drug_live) || result.drug_live;
+      if (drugLive) {
+        html += section("식약처 의약품 실시간 대조" + (drugLive.search_term ? " — " + drugLive.search_term : ""),
+          drugLiveBlock(drugLive),
+          "2026-11-21 활용승인된 식약처 의약품 API 4종(제품 허가정보·DUR·e약은요·마약류 오남용 정보) 실시간 조회 결과입니다.");
+      }
+
       var hsDigits = data.hs ? data.hs.length : 0;
       var customs = (hsResult && !hsResult.__error && hsResult.hs_requirements_live) || null;
       var customsInner = (hsResult && hsResult.__error)
@@ -1529,8 +1619,9 @@ footer strong{color:var(--ink)}
 
   // 대표 품목 원클릭 체험 — 품목명·품목군·원산지를 채우고 바로 점검을 실행한다.
   var PRESETS = {
-    "supplement": {product: "미국산 멜라토닌 영양제", kind: "health_functional", origin: "미국",
-                   wire: "no", child: "no", purpose: "self_use", hs: ""},
+    "melatonin": {product: "미국산 멜라토닌 수면 영양제", kind: "drug", origin: "미국",
+                  wire: "no", child: "no", purpose: "self_use", hs: "",
+                  channel: "online", qty: "2", unit: "병"},
     "dog-treat": {product: "미국산 강아지 동결건조 간식", kind: "feed", origin: "미국",
                   wire: "no", child: "no", purpose: "resale", hs: "2309101000"},
     "cosmetics": {product: "미국산 수딩 크림", kind: "cosmetics", origin: "미국",
@@ -1554,6 +1645,11 @@ footer strong{color:var(--ink)}
     pickRadio("wire", preset.wire);
     pickRadio("child", preset.child);
     pickRadio("purpose", preset.purpose);
+    if (preset.channel) pickRadio("drug-channel", preset.channel);
+    var qtyEl = document.getElementById("drug-qty");
+    if (qtyEl) qtyEl.value = preset.qty || "";
+    var unitEl = document.getElementById("drug-unit");
+    if (unitEl && preset.unit) unitEl.value = preset.unit;
     var adPreset = document.getElementById("ad-copy-onestop");
     if (adPreset) adPreset.value = "";
     syncConditionalFields();

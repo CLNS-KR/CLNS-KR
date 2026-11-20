@@ -37,12 +37,27 @@ SOURCE_LAW = "law_api"                        # 법제처 국가법령정보 공
 SOURCE_RRA = "rra_conformity"                 # 국립전파연구원 적합성평가(인증·등록번호 조회, 키 불필요)
 SOURCE_DISPOSITION_MFG = "mfds_disposition_manufacturing"   # 식약처 행정처분결과(식품제조가공업, 15124560)
 SOURCE_DISPOSITION_SALES = "mfds_disposition_sales"         # 식약처 행정처분결과(식품판매업, 15124559)
+SOURCE_MFDS_DRUG_PERMIT = "mfds_drug_permit"      # 식약처 의약품 제품 허가정보 (15095677)
+SOURCE_MFDS_DRUG_EASY = "mfds_drug_easy"          # 식약처 의약품개요정보 e약은요 (15075057)
+SOURCE_MFDS_DUR = "mfds_dur"                      # 식약처 의약품안전사용서비스(DUR) 품목정보 (15059486)
+SOURCE_MFDS_NARCOTIC = "mfds_narcotic_misuse"     # 식약처 마약류 약물 및 오남용 정보 (15058963)
 
 # --- 검증된 엔드포인트 (2026-11-18 data.go.kr 상세페이지 swagger·요청주소 기준) ---
 CUSTOMS_URL = "https://apis.data.go.kr/1220000/retrieveCcctLworCd/getRetrieveCcctLworCd"
 MFDS_PERMIT_URL = "https://apis.data.go.kr/1471000/ImportFoodPrmisnInfoService05/getImrtsCnfirmList05"
 MFDS_IMPROPER_URL = "https://apis.data.go.kr/1471000/ImportFoodPrmisnInfoService05/getInspctImproptList05"
 MFDS_PRODUCT_URL = "https://apis.data.go.kr/1471000/IprtFoodPrdtDBService02/getIprtFoodPrdtDBInq02"
+
+# 식약처 의약품 계열 API (2026-11-21 활용승인 확인 · 실호출 200).
+# 요청변수 이름이 데이터셋마다 달라(허가정보 item_name / e약은요·DUR itemName) 그대로 맞춰 둔다.
+MFDS_DRUG_PERMIT_URL = ("https://apis.data.go.kr/1471000/DrugPrdtPrmsnInfoService08"
+                        "/getDrugPrdtPrmsnInq08")
+MFDS_DRUG_EASY_URL = ("https://apis.data.go.kr/1471000/DrbEasyDrugInfoService"
+                      "/getDrbEasyDrugList")
+MFDS_DUR_URL = ("https://apis.data.go.kr/1471000/DURPrdlstInfoService03"
+                "/getDurPrdlstInfoList03")
+# 마약류 오남용 정보는 성분명 필터가 없는 목록 API라 페이지를 모아 로컬에서 대조한다(전체 316건).
+MFDS_NARCOTIC_URL = "https://apis.data.go.kr/1471000/NrcdGnrlzInfoService01/getNrcdGnrlzList"
 LAW_SEARCH_URL = "https://www.law.go.kr/DRF/lawSearch.do"
 LAW_SERVICE_URL = "https://www.law.go.kr/DRF/lawService.do"
 
@@ -133,6 +148,38 @@ SOURCE_CATALOG = [
         "license_scope": "이용허락범위 제한 없음(data.go.kr 15124559)",
         "base_url": "https://apis.data.go.kr/1471000/AdmmRsltFoodSaleService01",
         "update_cycle": "realtime",
+    },
+    {
+        "source_id": SOURCE_MFDS_DRUG_PERMIT,
+        "name_ko": "식약처_의약품 제품 허가정보",
+        "provider": "식품의약품안전처",
+        "license_scope": "이용허락범위 제한 없음(data.go.kr 15095677)",
+        "base_url": "https://apis.data.go.kr/1471000/DrugPrdtPrmsnInfoService08",
+        "update_cycle": "daily",
+    },
+    {
+        "source_id": SOURCE_MFDS_DRUG_EASY,
+        "name_ko": "식약처_의약품개요정보(e약은요)",
+        "provider": "식품의약품안전처",
+        "license_scope": "이용허락범위 제한 없음(data.go.kr 15075057)",
+        "base_url": "https://apis.data.go.kr/1471000/DrbEasyDrugInfoService",
+        "update_cycle": "daily",
+    },
+    {
+        "source_id": SOURCE_MFDS_DUR,
+        "name_ko": "식약처_의약품안전사용서비스(DUR) 품목정보",
+        "provider": "식품의약품안전처",
+        "license_scope": "이용허락범위 제한 없음(data.go.kr 15059486)",
+        "base_url": "https://apis.data.go.kr/1471000/DURPrdlstInfoService03",
+        "update_cycle": "daily",
+    },
+    {
+        "source_id": SOURCE_MFDS_NARCOTIC,
+        "name_ko": "식약처_마약류 약물 및 오남용 정보",
+        "provider": "식품의약품안전처",
+        "license_scope": "이용허락범위 제한 없음(data.go.kr 15058963)",
+        "base_url": "https://apis.data.go.kr/1471000/NrcdGnrlzInfoService01",
+        "update_cycle": "daily",
     },
 ]
 
@@ -497,6 +544,59 @@ def normalize_mfds_improper_item(item: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
+def normalize_drug_permit_item(item: Dict[str, Any]) -> Dict[str, Any]:
+    """식약처 의약품 제품 허가정보(15095677) 정규화."""
+    return {
+        "item_seq": _clean(item.get("ITEM_SEQ")),
+        "item_name": _clean(item.get("ITEM_NAME")),
+        "item_name_en": _clean(item.get("ITEM_ENG_NAME")),
+        "company": _clean(item.get("ENTP_NAME")),
+        "permit_date": _yyyymmdd(_clean(item.get("ITEM_PERMIT_DATE"))),
+        "classification": _clean(item.get("SPCLTY_PBLC")),      # 전문의약품 / 일반의약품
+        "product_type": _clean(item.get("PRDUCT_TYPE")),
+        "ingredient": _clean(item.get("ITEM_INGR_NAME")),
+        "permit_kind": _clean(item.get("PERMIT_KIND_CODE")),
+        "status": _clean(item.get("CANCEL_NAME")),
+    }
+
+
+def normalize_drug_dur_item(item: Dict[str, Any]) -> Dict[str, Any]:
+    """식약처 DUR 품목정보(15059486) 정규화."""
+    return {
+        "item_seq": _clean(item.get("ITEM_SEQ")),
+        "item_name": _clean(item.get("ITEM_NAME")),
+        "company": _clean(item.get("ENTP_NAME")),
+        "classification": _clean(item.get("ETC_OTC_CODE")),      # 전문의약품 / 일반의약품
+        "class_name": _clean(item.get("CLASS_NO")),               # 효능군 분류
+        "material": _clean(item.get("MATERIAL_NAME")),
+        "permit_date": _clean(item.get("ITEM_PERMIT_DATE")),
+    }
+
+
+def normalize_drug_easy_item(item: Dict[str, Any], *, text_limit: int = 280) -> Dict[str, Any]:
+    """식약처 e약은요(15075057) 정규화 — 효능·복용법·주의사항은 길어서 잘라 쓴다."""
+    return {
+        "item_seq": _clean(item.get("itemSeq")),
+        "item_name": _clean(item.get("itemName")),
+        "company": _clean(item.get("entpName")),
+        "efficacy": _squash(_clean(item.get("efcyQesitm")))[:text_limit],
+        "dosage": _squash(_clean(item.get("useMethodQesitm")))[:text_limit],
+        "caution": _squash(_clean(item.get("atpnWarnQesitm")))[:text_limit],
+    }
+
+
+def normalize_drug_narcotic_item(item: Dict[str, Any], *, text_limit: int = 200) -> Dict[str, Any]:
+    """식약처 마약류 약물 및 오남용 정보(15058963) 정규화."""
+    return {
+        "drug_no": _clean(item.get("DRUG_NO")),
+        "ingredient_ko": _clean(item.get("DRFSTF")),
+        "ingredient_en": _clean(item.get("DRFSTF_ENG")),
+        "type": _clean(item.get("TYPE_CODE")),
+        "pharmacology": _squash(_clean(item.get("PHARM")))[:text_limit],
+        "side_effect": _squash(_clean(item.get("SIDE_EFFECT")))[:text_limit],
+    }
+
+
 def normalize_law_item(item: Dict[str, Any]) -> Dict[str, Any]:
     """법령 검색 결과 정규화.
 
@@ -628,6 +728,10 @@ class LiveApiClient:
             "law_search": self.has_law,
             "rra_conformity": self.has_rra,
             "mfds_disposition": self.has_mfds,
+            "mfds_drug_permit": self.has_mfds,
+            "mfds_drug_easy": self.has_mfds,
+            "mfds_dur": self.has_mfds,
+            "mfds_narcotic": self.has_mfds,
         }
 
     def __repr__(self) -> str:  # 키가 repr 로 새지 않게 고정 문자열
@@ -850,6 +954,66 @@ class LiveApiClient:
         payload = json.loads(body)
         header, items, total = parse_mfds_json(payload)
         return header, items, total, None
+
+    # --- 3-2) 식약처 의약품 허가·e약은요·DUR·마약류 오남용 -------------------
+    def _mfds_drug_call(self, source_id: str, base: str, name_param: str,
+                        item_name: Optional[str], page: int, rows: int,
+                        retry_on_unregistered: bool) -> LiveFetch:
+        if not self.has_mfds:
+            raise LiveApiError(source_id, "서비스키 없음(DATA_GO_KR_SERVICE_KEY)")
+        params: Dict[str, Any] = {"serviceKey": self._service_key, "pageNo": page,
+                                  "numOfRows": max(1, min(int(rows), 100)), "type": "json"}
+        if item_name and name_param:
+            params[name_param] = str(item_name).strip()
+        url = self._url(base, params)
+        _, fetch = self._call(source_id, url, parse=self._parse_json,
+                              retry_on_unregistered=retry_on_unregistered)
+        fetch.request_echo = {"item_name": item_name or "", "page": page, "rows": rows}
+        return fetch
+
+    def mfds_drug_permit(self, *, item_name: Optional[str] = None, page: int = 1,
+                         rows: int = 5, retry_on_unregistered: bool = True) -> LiveFetch:
+        """의약품 제품 허가정보(15095677). 국내 허가 품목·전문/일반 구분을 돌려준다."""
+        return self._mfds_drug_call(SOURCE_MFDS_DRUG_PERMIT, MFDS_DRUG_PERMIT_URL,
+                                    "item_name", item_name, page, rows, retry_on_unregistered)
+
+    def mfds_drug_easy(self, *, item_name: Optional[str] = None, page: int = 1,
+                       rows: int = 3, retry_on_unregistered: bool = True) -> LiveFetch:
+        """e약은요(15075057). 일반의약품의 효능·복용법·주의사항을 돌려준다."""
+        return self._mfds_drug_call(SOURCE_MFDS_DRUG_EASY, MFDS_DRUG_EASY_URL,
+                                    "itemName", item_name, page, rows, retry_on_unregistered)
+
+    def mfds_dur(self, *, item_name: Optional[str] = None, page: int = 1,
+                 rows: int = 5, retry_on_unregistered: bool = True) -> LiveFetch:
+        """DUR 품목정보(15059486). 전문/일반 구분과 효능군 분류를 돌려준다."""
+        return self._mfds_drug_call(SOURCE_MFDS_DUR, MFDS_DUR_URL,
+                                    "itemName", item_name, page, rows, retry_on_unregistered)
+
+    def mfds_narcotic_drugs(self, *, rows: int = 100, pages: int = 4,
+                            retry_on_unregistered: bool = True) -> LiveFetch:
+        """마약류 약물 및 오남용 정보(15058963) 전체 목록(316건)을 모아 온다.
+
+        이 데이터셋은 성분명 검색 변수를 제공하지 않아(무시됨) 페이지를 순회해 모은 뒤
+        호출부가 성분명을 로컬 대조한다. 첫 페이지 결과 객체에 나머지 페이지 items 를 합친다.
+        """
+        first: Optional[LiveFetch] = None
+        total = 0
+        for page in range(1, max(1, pages) + 1):
+            fetch = self._mfds_drug_call(SOURCE_MFDS_NARCOTIC, MFDS_NARCOTIC_URL, "", "",
+                                         page, rows, retry_on_unregistered)
+            total = fetch.total_count or total
+            if first is None:
+                first = fetch
+            else:
+                first.items.extend(fetch.items)
+                first.elapsed_ms += fetch.elapsed_ms
+            if total and len(first.items) >= total:
+                break
+        assert first is not None
+        if total:
+            first.total_count = total
+        first.request_echo = {"page_size": rows, "collected": len(first.items)}
+        return first
 
     # --- 4) 법제처 국가법령정보 공동활용 ----------------------------------
     def law_search(self, query: str, *, target: str = "law", display: int = 5,

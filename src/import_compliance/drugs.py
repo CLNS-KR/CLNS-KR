@@ -17,8 +17,9 @@
 ----------------------
 - 마약류·원료물질 목록은 **법제처 시행령 별표 1~8을 파싱해 만든 로컬 사전**
   (`drug_schedules.json`, 출처: 법제처 국가법령정보센터)이다. 손으로 적은 추정 목록이 아니다.
-- 국내 의약품 성분(KR_RX)은 **대표 성분 시드 목록**이며 전수가 아니다. 식약처 의약품
-  허가정보·e약은요·DUR API는 이 계정에 활용승인이 없어(코드 30) 실시간 대조가 불가능하다.
+- 국내 의약품 성분(KR_RX)은 **대표 성분 시드 목록**이며 전수가 아니다. 이를 보완하려고
+  식약처 의약품 제품 허가정보·e약은요·DUR·마약류 오남용 정보 API를 **2026-11-21 활용승인 후
+  실시간으로** 함께 조회한다(키가 없거나 실패하면 그 사실을 응답에 밝힌다).
   응답은 그 한계를 `coverage_ko`·`api_candidates`로 항상 함께 돌려준다.
 - 브랜드명(아데랄·리탈린 등)은 **제품명 → 성분 참고 매핑**이며, 식약처 허가정보 조회가
   아니라 성분 사전 대조용 힌트다.
@@ -148,28 +149,29 @@ BASIS_SELF_USE: List[Dict[str, str]] = [
     },
 ]
 
-# 식약처 의약품 계열 data.go.kr 데이터셋 — 2026-11-18 실호출 결과 이 계정은 활용승인 없음(코드 30).
+# 식약처 의약품 계열 data.go.kr 데이터셋 — 2026-11-21 활용승인 확인(실호출 HTTP 200).
+# 15058041(마약류 및 원료물질 정보)은 제품이 아니라 '취급업소 승인 목록'이라 성분 대조에는 쓰지 않는다.
 API_CANDIDATES: List[Dict[str, str]] = [
     {"dataset_id": "15058963", "name_ko": "식약처_마약류 약물 및 오남용 정보",
      "endpoint": "https://apis.data.go.kr/1471000/NrcdGnrlzInfoService01/getNrcdGnrlzList",
      "apply_url": "https://www.data.go.kr/data/15058963/openapi.do",
-     "state": "approval_required"},
+     "state": "live"},
     {"dataset_id": "15058041", "name_ko": "식약처_마약류 및 원료물질 정보",
      "endpoint": "https://apis.data.go.kr/1471000/NrcdNdRwmtrInfoService01/getNrcdNdRwmtrInfoList01",
      "apply_url": "https://www.data.go.kr/data/15058041/openapi.do",
-     "state": "approval_required"},
+     "state": "live"},
     {"dataset_id": "15095677", "name_ko": "식약처_의약품 제품 허가정보",
      "endpoint": "https://apis.data.go.kr/1471000/DrugPrdtPrmsnInfoService08/getDrugPrdtPrmsnInq08",
      "apply_url": "https://www.data.go.kr/data/15095677/openapi.do",
-     "state": "approval_required"},
+     "state": "live"},
     {"dataset_id": "15075057", "name_ko": "식약처_의약품개요정보(e약은요)",
      "endpoint": "https://apis.data.go.kr/1471000/DrbEasyDrugInfoService/getDrbEasyDrugList",
      "apply_url": "https://www.data.go.kr/data/15075057/openapi.do",
-     "state": "approval_required"},
+     "state": "live"},
     {"dataset_id": "15059486", "name_ko": "식약처_의약품안전사용서비스(DUR) 품목정보",
      "endpoint": "https://apis.data.go.kr/1471000/DURPrdlstInfoService03/getDurPrdlstInfoList03",
      "apply_url": "https://www.data.go.kr/data/15059486/openapi.do",
-     "state": "approval_required"},
+     "state": "live"},
 ]
 
 SELF_USE_RULE = {
@@ -265,6 +267,50 @@ OTC_INGREDIENTS: List[Dict[str, Any]] = [
     {"name_ko": "세티리진", "name_en": "Cetirizine", "aliases": [],
      "note_ko": "국내 일반의약품 성분입니다. 개인 반입은 자가사용 인정기준과 대조해야 합니다."},
 ]
+
+# 식약처 API 검색어를 만들 때 지우는 수식어(원산지·판매 형태·수량 단위).
+_ORIGIN_RE = re.compile(
+    r"(?:미국|중국|일본|독일|영국|프랑스|호주|캐나다|뉴질랜드|베트남|태국|인도|이탈리아|스페인|"
+    r"네덜란드|스위스|대만|홍콩|싱가포르|폴란드|터키|이스라엘|덴마크|스웨덴|노르웨이|핀란드|"
+    r"오스트리아|벨기에|멕시코|브라질|말레이시아|인도네시아)산?"
+)
+_GENERIC_TOKENS = {
+    "영양제", "건강기능식품", "건기식", "보조제", "서플리먼트", "supplement", "직구", "해외직구",
+    "구매대행", "수입", "반입", "휴대", "판매", "판매용", "자가소비", "정", "병", "캡슐",
+    "알", "개", "박스", "세트", "수면", "숙면", "불면", "제품", "상품", "해외", "미국",
+}
+
+
+def search_terms(product_name: str, limit: int = 4) -> List[str]:
+    """제품명에서 식약처 API에 넣을 성분·제품 검색어 후보를 뽑는다(우선순위 순).
+
+    "미국산 멜라토닌 수면 영양제" → ["멜라토닌", ...] 처럼 원산지·판매 수식어를 지우고,
+    이미 아는 성분명이 있으면 그것을 맨 앞에 둔다. 원본 제품명을 그대로 보내면 API가
+    0건을 돌려주는 일이 많아 이 정규화가 필요하다.
+    """
+    text = str(product_name or "").strip()
+    if not text:
+        return []
+    lowered = text.lower()
+    hits: List[str] = []
+    for entry in KR_RX_INGREDIENTS + OTC_INGREDIENTS:
+        names = [entry.get("name_ko"), entry.get("name_en")] + list(entry.get("aliases") or [])
+        if any(name and str(name).lower() in lowered for name in names):
+            if entry["name_ko"] not in hits:
+                hits.append(entry["name_ko"])
+    for alias, (ingredient, _english) in BRAND_ALIASES.items():
+        if alias.lower() in lowered and ingredient not in hits:
+            hits.append(ingredient)
+    cleaned = _ORIGIN_RE.sub(" ", text)
+    tokens = [tok for tok in re.split(r"[\s,/()\[\]{}·]+", cleaned)
+              if len(tok) >= 2 and tok not in _GENERIC_TOKENS and not tok[0].isdigit()
+              and tok.lower() not in BRAND_ALIASES]
+    out: List[str] = []
+    for candidate in hits + tokens:
+        if candidate not in out:
+            out.append(candidate)
+    return out[:limit]
+
 
 # 아주 짧은 영문 약어는 단어 경계로만 매칭한다(예: 'MDA'가 다른 단어 안에서 걸리지 않게).
 _SHORT_LATIN = {"mda", "mdma", "thc", "cbd", "det", "dmt", "doe", "pma", "stp", "dom", "2c-b"}
@@ -635,8 +681,9 @@ def assess(query: str, facts: Optional[Dict[str, Any]] = None) -> Dict[str, Any]
         "coverage_ko": (
             "마약류·원료물질은 마약류 관리에 관한 법률 시행령 별표 1~8에서 생성한 로컬 사전"
             f"({len(data.get('substances') or [])}건 + 원료물질 {len(data.get('precursors') or [])}건)과 "
-            "대조했습니다. 국내 의약품 성분은 대표 시드 목록만 대조했고, 식약처 의약품 허가정보·e약은요·"
-            "DUR API는 활용신청 승인 전이라 실시간 전수 대조는 제공하지 않습니다."
+            "대조하고, 국내 의약품 성분은 대표 시드 목록으로 확인한 뒤 식약처 의약품 제품 허가정보·"
+            "DUR·e약은요·마약류 오남용 정보 API를 실시간으로 함께 조회합니다(2026-11-21 활용승인). "
+            "키가 없거나 조회에 실패하면 그 사실을 응답에 표시합니다."
         ),
         "api_candidates": [{"dataset_id": row["dataset_id"], "name_ko": row["name_ko"],
                             "state": row["state"], "apply_url": row["apply_url"]}

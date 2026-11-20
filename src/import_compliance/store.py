@@ -522,7 +522,7 @@ class SourceGateway:
             return self._rra(query_key, live_query)
         if source_id == "mfds_drug_schedule":
             # 의약품 성분 사전은 법제처 시행령 별표에서 생성한 로컬 인덱스다.
-            # 식약처 의약품 계열 API는 활용승인 전이라 '승인 필요'로 사실대로 밝힌다.
+            # 식약처 의약품 계열 API는 2026-11-21 활용승인 후 `check_drug_import`가 따로 실호출한다.
             return self._drug_schedule()
         if self.live is not None and live_query:
             live_state = self._live(source_id, query_key, live_query)
@@ -608,9 +608,9 @@ class SourceGateway:
             "precursor_count": len(data.get("precursors") or []),
             "data": None,
             "note_ko": (
-                "마약류·원료물질은 법제처 시행령 별표 1~8에서 생성한 로컬 사전으로 대조했습니다. "
-                "식약처 의약품 허가정보·e약은요·DUR·마약류 API는 이 계정에 활용승인이 없어 실시간 "
-                "전수 대조는 제공하지 않습니다."
+                "마약류·원료물질은 법제처 시행령 별표 1~8에서 생성한 로컬 사전으로 대조하고, "
+                "국내 의약품 성분은 식약처 의약품 허가정보·DUR·e약은요·마약류 오남용 정보 API를 "
+                "실시간으로 함께 조회합니다(2026-11-21 활용승인)."
             ),
             "api_state": [{"dataset_id": row["dataset_id"], "name_ko": row["name_ko"],
                            "state": row["state"]} for row in drugs.API_CANDIDATES],

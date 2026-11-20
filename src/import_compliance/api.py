@@ -246,6 +246,162 @@ def _mfds_live(live: Any, product_name: str, *, store: Any = None,
     return block
 
 
+def _drug_live(live: Any, terms: List[str], *, store: Any = None,
+               rows: int = 5) -> Optional[Dict[str, Any]]:
+    """식약처 의약품 API 4종(허가정보·DUR·e약은요·마약류 오남용)을 병렬 호출한다.
+
+    2026-11-21 활용승인 후 추가된 실연동 경로다. 검색어는 `drugs.search_terms()`가
+    제품명에서 원산지·판매 수식어를 지워 만든다(원본 제품명은 API가 자주 0건을 준다).
+    - 허가정보(15095677): 국내 허가 품목과 전문/일반 구분
+    - DUR(15059486): 유통 품목의 전문/일반 구분·효능군
+    - e약은요(15075057): 일반의약품의 효능·복용법·주의
+    - 마약류 오남용(15058963): 성분명 목록 대조(이 데이터셋은 이름 검색이 안 된다)
+    """
+    if live is None or not getattr(live, "has_mfds", False) or not terms:
+        return None
+    from .live_api import (
+        SOURCE_MFDS_DRUG_EASY,
+        SOURCE_MFDS_DRUG_PERMIT,
+        SOURCE_MFDS_DUR,
+        SOURCE_MFDS_NARCOTIC,
+        normalize_drug_dur_item,
+        normalize_drug_easy_item,
+        normalize_drug_narcotic_item,
+        normalize_drug_permit_item,
+    )
+
+    term = str(terms[0])
+    key = _cache_key("drug-api", term, rows)
+    cached = _cached_block(store, SOURCE_MFDS_DRUG_PERMIT, key)
+    if cached is not None:
+        return cached
+
+    block: Dict[str, Any] = {
+        "state": "live",
+        "fresh": True,
+        "age_hours": 0.0,
+        "search_term": term,
+        "search_terms": list(terms[:4]),
+        "source": ("식품의약품안전처 의약품 계열 API 5종 중 4종 실시간 조회"
+                   "(data.go.kr 15095677·15059486·15075057·15058963, 2026-11-21 활용승인)"),
+        "note_ko": LIVE_NOTES["usage_ko"],
+        "zero_note_ko": LIVE_NOTES["zero_ko"],
+        "cache_ttl_hours": CACHE_TTL_HOURS,
+    }
+
+    def _permit() -> Dict[str, Any]:
+        fetch = live.mfds_drug_permit(item_name=term, rows=rows)
+        samples = [normalize_drug_permit_item(item) for item in fetch.items[:rows]]
+        return {
+            "state": "live",
+            "checked_at": fetch.fetched_at,
+            "match_count": fetch.total_count if fetch.total_count is not None else len(fetch.items),
+            "samples": samples,
+            "classification_counts": _count_by(samples, "classification"),
+        }
+
+    def _dur() -> Dict[str, Any]:
+        fetch = live.mfds_dur(item_name=term, rows=rows)
+        samples = [normalize_drug_dur_item(item) for item in fetch.items[:rows]]
+        return {
+            "state": "live",
+            "checked_at": fetch.fetched_at,
+            "match_count": fetch.total_count if fetch.total_count is not None else len(fetch.items),
+            "samples": samples,
+            "classification_counts": _count_by(samples, "classification"),
+        }
+
+    def _easy() -> Dict[str, Any]:
+        fetch = live.mfds_drug_easy(item_name=term, rows=3)
+        return {
+            "state": "live",
+            "checked_at": fetch.fetched_at,
+            "match_count": fetch.total_count if fetch.total_count is not None else len(fetch.items),
+            "samples": [normalize_drug_easy_item(item) for item in fetch.items[:3]],
+        }
+
+    def _narcotic() -> Dict[str, Any]:
+        fetch = live.mfds_narcotic_drugs()
+        wanted = [str(item).lower() for item in terms if str(item).strip()]
+        matches: List[Dict[str, Any]] = []
+        for item in fetch.items:
+            haystack = f"{item.get('DRFSTF') or ''} {item.get('DRFSTF_ENG') or ''}".lower()
+            if any(name in haystack for name in wanted):
+                matches.append(normalize_drug_narcotic_item(item))
+        return {
+            "state": "live",
+            "checked_at": fetch.fetched_at,
+            "checked_total": fetch.total_count if fetch.total_count is not None else len(fetch.items),
+            "match_count": len(matches),
+            "matches": matches[:3],
+        }
+
+    jobs = (("permit", _permit), ("dur", _dur), ("easy", _easy), ("narcotic", _narcotic))
+    failures = 0
+    with ThreadPoolExecutor(max_workers=len(jobs), thread_name_prefix="drug-api") as pool:
+        futures = [(name, pool.submit(func)) for name, func in jobs]
+        for name, future in futures:
+            try:
+                block[name] = future.result()
+            except Exception as exc:  # noqa: BLE001 - 소스별 실패를 따로 표기
+                block[name] = _live_error(exc)
+                failures += 1
+
+    if failures == len(jobs):
+        block["state"] = "error"
+    elif failures:
+        block["state"] = "partial"
+    else:
+        _store_block(store, SOURCE_MFDS_DRUG_PERMIT, key, block)
+    block["summary_ko"] = _drug_live_summary(term, block)
+    return block
+
+
+def _count_by(rows: List[Dict[str, Any]], field: str) -> Dict[str, int]:
+    counts: Dict[str, int] = {}
+    for row in rows:
+        label = str(row.get(field) or "미표기").strip() or "미표기"
+        counts[label] = counts.get(label, 0) + 1
+    return counts
+
+
+def _drug_live_summary(term: str, block: Dict[str, Any]) -> str:
+    """실시간 조회 결과를 사람이 읽는 한두 문장으로 요약한다(추정 금지)."""
+    parts: List[str] = []
+    permit = block.get("permit") or {}
+    dur = block.get("dur") or {}
+    easy = block.get("easy") or {}
+    narcotic = block.get("narcotic") or {}
+    if permit.get("state") == "live":
+        total = permit.get("match_count") or 0
+        if total:
+            counts = permit.get("classification_counts") or {}
+            detail = " · ".join(f"{name} {count}건" for name, count in counts.items())
+            parts.append(f"식약처 의약품 허가정보에서 '{term}' 관련 국내 허가 제품 {total}건을 찾았습니다"
+                         + (f"(표본 {detail})" if detail else "") + ".")
+            labels = set(counts)
+            if labels and labels <= {"전문의약품"}:
+                parts.append("표본이 모두 전문의약품입니다 — 처방 없이 국내 반입·판매하면 약사법상 문제가 될 수 있습니다.")
+        else:
+            parts.append(f"식약처 의약품 허가정보에서 '{term}' 검색 결과가 0건입니다(미허가 확정이 아닙니다).")
+    if dur.get("state") == "live" and (dur.get("match_count") or 0) and not permit.get("match_count"):
+        counts = dur.get("classification_counts") or {}
+        detail = " · ".join(f"{name} {count}건" for name, count in counts.items())
+        parts.append(f"DUR 품목정보에서는 {dur.get('match_count')}건이 잡힙니다"
+                     + (f"(표본 {detail})" if detail else "") + ".")
+    if easy.get("state") == "live" and (easy.get("match_count") or 0):
+        parts.append(f"e약은요에 효능·복용법이 공개된 품목 {easy.get('match_count')}건이 있습니다.")
+    if narcotic.get("state") == "live":
+        matched = narcotic.get("match_count") or 0
+        if matched:
+            parts.append(f"마약류 약물·오남용 정보에서 성분명이 일치하는 항목 {matched}건을 찾았습니다.")
+        elif narcotic.get("checked_total"):
+            parts.append(f"마약류 약물·오남용 정보 {narcotic.get('checked_total')}건에서는 일치하는 성분명을 찾지 못했습니다.")
+    if not parts:
+        parts.append("식약처 의약품 API 응답을 받지 못했습니다. 아래 소스별 상태를 확인해 주세요.")
+    return " ".join(parts)
+
+
 def _rra_live(live: Any, cert_no: str, *, store: Any = None, rows: int = 3,
               reuse_key: Optional[str] = None) -> Optional[Dict[str, Any]]:
     """국립전파연구원 적합성평가 조회(인증·등록번호 1건) + 7일 TTL 캐시.
@@ -699,6 +855,24 @@ def tool_check_drug_import(args: Dict[str, Any], store: Store, client_id: str, t
             "처방전 유무는 6병·3개월분 자가사용 판단의 소명자료로 쓰이지만,"
             " 마약류·원료물질·요건확인 대상 성분에는 그 자체로 반입 근거가 되지 않습니다."
         )
+
+    # 식약처 의약품 API 실시간 대조(2026-11-21 활용승인). 키가 없으면 건너뛰고 그 사실을 밝힌다.
+    terms = drugs.search_terms(product)
+    drug_live = _drug_live(live, terms, store=store)
+    if drug_live is not None:
+        result["drug_live"] = drug_live
+        for source_id, part in (("mfds_drug_permit", "permit"), ("mfds_drug_easy", "easy"),
+                                ("mfds_dur", "dur"), ("mfds_narcotic_misuse", "narcotic")):
+            entry = drug_live.get(part) or {}
+            if entry.get("state") == "live":
+                _mark_live_provenance(result, source_id, state="live",
+                                      fetched_at=entry.get("checked_at", ""))
+    else:
+        screening["coverage_ko"] = (
+            str(screening.get("coverage_ko") or "").rstrip()
+            + " 이 실행에서는 식약처 의약품 API 키가 없어 실시간 조회를 건너뛰었습니다."
+        ).strip()
+
     result["drug_import_check"] = {
         "product_name": product,
         "state": screening.get("state"),
@@ -712,6 +886,9 @@ def tool_check_drug_import(args: Dict[str, Any], store: Store, client_id: str, t
         "coverage_ko": screening.get("coverage_ko"),
         "api_candidates": screening.get("api_candidates"),
         "official_urls": screening.get("official_urls"),
+        "live_api_state": (drug_live or {}).get("state"),
+        "live_api_search_term": (drug_live or {}).get("search_term"),
+        "live_api_summary_ko": (drug_live or {}).get("summary_ko"),
     }
     return _envelope("check_drug_import", result)
 
@@ -1254,7 +1431,9 @@ def tool_get_service_meta(args: Dict[str, Any], store: Store, client_id: str, ti
             live.capabilities() if live is not None else
             {"customs_checkpoint": False, "mfds_import_permit": False,
              "mfds_product_db": False, "law_search": False,
-             "rra_conformity": False, "mfds_drug_api": False}
+             "rra_conformity": False, "mfds_drug_api": False,
+             "mfds_drug_permit": False, "mfds_drug_easy": False,
+             "mfds_dur": False, "mfds_narcotic": False}
         ),
         "principles": [
             "원본 API 1:1 재전송 금지",
@@ -2005,7 +2184,7 @@ TOOL_DEFS: List[Dict[str, Any]] = [    {
     {
         "name": "check_drug_import",
         "title_ko": "의약품·영양제 금지성분·반입 제한",
-        "description_ko": "성분명·제품명(한·영)으로 마약류(마약·향정신성의약품·대마)·마약류 원료물질·국내 전용 성분 여부를 대조하고, 휴대 반입/직구와 수량을 자가사용 인정기준(6병·3개월분)과 비교해 판정합니다.",
+        "description_ko": "성분명·제품명(한·영)으로 마약류(마약·향정신성의약품·대마)·마약류 원료물질·국내 전용 성분 여부를 대조하고, 식약처 의약품 제품 허가정보·DUR·e약은요·마약류 오남용 정보 API를 실시간으로 함께 조회하며, 휴대 반입/직구와 수량을 자가사용 인정기준(6병·3개월분)과 비교해 판정합니다.",
         "handler": tool_check_drug_import,
         "input_schema": {
             "type": "object",
