@@ -1,0 +1,13 @@
+{
+  "schema": "clns.snapshots/1",
+  "day": "2026-11-02",
+  "taken_at": "2026-11-21T00:47:25+09:00",
+  "origin": "backfilled",
+  "counts": {
+    "recall": 846,
+    "disposition": 0,
+    "cosmetic_prohibited": 11,
+    "cosmetic_restricted": 10,
+    "drug_schedule": 548
+  }
+}
