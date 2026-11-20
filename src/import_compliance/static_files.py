@@ -83,15 +83,15 @@ def llms_txt(base: Optional[str] = None) -> str:
 ## 사람용
 - [리스크 체크]({root}/): 품목명(+HS 10자리)으로 확인 항목·요건·리콜·근거 조문을 한 화면에서 본다.
 - [품목별 수입 요건]({root}/p/): {pseo_count}개 품목(선풍기·보조배터리·오메가3·선크림·반려동물 사료 등)의 세관장확인 요건·KC·전파·식약처 확인 항목·함정·근거를 정적 HTML로 정리. 개별 페이지는 `{root}/p/<slug>`.
-- [질문형 가이드]({root}/guides/): {guide_count}개 질문(영양제 6병, 면세 한도 150/200달러, KC·전파 인증, 한글표시사항, 과대광고 금지 표현 등)에 한 줄 답변·체크포인트·근거 조문으로 답하는 정적 HTML. `FAQPage` 구조화 데이터 포함, 개별 페이지는 `{root}/guides/<slug>`.
+- [질문형 가이드]({root}/guides/): {guide_count}개 질문(영양제 6병, 면세 한도 150/200달러, KC·전파 인증, 한글표시사항, 과대광고 금지 표현, 단순변심 환불 불가 문구, 체험단 대가성 표시 등)에 한 줄 답변·체크포인트·근거 조문으로 답하는 정적 HTML. `FAQPage` 구조화 데이터 포함, 개별 페이지는 `{root}/guides/<slug>`.
 - [시계열 추이]({root}/v1/trends): 일일 리콜·행정처분 스냅샷 기반 신규/변경 건수와 최근 7·30일 급증 품목·유형 요약(읽기 전용 GET).
 - [서비스 메타]({root}/v1/meta): 코퍼스 버전, 판정 등급, 무료 한도, 이용 범위.
 - [익명 사용 통계]({root}/v1/stats): IP·User-Agent·쿠키를 저장하지 않고 일별 호출 수·툴·판정 분포만 집계한 JSON.
 
 ## 기계용 (MCP · JSON-RPC 2.0)
 - [MCP 엔드포인트]({root}/mcp): POST. `initialize` → `tools/list` → `tools/call` 순서로 쓰는 JSON-RPC 2.0 서버. 인증 불필요, 응답은 `application/json` 한 덩어리(SSE 스트리밍 없음).
-- [MCP 서버 카드]({root}/.well-known/mcp/server-card.json): 서버 정보·인증 방식·툴 12종 스키마.
-- [툴 매니페스트]({root}/v1/mcp): GET. 툴 12종의 이름·설명·inputSchema(사람이 읽는 JSON).
+- [MCP 서버 카드]({root}/.well-known/mcp/server-card.json): 서버 정보·인증 방식·툴 13종 스키마.
+- [툴 매니페스트]({root}/v1/mcp): GET. 툴 13종의 이름·설명·inputSchema(사람이 읽는 JSON).
 
 ## 기계용 (REST JSON)
 - [종합 판정]({root}/v1/tools/assess_import_case): POST. `{{"query": "...", "facts": {{"purpose": "resale", "hs_code": "8414519000", "rf_tx": "no"}}}}`
@@ -101,6 +101,7 @@ def llms_txt(base: Optional[str] = None) -> str:
 - [국내 리콜 이력]({root}/v1/tools/lookup_recall): POST. `{{"product_name": "전지"}}`
 - [의약품·영양제 금지성분]({root}/v1/tools/check_drug_import): POST. `{{"product_name": "졸피뎀", "channel": "online", "quantity": 30}}` — 마약류·원료물질·국내 전용 성분과 자가사용 인정기준(6병·3개월분)을 대조
 - [과대광고·한글표시사항 검수]({root}/v1/tools/check_ad_labeling): POST. `{{"product_type": "general_food", "ad_copy": "먹기만 하면 100% 다이어트, 항암 효과", "label_text": "제품명 … 소비기한 …"}}` — 유형별 금지 표현과 필수 표시항목 누락을 대조
+- [국내 판매페이지 공정위·전자상거래법 검수]({root}/v1/tools/check_ecommerce_compliance): POST. `{{"detail_copy": "정가 39,000원 → 오늘만 19,900원! 단순변심 환불 불가", "channel": "smartstore"}}` — 허위 정가·마감임박·체험단 대가성 미표기·청약철회 제한·배송 회피·최저가/1위·구독 자동결제·가격/해지 다크패턴과 판매자 정보 고지 누락을 근거 조문(시행일·원문 URL)·수정 전→후 문구와 함께 반환
 - [식약처 행정처분 이력]({root}/v1/tools/lookup_mfds_disposition): POST. `{{"industry": "manufacturing", "keyword": "표시"}}` — 식품제조가공업·식품판매업 처분 이력(개인정보 필드는 폐기)
 - [근거 조항]({root}/v1/tools/get_legal_basis): POST. `{{"law": "관세법", "article": "제226조"}}`
 - [리콜·행정처분 시계열 추이]({root}/v1/tools/get_compliance_trends): POST. `{{"days": 30}}` — 일일 스냅샷의 신규/변동 건수와 급증 품목·유형
@@ -113,6 +114,7 @@ def llms_txt(base: Optional[str] = None) -> str:
 - 실시간 조회 결과가 7일 TTL 캐시에서 나온 경우 `state: "cached_fallback"` 과 `age_hours` 로 캐시 시점을 밝힌다.
 - 의약품 성분은 마약류 관리에 관한 법률 시행령 별표 1~8에서 생성한 로컬 사전으로 대조한다. 시행령 별표에 없다고 마약류가 아니라고 단정할 수 없으며(임시마약류 지정·개정 시차), 식약처 의약품 허가정보·e약은요·DUR API는 활용승인 전이어서 실시간 전수 대조를 제공하지 않는다.
 - 과대광고·표시 검수는 문구 패턴 대조이며, 근거는 식품등의 표시·광고에 관한 법률 제8조·시행령 제3조·화장품법 제13조와 식약처 고시(식품등의 부당한 표시 또는 광고의 내용 기준)다. 같은 단어도 문맥에 따라 판단이 달라진다.
+- 국내 판매페이지 검수는 공정위 표시·광고의 공정화에 관한 법률 제3조·제5조·시행령 제3조, 전자상거래 등에서의 소비자보호에 관한 법률 제13조·제17조·제18조·제21조·제21조의2·시행령 제20조의2와 공정위 고시(부당한 표시·광고행위의 유형 및 기준, 상품 등의 정보제공, 소비자보호 지침)ㆍ예규(추천·보증 심사지침)를 근거로 쓴다. 실제 판매 이력·화면 구성은 반영하지 않으므로 확정 판정이 아니다.
 - 행정처분 이력은 과거 처분 사실이며 현재 영업 상태를 뜻하지 않는다. 원본의 업소명·연락처·주소·인허가번호는 읽지 않고 버린다. 데이터셋 승인 전파 전이면 내장 대표 적발 패턴으로 안내한다.
 """
 

@@ -1,4 +1,4 @@
-"""API / MCP 툴 12종."""
+"""API / MCP 툴 13종."""
 from __future__ import annotations
 
 import json
@@ -552,6 +552,39 @@ def tool_assess_import_case(args: Dict[str, Any], store: Store, client_id: str, 
         if cos_res.get("prohibited"):
             _raise_verdict(result, "check_likely")
 
+    # 국내 판매페이지 문구(선택): 공정위 표시광고법ㆍ전자상거래법 축을 원스톱 결과에 합친다.
+    detail_copy = str(facts.get("detail_copy") or facts.get("sales_page_copy")
+                      or facts.get("ad_copy") or "").strip()
+    if len(detail_copy) >= 2:
+        from . import ecommerce
+
+        commerce_block = ecommerce.review(detail_copy, limit=5)
+        commerce_findings = [_commerce_finding(entry)
+                             for entry in commerce_block.get("findings") or []]
+        if commerce_findings:
+            result["findings"] = list(result.get("findings") or []) + commerce_findings
+            result["regulation_tags"] = tags_for_findings(result["findings"])
+        result["ecommerce_review"] = commerce_block
+        guidance = (result.get("answer") or {}).setdefault("guidance", [])
+        guidance.extend(ecommerce.summarize(commerce_block, limit=3))
+        if commerce_block.get("risk_high"):
+            _raise_verdict(result, "check_likely")
+        elif commerce_block.get("risk_caution"):
+            _raise_verdict(result, "info_needed")
+        evidence = list(result.get("evidence") or [])
+        seen = {(row.get("law"), row.get("article")) for row in evidence}
+        for finding in commerce_findings:
+            for row in finding.get("legal_basis") or []:
+                key = (row.get("law"), row.get("article"))
+                if not row.get("law") or key in seen:
+                    continue
+                seen.add(key)
+                evidence.append(row)
+        result["evidence"] = evidence
+        result["next_actions"] = list(result.get("next_actions") or []) + [
+            "판매페이지 문구는 check_ecommerce_compliance 로 가격ㆍ후기ㆍ청약철회 고지까지 따로 확인할 수 있습니다.",
+        ]
+
     # 실시간 조회로 verdict 가 올라갔으면 표준 판정 상태도 함께 맞춘다.
     apply_status(result)
     verdict_obj = result.get("verdict") or {}
@@ -1082,7 +1115,7 @@ def _snapshot_days(store: Store) -> int:
 
 def tool_get_service_meta(args: Dict[str, Any], store: Store, client_id: str, tier: str,
                           live: Any = None) -> Dict[str, Any]:
-    from . import advertising, drugs, labeling, mfds_dispositions
+    from . import advertising, drugs, ecommerce, labeling, mfds_dispositions
 
     corpus = load_corpus()
     testset = testset_meta()
@@ -1123,6 +1156,18 @@ def tool_get_service_meta(args: Dict[str, Any], store: Store, client_id: str, ti
             "label_items": {code: len(rows) for code, rows in labeling.CHECKLISTS.items()},
             "checked_on": advertising.VERIFIED_ON,
             "ad_content_standard_ko": "식품등의 부당한 표시 또는 광고의 내용 기준(식약처고시 제2025-79호)",
+        },
+        "ecommerce": {
+            "rules": len(ecommerce.ECOMMERCE_RULES),
+            "rule_ids": [rule["id"] for rule in ecommerce.ECOMMERCE_RULES],
+            "disclosure_items": len(ecommerce.DISCLOSURE_ITEMS),
+            "authority_ko": ecommerce.AUTHORITY_KO,
+            "channels": [{"code": code, "label_ko": meta["label_ko"]}
+                         for code, meta in ecommerce.CHANNELS.items()],
+            "tags": sorted({tag for tag in ecommerce.TAG_BY_RULE.values()} | {"SELLER_DISCLOSURE"}),
+            "checked_on": ecommerce.VERIFIED_ON,
+            "laws": [ecommerce.FTC_NAME_KO, ecommerce.FTC_DECREE_NAME_KO,
+                     ecommerce.EC_NAME_KO, ecommerce.EC_DECREE_NAME_KO],
         },
         "guides": {
             "path": "/guides/",
@@ -1233,14 +1278,198 @@ def _label_finding(label_check: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     }
 
 
+def _commerce_finding(entry: Dict[str, Any]) -> Dict[str, Any]:
+    """공정위ㆍ전자상거래법 검수 결과를 기존 findings 모양으로 바꾼다(UIㆍ후속 처리 호환)."""
+    from . import ecommerce
+
+    verdict = "check_likely" if entry.get("risk") == "high" else "info_needed"
+    return {
+        "case_id": entry.get("rule_id"),
+        "title": entry.get("name_ko"),
+        "issue_ko": "판매페이지 문구에서 " + ", ".join(entry.get("matched_phrases") or []) + " 표현이 탐지됨",
+        "category": "ecommerce",
+        "regulation_tags": [ecommerce.tag_for_rule(str(entry.get("rule_id") or ""))],
+        "verdict": verdict,
+        "verdict_label_ko": VERDICT_LABEL_KO[verdict],
+        "verdict_label_en": VERDICT_LABEL_EN[verdict],
+        "confidence": 0.8 if verdict == "check_likely" else 0.6,
+        "reason": "판매페이지 문구 패턴 대조(위험도 " + str(entry.get("risk_label_ko")) + ")",
+        "matched_signals": list(entry.get("matched_phrases") or []),
+        "missing_inputs": [],
+        "misconception": "",
+        "explanation": entry.get("why_ko", ""),
+        "scenario": "",
+        "next_steps": [entry.get("safer_ko", "")],
+        "notes": entry.get("fix_example_ko", ""),
+        "legal_basis": list(entry.get("legal_basis") or []),
+    }
+
+
+def _disclosure_finding(disclosure: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """판매자 정보ㆍ거래조건 고지 누락을 findings 모양으로 만든다(누락이 있을 때만)."""
+    missing = disclosure.get("missing") or []
+    conditional = disclosure.get("conditional_missing") or []
+    if not missing and not conditional:
+        return None
+    verdict = "check_likely" if missing else "info_needed"
+    target = missing or conditional
+    basis: List[Dict[str, str]] = []
+    seen = set()
+    for row in disclosure.get("checklist") or []:
+        if row.get("label_ko") not in target:
+            continue
+        for entry in row.get("legal_basis") or []:
+            key = (entry.get("law"), entry.get("article"))
+            if not entry.get("law") or key in seen:
+                continue
+            seen.add(key)
+            basis.append(entry)
+    return {
+        "case_id": "EC-DISCLOSURE",
+        "title": "판매자 정보ㆍ거래조건 고지 누락",
+        "issue_ko": "입력한 상세페이지에서 확인되지 않은 고지 항목: " + ", ".join(target[:6]),
+        "category": "ecommerce",
+        "regulation_tags": ["SELLER_DISCLOSURE"],
+        "verdict": verdict,
+        "verdict_label_ko": VERDICT_LABEL_KO[verdict],
+        "verdict_label_en": VERDICT_LABEL_EN[verdict],
+        "confidence": 0.7 if missing else 0.5,
+        "reason": "판매자 정보ㆍ거래조건 고지 항목 대조",
+        "matched_signals": target[:6],
+        "missing_inputs": [],
+        "misconception": "",
+        "explanation": disclosure.get("verdict_note_ko", ""),
+        "scenario": "",
+        "next_steps": ["상세페이지 하단(또는 상품정보 제공고시)에 판매자 정보ㆍ청약철회ㆍ배송 고지를 추가하세요."],
+        "notes": "찾지 못했다는 뜻이며, 실제 페이지에 없다는 단정은 아닙니다.",
+        "legal_basis": basis,
+    }
+
+
+def tool_check_ecommerce_compliance(args: Dict[str, Any], store: Store, client_id: str, tier: str,
+                                    live: Any = None) -> Dict[str, Any]:
+    """국내 이커머스 셀러의 판매페이지 문구를 공정위 표시광고법ㆍ전자상거래법으로 검수한다.
+
+    가격(허위 정가ㆍ상시 마감임박), 후기(뒷광고), 청약철회ㆍ환불 제한, 배송ㆍ품절 책임 회피,
+    인증ㆍ수상, 최저가ㆍ1위, 구독ㆍ자동결제, 가격ㆍ해지 다크패턴, 위약금, 보장 문구를 찾고
+    판매자 정보ㆍ거래조건 고지 누락을 함께 대조한다. 근거 조문의 시행일ㆍ원문 URL과
+    수정 권고 문구(수정 전→후 예시)를 함께 반환한다.
+    """
+    from . import ecommerce
+    from .policy import DISCLAIMER_EN, DISCLAIMER_KO
+
+    copy = str(args.get("detail_copy") or args.get("sales_page_copy")
+               or args.get("ad_copy") or args.get("copy") or "").strip()
+    if len(copy) < 2:
+        raise ValueError("detail_copy_required")
+    if len(copy) > 8000:
+        raise ValueError("detail_copy_too_long")
+    provided = args.get("disclosure_items")
+    if provided is not None and not isinstance(provided, dict):
+        raise ValueError("disclosure_items_must_be_object")
+    channel = ecommerce.normalize_channel(args.get("channel"))
+    limit = max(1, min(int(args.get("limit", 12) or 12), 20))
+    include_disclosure = str(args.get("include_disclosure", "yes")).strip().lower() not in (
+        "no", "false", "0", "n")
+
+    block = ecommerce.check(copy, limit=limit, include_disclosure=include_disclosure,
+                            disclose_items=provided or {})
+    findings = [_commerce_finding(entry) for entry in block.get("findings") or []]
+    disclosure_finding = (_disclosure_finding(block.get("disclosure_check") or {})
+                          if include_disclosure else None)
+    if disclosure_finding is not None:
+        findings.append(disclosure_finding)
+
+    overall = str(block.get("combined_verdict") or "info_needed")
+    headline = (
+        "공정위 기준에서 고위험 문구가 확인되었습니다. 문구 수정과 근거 자료 확보가 필요합니다."
+        if block.get("risk_high")
+        else ("주의 문구가 있습니다. 근거 자료와 고지 위치를 확인하세요."
+              if block.get("risk_caution")
+              else "입력한 문구에서 공정위ㆍ전자거래법 위험 패턴을 찾지 못했습니다.")
+    )
+    guidance = list(ecommerce.summarize(block))
+
+    evidence: List[Dict[str, str]] = []
+    seen = set()
+    for finding in findings:
+        for row in finding.get("legal_basis") or []:
+            key = (row.get("law"), row.get("article"))
+            if not row.get("law") or key in seen:
+                continue
+            seen.add(key)
+            evidence.append(row)
+
+    result: Dict[str, Any] = {
+        "channel": channel,
+        "channel_label_ko": ecommerce.CHANNELS[channel]["label_ko"],
+        "channel_note_ko": ecommerce.CHANNELS[channel]["note_ko"],
+        "product_name": str(args.get("product_name") or "").strip(),
+        "verdict": {
+            "code": overall,
+            "label_ko": VERDICT_LABEL_KO.get(overall, VERDICT_LABEL_KO["info_needed"]),
+            "label_en": VERDICT_LABEL_EN.get(overall, VERDICT_LABEL_EN["info_needed"]),
+            "determinative": False,
+            "note_ko": "판매페이지 문구 대조 결과이며, 최종 판단은 공정거래위원회 심사기준과 전문가 검토를 따릅니다.",
+        },
+        "answer": {"headline": headline, "guidance": guidance},
+        "findings": findings,
+        "regulation_tags": tags_for_findings(findings),
+        "evidence": evidence,
+        "missing_information": [],
+        "next_actions": [
+            "지적된 문구를 수정 전→수정 후 예시로 바꾸고, 가격ㆍ후기ㆍ인증ㆍ실증자료를 함께 보관하세요.",
+            "상세페이지 하단에 상호ㆍ대표자ㆍ주소ㆍ연락처ㆍ통신판매업 신고번호와 청약철회ㆍ배송 고지를 넣으세요.",
+            "정기결제ㆍ무료체험 상품은 결제 전 화면에 다음 결제일ㆍ금액ㆍ해지 방법을 함께 표시하세요.",
+        ],
+        "ecommerce_review": block,
+        "disclosure_check": block.get("disclosure_check"),
+        "ecommerce": {
+            "rules": len(ecommerce.ECOMMERCE_RULES),
+            "rule_ids": [rule["id"] for rule in ecommerce.ECOMMERCE_RULES],
+            "disclosure_items": len(ecommerce.DISCLOSURE_ITEMS),
+            "authority_ko": ecommerce.AUTHORITY_KO,
+            "checked_on": ecommerce.VERIFIED_ON,
+            "verified_laws": [
+                {"law": ecommerce.FTC_NAME_KO, "effective_date": "2025-01-21", "url": ecommerce.LAW_URL_FTC_AD},
+                {"law": ecommerce.FTC_DECREE_NAME_KO, "effective_date": "2026-07-01", "url": ecommerce.LAW_URL_FTC_AD_DECREE},
+                {"law": ecommerce.EC_NAME_KO, "effective_date": "2026-07-21", "url": ecommerce.LAW_URL_ECOMMERCE},
+                {"law": ecommerce.EC_DECREE_NAME_KO, "effective_date": "2026-07-21", "url": ecommerce.LAW_URL_ECOMMERCE_DECREE},
+            ],
+        },
+        "data_provenance": {
+            "policy": "법령 조문은 법제처 현행본에서 검증한 문안만 인용 · 입력 문구는 저장하지 않음 · 개인정보 필드 미포함",
+            "sources": [
+                {"source_id": "law_go_kr", "label_ko": "법제처 국가법령정보센터", "state": "corpus_only",
+                 "note_ko": "조문 시행일은 2026-11-20 조회 기준입니다."},
+                {"source_id": "ftc_notice", "label_ko": "공정거래위원회 고시ㆍ예규", "state": "corpus_only",
+                 "note_ko": "고시ㆍ지침은 수시 개정되므로 원문 링크로 확인해야 합니다."},
+            ],
+            "checked_at": iso(now_kst()),
+        },
+        "disclaimer": {"ko": DISCLAIMER_KO, "en": DISCLAIMER_EN},
+        "scope_limits_ko": SCOPE_LIMITS_KO + [
+            "공정위ㆍ전자상거래법 검수는 판매페이지 문구ㆍ고지 항목을 대조한 사전 점검이며, "
+            "실제 화면 구성(가격 표시 위치ㆍ버튼 배치)은 캡처나 화면으로 따로 확인해야 합니다.",
+        ],
+        "tier": {"name": tier, "boundaries": TIER_BOUNDARIES["free"],
+                 "paid_notice_ko": PAID_TIER_NOTICE_KO},
+        "client_id": client_id,
+    }
+    apply_status(result)
+    return _envelope("check_ecommerce_compliance", result)
+
+
 def tool_check_ad_labeling(args: Dict[str, Any], store: Store, client_id: str, tier: str,
                            live: Any = None) -> Dict[str, Any]:
     """과대광고 문구 검수 + 한글표시사항 필수항목 점검을 한 번에 수행한다.
 
     품목 유형(일반식품/건강기능식품/화장품/기능성화장품)에 따라 허용·금지 기준을 다르게
     적용하고, 같은 문구가 유형별로 어떻게 달라지는지(`category_comparison`)도 함께 보여준다.
+    `ad_copy` 가 있으면 같은 문구를 공정위 표시광고법·전자상거래법 축(`ecommerce.review`)으로도
+    대조해 findings 에 합친다(가격ㆍ후기ㆍ청약철회ㆍ배송ㆍ구독ㆍ다크패턴).
     """
-    from . import advertising, labeling
+    from . import advertising, ecommerce, labeling
 
     product_name = str(args.get("product_name") or "").strip()
     ad_copy = str(args.get("ad_copy") or args.get("ad_text") or "").strip()
@@ -1289,6 +1518,13 @@ def tool_check_ad_labeling(args: Dict[str, Any], store: Store, client_id: str, t
         finding["regulation_tags"] = [advertising.tag_for_rule(
             str(finding.get("case_id") or ""), product_type)]
     findings.extend(ad_findings)
+    # 공정위ㆍ전자상거래법 축 — 같은 상세페이지 문구를 판매 방식(가격ㆍ후기ㆍ청약철회)으로 한 번 더 본다.
+    commerce_block: Optional[Dict[str, Any]] = None
+    commerce_findings: List[Dict[str, Any]] = []
+    if ad_copy:
+        commerce_block = ecommerce.review(ad_copy, limit=limit)
+        commerce_findings = [_commerce_finding(entry) for entry in commerce_block.get("findings") or []]
+        findings.extend(commerce_findings)
     label_finding = _label_finding(label_check)
     if label_finding is not None:
         findings.append(label_finding)
@@ -1296,6 +1532,8 @@ def tool_check_ad_labeling(args: Dict[str, Any], store: Store, client_id: str, t
     codes = [str((result.get("verdict") or {}).get("code") or "info_needed")]
     if ad_copy:
         codes.append(str(ad_review.get("verdict") or "info_needed"))
+        if commerce_block is not None:
+            codes.append(str(commerce_block.get("verdict") or "info_needed"))
     if label_text or label_items:
         codes.append(str(label_check.get("verdict") or "info_needed"))
     overall = max(codes, key=lambda code: VERDICT_SEVERITY.get(code, 1))
@@ -1308,11 +1546,15 @@ def tool_check_ad_labeling(args: Dict[str, Any], store: Store, client_id: str, t
     answer = result.setdefault("answer", {})
     if ad_review.get("risk_high"):
         answer["headline"] = "광고 문구에서 금지 위험 표현이 확인되었습니다. 문구를 수정하고 근거를 확인하세요."
+    elif commerce_block is not None and commerce_block.get("risk_high"):
+        answer["headline"] = "국내 판매페이지 기준에서 고위험 문구가 확인되었습니다(공정위ㆍ전자상거래법). 문구를 수정하세요."
     elif label_check.get("missing"):
         answer["headline"] = "한글표시사항 필수 항목의 누락 가능성이 있습니다. 라벨을 보완하세요."
     guidance = answer.setdefault("guidance", [])
     if ad_copy:
         guidance.extend(advertising.summarize(ad_review))
+    if commerce_block is not None:
+        guidance.extend(ecommerce.summarize(commerce_block, limit=3))
     if label_text or label_items:
         guidance.extend(labeling.summarize(label_check))
     if not ad_copy:
@@ -1323,7 +1565,7 @@ def tool_check_ad_labeling(args: Dict[str, Any], store: Store, client_id: str, t
     evidence = list(result.get("evidence") or [])
     seen = {(row.get("law"), row.get("article")) for row in evidence}
     extra_basis: List[Dict[str, str]] = []
-    for finding in ad_findings + ([label_finding] if label_finding else []):
+    for finding in ad_findings + commerce_findings + ([label_finding] if label_finding else []):
         extra_basis.extend(finding.get("legal_basis") or [])
     for row in extra_basis:
         key = (row.get("law"), row.get("article"))
@@ -1341,6 +1583,8 @@ def tool_check_ad_labeling(args: Dict[str, Any], store: Store, client_id: str, t
     result["missing_information"] = missing
 
     result["ad_review"] = ad_review
+    if commerce_block is not None:
+        result["ecommerce_review"] = commerce_block
     result["labeling_check"] = label_check
     result["ad_labeling"] = {
         "product_type": product_type,
@@ -1352,10 +1596,14 @@ def tool_check_ad_labeling(args: Dict[str, Any], store: Store, client_id: str, t
         "ad_risk_caution": ad_review.get("risk_caution"),
         "label_missing_count": len(label_check.get("missing") or []),
         "label_completion_rate": label_check.get("completion_rate"),
+        "ecommerce_finding_count": len(commerce_findings),
+        "ecommerce_risk_high": (commerce_block or {}).get("risk_high"),
+        "ecommerce_risk_caution": (commerce_block or {}).get("risk_caution"),
         "combined_verdict": overall,
     }
     result["next_actions"] = (label_check.get("next_actions") or []) + list(result.get("next_actions") or [])[:2] + [
         "광고 문구는 근거자료(시험성적서ㆍ인증번호)와 함께 보관하세요(식품표시광고법 제9조 실증 의무).",
+        "국내 판매페이지(쿠팡ㆍ스마트스토어ㆍ자사몰)에 올릴 문구라면 check_ecommerce_compliance 로 가격ㆍ후기ㆍ청약철회 고지까지 함께 확인하세요.",
     ]
     apply_status(result)
     return _envelope("check_ad_labeling", result)
@@ -1562,7 +1810,7 @@ TOOL_DEFS: List[Dict[str, Any]] = [    {
             "type": "object",
             "properties": {
                 "query": {"type": "string", "description": "품목과 상황 설명(예: '중국산 블루투스 스피커를 수입해 판매')"},
-                "facts": {"type": "object", "description": "purpose(resale|self_use), channel(direct|agency), price_usd, hs_code, rra_cert_no(적합성평가 인증·등록번호), target_age 등"},
+                "facts": {"type": "object", "description": "purpose(resale|self_use), channel(direct|agency), price_usd, hs_code, rra_cert_no(적합성평가 인증·등록번호), target_age, detail_copy(국내 판매페이지 문구) 등"},
                 "limit": {"type": "integer", "minimum": 1, "maximum": 3, "default": 3},
             },
             "required": ["query"],
@@ -1639,7 +1887,7 @@ TOOL_DEFS: List[Dict[str, Any]] = [    {
     {
         "name": "check_ad_labeling",
         "title_ko": "과대광고·한글표시사항 검수",
-        "description_ko": "상세페이지·상품명 문구와 라벨 문구를 품목 유형(일반식품/건강기능식품/화장품/기능성화장품)별로 대조해 질병 효능·의약품 오인·거짓과장·체험기·기능성 오인 등 위험 표현과 한글표시사항 누락 항목을 근거 법령·대체 표현과 함께 반환합니다.",
+        "description_ko": "상세페이지·상품명 문구와 라벨 문구를 품목 유형(일반식품/건강기능식품/화장품/기능성화장품)별로 대조해 질병 효능·의약품 오인·거짓과장·체험기·기능성 오인 등 위험 표현과 한글표시사항 누락 항목을 근거 법령·대체 표현과 함께 반환합니다. 같은 문구를 공정위 표시광고법·전자상거래법 축(가격·후기·청약철회·배송·구독·다크패턴)으로도 함께 검수합니다.",
         "handler": tool_check_ad_labeling,
         "input_schema": {
             "type": "object",
@@ -1657,6 +1905,26 @@ TOOL_DEFS: List[Dict[str, Any]] = [    {
                 "limit": {"type": "integer", "minimum": 1, "maximum": 20, "default": 8},
             },
             "required": [],
+        },
+    },
+    {
+        "name": "check_ecommerce_compliance",
+        "title_ko": "국내 판매페이지 공정위ㆍ전자상거래법 검수",
+        "description_ko": "쿠팡ㆍ스마트스토어ㆍ자사몰 상세페이지 문구를 공정위 표시광고법ㆍ전자상거래법으로 검수합니다. 허위 정가ㆍ마감임박, 체험단 대가성 미표기, 청약철회ㆍ환불 제한, 배송ㆍ품절 책임 회피, 인증ㆍ수상, 최저가ㆍ1위, 구독ㆍ자동결제, 가격ㆍ해지 다크패턴과 판매자 정보 고지 누락을 근거 조문(시행일ㆍ원문 URL)과 수정 전→후 문구로 반환합니다.",
+        "handler": tool_check_ecommerce_compliance,
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "detail_copy": {"type": "string", "description": "상세페이지ㆍ판매페이지 문구(가격ㆍ후기ㆍ배송ㆍ청약철회 안내 포함, 최대 8,000자)"},
+                "product_name": {"type": "string", "description": "제품명(선택)"},
+                "channel": {"type": "string", "enum": ["coupang", "smartstore", "own", "other"],
+                            "description": "판매 채널. 생략하면 기타"},
+                "disclosure_items": {"type": "object", "description": "고지 항목 체크(예: {'seller_identity': true, 'withdrawal': false})"},
+                "include_disclosure": {"type": "string", "enum": ["yes", "no"], "default": "yes",
+                                       "description": "판매자 정보ㆍ거래조건 고지 체크 포함 여부"},
+                "limit": {"type": "integer", "minimum": 1, "maximum": 20, "default": 12},
+            },
+            "required": ["detail_copy"],
         },
     },
     {

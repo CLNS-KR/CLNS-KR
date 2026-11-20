@@ -18,7 +18,8 @@ Clearance, simplified.
 - 원본 API 재전송 없음 — 결합·정규화한 판정만 출력
 - 브라우저에서 바로 쓰는 사람용 화면(`GET /`) 포함: 품목명만 넣고 10초 안에 확인 항목·근거 조문·리콜 이력을 본다. 화면은 CLNS Check · CLNS Intelligence · CLNS Ad & Label · CLNS API & MCP 네 축으로 나뉜다.
 - **품목별 무료 체크 페이지(pSEO) 35개**: `/p/` 인덱스와 `/p/{slug}` — 무선 미니 선풍기·보조배터리·오메가3·선크림·반려동물 사료 등. JS 없이 크롤러가 읽는 서버 렌더 HTML에 H1·대표 HS·세관장확인 요건 표·**규제 축(소관 기관·확인 카드·MCP 툴)**·KC·전파·식약처 항목·핵심 함정·근거·면책·**API/MCP 연결 안내**·실시간 조회 링크를 담는다(`sitemap.xml` 동적 생성, 얇은 페이지는 `noindex`).
-- **질문형·규제별 가이드 36개(0.3.0)**: `/guides/` 인덱스와 `/guides/{slug}` — "해외직구 영양제는 몇 병까지", "면세 한도는 150달러인가요 200달러인가요", "5V 저전압 제품은 KC 인증이 필요 없나요" 처럼 검색창·AI 챗봇에 실제로 입력되는 질문으로 들어오는 페이지. 질문을 H1로 두고 **한 줄 답변·대표 체크포인트·자주 틀리는 답·근거 조문(시행일·원문 URL)·규제 축·`/?q=` 웹 체크·`/mcp` 연결**을 담으며, `FAQPage` 구조화 데이터가 같은 질문·답변을 그대로 싣는다. 근거 조문은 카탈로그에 직접 쓰지 않고 **이 저장소에서 법제처 현행본으로 검증한 상수만 키로 참조**한다(해석되지 않는 키가 있으면 서버가 뜨지 않는다). 총 색인 URL **74개**(홈 1 + 품목 인덱스·35 + 가이드 인덱스·36)
+- **국내 이커머스 공정위·전자상거래법 검수(0.4.0)**: 쿠팡·스마트스토어·자사몰 상세페이지 문구를 넣으면 **표시·광고의 공정화에 관한 법률**(허위 정가·상시 마감임박·대가성 미표기 후기·근거 없는 최저가/1위·거짓 인증·과장 보장)과 **전자상거래법**(청약철회·환불 제한, 배송·품절 환급 회피, 구독·자동결제 고지 누락, 총금액 일부만 표시하는 UI, 취소·해지 방해, 판매자 정보 고지 누락)을 함께 검수한다. 규칙 14종 + 판매자 정보·거래조건 고지 9항목, 위험도·근거 조문(시행일·원문 URL)·**수정 전→후 문구**를 돌려주는 `check_ecommerce_compliance` 툴·`CLNS Check` 원스톱·`check_ad_labeling`·`assess_import_case` 연동
+- **질문형·규제별 가이드 50개(0.4.0)**: `/guides/` 인덱스와 `/guides/{slug}` — "해외직구 영양제는 몇 병까지", "면세 한도는 150달러인가요 200달러인가요", "5V 저전압 제품은 KC 인증이 필요 없나요" 처럼 검색창·AI 챗봇에 실제로 입력되는 질문으로 들어오는 페이지. 질문을 H1로 두고 **한 줄 답변·대표 체크포인트·자주 틀리는 답·근거 조문(시행일·원문 URL)·규제 축·`/?q=` 웹 체크·`/mcp` 연결**을 담으며, `FAQPage` 구조화 데이터가 같은 질문·답변을 그대로 싣는다. 근거 조문은 카탈로그에 직접 쓰지 않고 **이 저장소에서 법제처 현행본으로 검증한 상수만 키로 참조**한다(해석되지 않는 키가 있으면 서버가 뜨지 않는다). 총 색인 URL **88개**(홈 1 + 품목 인덱스·35 + 가이드 인덱스·50)
 - **일일 시계열 스냅샷·추이(0.3.0)**: 리콜·식약처 행정처분·화장품 배합금지/한도 원료·마약류 성분 사전의 항목별 지문을 `compliance_snapshots` 에 일자 단위로 적재하고(`python -m import_compliance.snapshots --take`), 전일 대비 **신규/변경/삭제** 건수와 최근 7·30일 **급증 품목군·위해유형·위반법령**을 `get_compliance_trends` 툴·`GET /v1/trends` 로 돌려준다. 이벤트가 0건인 기간에는 '급증 없음'으로 단정하지 않고 데이터 기준일 참고 창을 따로 계산해 함께 보여준다
 - **익명 일별 통계**: `GET /v1/stats` — IP·User-Agent 원문·쿠키·개인 식별자를 저장하지 않고 날짜별 경로/툴/`verdict.code`/0건·오류 수만 집계
 - **규제 카드 24개(0.1.5)** — 0.1.4의 의료기기법(TRAP-21)·위생용품 관리법(TRAP-22)에 이어, **의약품 반입 카드 2개(TRAP-23 마약류·향정·대마 반입 제한, TRAP-24 6병 기준과 성분 제한의 구분)** 를 추가. 마약류·원료물질 목록은 **마약류 관리에 관한 법률 시행령 별표 1~8**을 법제처 API로 받아 파싱한 로컬 사전(마약류 493건 + 원료물질 55건)으로 대조하고, 미래 시행일 개정 조문은 인용하지 않는다
@@ -42,6 +43,7 @@ Clearance, simplified.
 | `03-mvp-spec-and-risk-mitigation.md` | 5대 리스크 대응, 아키텍처, 캐시 DB, 8개 툴, 무료/유료 경계, 면책 |
 | `live-api-verification-2026-11-18.json` | 라이브 검증 산출물(정규화 샘플·상태, **키 없음**) |
 | `live-scenario-results-2026-11-18.json` | 대표 3품목 라이브 판정 산출물(응답시간·요건·리콜 포함, **키 없음**) |
+| `11-ecommerce-ftc-0.4.0.md` | 0.4.0 설계 — 공정위 표시광고법·전자상거래법 규칙 14종, 판매자 정보·거래조건 고지 9항목, 원스톱 연동, 국내 셀러 가이드 14종, 법령 검증 결과 |
 | `10-guides-and-trends-0.3.0.md` | 0.3.0 설계 — 질문형 가이드 36종 구조·근거 참조 방식·FAQPage, 일일 스냅샷 테이블·전일 대비·추이 API, 한계(정적 리콜 데이터·무료 플랜 휘발성) |
 | `09-ad-labeling-0.2.0.md` | 0.2.0 설계 — 유형별 광고 기준 차이, 탐지 규칙 16종, 한글표시 체크리스트, 행정처분 연동·폴백·개인정보 처리 |
 | `04-live-scenario-report-2026-11-18.md` | 대표 3품목 라이브 판정 사람용 리포트 |
@@ -49,7 +51,7 @@ Clearance, simplified.
 | `LICENSE` | MIT 라이선스(`Copyright (c) 2026 CLNS-KR`) |
 | `.github/workflows/test.yml` | CI: `--check-corpus` + `--check-testset` + 전체 테스트 + stdio MCP 스모크(Python 3.11·3.12) |
 
-출시 전 감사·성장 계획(05), 테스트셋·스키마 설계(06), 0.1.4 변경 상세(07), 0.1.5 변경 상세(08), 법령·API 실조회 검증 산출물(`medical-hygiene-law-verification.json`·`drug-law-verification.json`·`drug-api-verification-2026-11-18.json`·`ad-label-law-verification.json`·`food-sanitation-law-verification.json`·`disposition-api-verification-2026-11-19.json`)은 내부 문서로 두고 공개 저장소에는 포함하지 않는다.
+출시 전 감사·성장 계획(05), 테스트셋·스키마 설계(06), 0.1.4 변경 상세(07), 0.1.5 변경 상세(08), 법령·API 실조회 검증 산출물(`medical-hygiene-law-verification.json`·`drug-law-verification.json`·`drug-api-verification-2026-11-18.json`·`ad-label-law-verification.json`·`food-sanitation-law-verification.json`·`disposition-api-verification-2026-11-19.json`·`ecommerce-ftc-law-verification.json`)은 내부 문서로 두고 공개 저장소에는 포함하지 않는다.
 
 ## 실행
 
@@ -153,7 +155,7 @@ MCP 클라이언트 설정 예시(`claude_desktop_config.json` 등):
 - stdio 는 stdout 에 JSON-RPC 응답만 쓰고 로그는 stderr 로 보냅니다. notification 에는 아무것도 쓰지 않습니다.
 - 상태를 저장하지 않으므로 `initialize` 없이 `tools/call` 을 바로 보내도 동작합니다.
 
-### 툴 12종
+### 툴 13종
 
 | 툴 | 하는 일 | 주요 인자 |
 |---|---|---|
@@ -163,6 +165,7 @@ MCP 클라이언트 설정 예시(`claude_desktop_config.json` 등):
 | `check_food_cosmetics` | 식품·건기식·화장품·기구용기: 수입신고·영업등록·한글표시·광고심의 | `product_name`, `kind`(필수) |
 | `check_drug_import` | 의약품·영양제 성분 대조: 마약류·원료물질·국내 전용 성분 + 자가사용 인정기준(6병·3개월분) | `product_name`(필수), `channel`, `quantity`, `unit`, `prescription`, `purpose` |
 | `check_ad_labeling` | 상세페이지·상품명 문구와 라벨 문구를 유형별 기준으로 검수: 위험 표현·근거·대체 표현 + 한글표시사항 누락 | `product_type`, `ad_copy`, `label_text`, `label_items`, `functional`, `imported` |
+| `check_ecommerce_compliance` | 국내 판매페이지 문구를 공정위 표시광고법·전자상거래법으로 검수: 허위 정가·마감임박·뒷광고·청약철회 제한·배송 회피·인증/수상·최저가/1위·구독 자동결제·가격/해지 다크패턴 + 판매자 정보 고지 누락 | `detail_copy`(필수), `product_name`, `channel`, `disclosure_items`, `include_disclosure`, `limit` |
 | `lookup_mfds_disposition` | 식약처 행정처분 이력(식품제조가공업·식품판매업) + 업종별 빈발 위반 패턴(개인정보 필드 폐기) | `industry`, `keyword`, `license_no`, `confirmed_on`, `rows`, `limit` |
 | `lookup_recall` | 브랜드·모델명·제품명으로 국내 리콜 이력(국표원 15040696 로컬 인덱스) | `brand`, `model`, `product_name`, `category` |
 | `get_legal_basis` | 코퍼스 수록 법령 조항 요지·시행일·원문 URL | `law`(필수), `article` |
@@ -284,9 +287,9 @@ curl -s -X POST https://clns-kr.onrender.com/v1/tools/check_ad_labeling \
 | `GET /v1/stats` | 익명 일별 통계 JSON(`?days=7`). IP·User-Agent·쿠키·개인 식별자 미저장 |
 | `GET /healthz` | 헬스체크 |
 | `POST /mcp` · `POST /v1/mcp` | MCP JSON-RPC 2.0: `initialize`·`notifications/initialized`·`ping`·`tools/list`·`tools/call`. notification은 202(본문 없음), 표준 에러 코드(-32700/-32600/-32601/-32602), SSE 스트리밍 없음 |
-| `GET /.well-known/mcp/server-card.json` | MCP 서버 카드(인증 없음·툴 12종 스키마) |
+| `GET /.well-known/mcp/server-card.json` | MCP 서버 카드(인증 없음·툴 13종 스키마) |
 | `GET /v1/mcp` | 툴 매니페스트(사람이 읽는 JSON). `GET /mcp` 는 405(스트리밍 미지원) |
-| `POST /v1/tools/{tool}` | REST JSON 12종 |
+| `POST /v1/tools/{tool}` | REST JSON 13종 |
 | `GET /robots.txt`·`/llms.txt`·`/sitemap.xml` | 검색·AI 크롤러용 공개 파일(`sitemap.xml` 은 `/` + `/p/` + 전 품목 URL 동적 생성) |
 | `GET /static/og.png` | 공유 미리보기 이미지(1200×630) |
 | `GET /<확인파일>.html` | 검색엔진 소유확인 파일(`SITE_VERIFICATION_FILES` 로만 열린다. 없으면 404) |
@@ -405,14 +408,15 @@ src/
     store.py      SQLite 캐시·쿼터·폴백·TTL 캐시·실API 게이트웨이·일별 카운터
     live_api.py   공공 API 6종 어댑터(파싱·정규화·재시도·키 리댁션)
     recall_index.py  국표원 리콜 파일데이터(15040696·15054301) 적재·검색
-    api.py        12개 툴 + MCP 매니페스트·툴 정의(병렬 호출·7일 캐시·provenance 보정·툴 호출 계측)
+    api.py        13개 툴 + MCP 매니페스트·툴 정의(병렬 호출·7일 캐시·provenance 보정·툴 호출 계측)
     advertising.py 과대광고·부당표시 탐지 규칙 16종(유형별 적용·위험도·대체 표현·근거 조문)
     labeling.py    한글표시사항 필수항목 체크리스트(식품·건기식·화장품)와 누락 판정
+    ecommerce.py   국내 이커머스 공정위·전자상거래법 규칙 14종 + 판매자 정보·거래조건 고지 9항목(수정 전→후 문구)
     mfds_dispositions.py 식약처 행정처분(15124560·15124559) 연동·개인정보 제거·캐시·패턴 폴백
     mcp_http.py   MCP Streamable HTTP(JSON-RPC 2.0) 처리기
     mcp_stdio.py  같은 로직을 쓰는 stdio 엔트리포인트(줄 단위 JSON-RPC)
     pseo.py       품목별 페이지(35개) 서버 렌더러 · noindex/사이트맵 규칙
-    guides.py     질문형·규제별 가이드(36개) 서버 렌더러 · FAQPage · 검증 조문 키 참조
+    guides.py     질문형·규제별 가이드(50개) 서버 렌더러 · FAQPage · 검증 조문 키 참조
     snapshots.py  일일 리콜·행정처분·금지성분 스냅샷 적재 · 전일 대비 · 추이(7/30일 급증)
     usage.py      익명 일별 카운터(경로·툴·판정·0건/오류) + /v1/stats 페이로드
     static_files.py robots.txt·llms.txt·동적 sitemap.xml·MCP 서버 카드·og 이미지
@@ -422,7 +426,7 @@ src/
   traps_20.json   함정 24케이스(의료기기·위생용품·의약품 포함, corpus 1.0.6)
   testset_100.json 대표 100품목 테스트셋(8분야·필수 규제 태그)
   pseo_items.json 품목 35개 카탈로그(1.0.1) + 관세청 실조회 요건 표(2026-11-18)
-  guides_items.json 질문 36개 카탈로그(1.0.0) — 검증 조문·케이스·툴·태그 참조
+  guides_items.json 질문 50개 카탈로그(1.1.0) — 검증 조문·케이스·툴·태그 참조
   schema.sql      Postgres 이관용 DDL
   tests/
   tools/verify_live_apis.py   실API 4종 라이브 검증

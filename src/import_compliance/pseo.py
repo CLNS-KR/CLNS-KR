@@ -398,6 +398,15 @@ TAG_AUTHORITY_KO: Dict[str, str] = {
     "IP_PARALLEL_IMPORT": "관세청·특허청",
     "MEDICAL_DEVICE_IMPORT": "식품의약품안전처",
     "HYGIENE_PRODUCT_IMPORT": "식품의약품안전처",
+    "PRICE_AD_CLAIM": "공정거래위원회",
+    "REVIEW_MARKETING": "공정거래위원회",
+    "WITHDRAWAL_REFUND": "공정거래위원회",
+    "DELIVERY_FULFILLMENT": "공정거래위원회",
+    "CERTIFICATION_AWARD": "공정거래위원회",
+    "RANKING_CLAIM": "공정거래위원회",
+    "SUBSCRIPTION_AUTO_RENEWAL": "공정거래위원회",
+    "DARK_PATTERN_UI": "공정거래위원회",
+    "SELLER_DISCLOSURE": "공정거래위원회",
 }
 
 # 태그 → 이 페이지에서 "어떤 툴로 확인하는지"(MCP 연결 안내를 일관되게 만든다).
@@ -424,6 +433,15 @@ TAG_TOOL: Dict[str, str] = {
     "ORIGIN_FTA": "assess_import_case",
     "ORIGIN_MARKING": "assess_import_case",
     "IP_PARALLEL_IMPORT": "assess_import_case",
+    "PRICE_AD_CLAIM": "check_ecommerce_compliance",
+    "REVIEW_MARKETING": "check_ecommerce_compliance",
+    "WITHDRAWAL_REFUND": "check_ecommerce_compliance",
+    "DELIVERY_FULFILLMENT": "check_ecommerce_compliance",
+    "CERTIFICATION_AWARD": "check_ecommerce_compliance",
+    "RANKING_CLAIM": "check_ecommerce_compliance",
+    "SUBSCRIPTION_AUTO_RENEWAL": "check_ecommerce_compliance",
+    "DARK_PATTERN_UI": "check_ecommerce_compliance",
+    "SELLER_DISCLOSURE": "check_ecommerce_compliance",
 }
 
 TOOL_ONE_LINE_KO: Dict[str, str] = {
@@ -434,6 +452,8 @@ TOOL_ONE_LINE_KO: Dict[str, str] = {
     "lookup_recall": "브랜드·모델·품목군으로 국내 리콜 이력 조회",
     "get_legal_basis": "근거 법령 조문 요지·시행일·원문 URL 조회",
     "explain_trap": "이 페이지의 함정 케이스 해설(오답·정답·근거)",
+    "check_ad_labeling": "상세페이지·라벨 문구를 식약처 광고 기준으로 검수",
+    "check_ecommerce_compliance": "판매페이지 문구를 공정위 표시광고법·전자상거래법으로 검수",
 }
 
 

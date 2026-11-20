@@ -147,6 +147,15 @@ REGULATION_TAGS: Dict[str, Dict[str, str]] = {
     "COSMETICS_AD_CLAIM": {"label_ko": "화장품 부당표시·광고", "label_en": "Cosmetics advertising claim"},
     "COSMETICS_FUNCTIONAL_CLAIM": {"label_ko": "기능성화장품 오인 표시", "label_en": "Functional cosmetics claim"},
     "MFDS_DISPOSITION": {"label_ko": "식약처 행정처분 이력", "label_en": "MFDS administrative disposition"},
+    "PRICE_AD_CLAIM": {"label_ko": "부당 할인ㆍ가격 비교 표시", "label_en": "Discount / price comparison claim"},
+    "REVIEW_MARKETING": {"label_ko": "후기ㆍ체험단 대가성 표시", "label_en": "Endorsement / incentivized review"},
+    "WITHDRAWAL_REFUND": {"label_ko": "청약철회ㆍ환불 조건", "label_en": "Withdrawal / refund terms"},
+    "DELIVERY_FULFILLMENT": {"label_ko": "배송ㆍ품절 환급 의무", "label_en": "Delivery / refund on out-of-stock"},
+    "CERTIFICATION_AWARD": {"label_ko": "인증ㆍ수상ㆍ보장 표시", "label_en": "Certification / award claim"},
+    "RANKING_CLAIM": {"label_ko": "최저가ㆍ1위 등 최상급 표시", "label_en": "Lowest price / No.1 claim"},
+    "SUBSCRIPTION_AUTO_RENEWAL": {"label_ko": "구독ㆍ자동결제 고지", "label_en": "Subscription auto-renewal notice"},
+    "DARK_PATTERN_UI": {"label_ko": "온라인 인터페이스 다크패턴", "label_en": "Online interface dark pattern"},
+    "SELLER_DISCLOSURE": {"label_ko": "판매자 신원ㆍ거래조건 고지", "label_en": "Seller identity / transaction terms"},
 }
 
 # 코퍼스 케이스 → 규제 태그(테스트셋 required_findings 가 참조하는 유일한 매핑).

@@ -396,7 +396,7 @@ footer strong{color:var(--ink)}
                       <span class="lab">상세페이지·광고 문구<span class="opt">선택</span></span>
                       <textarea id="ad-copy-onestop" name="ad-copy-onestop" rows="3" maxlength="4000"
                                 placeholder="예: 먹기만 하면 100% 다이어트! 면역력 강화·암 예방"></textarea>
-                      <span class="hint">과대광고 위험 표현·대체 문구와 품목 유형별 허용 차이를 함께 검수합니다.</span>
+                      <span class="hint">식약처 과대광고 검수와 함께, 공정거래위원회 표시광고법·전자상거래법 기준(허위 정가·마감임박, 체험단 대가성 미표기, 청약철회 제한, 배송·품절 책임 회피, 최저가·1위, 구독·자동결제, 가격·해지 다크패턴)도 같이 봅니다. 국내 셀러는 상세페이지 문구만 붙여넣어도 됩니다.</span>
                     </label>
                     <label class="field full" for="ad-label-onestop">
                       <span class="lab">라벨·한글표시사항 문구<span class="opt">선택</span></span>
@@ -420,10 +420,39 @@ footer strong{color:var(--ink)}
           <div class="actions">
             <button type="submit" class="primary" id="check-submit">리스크 체크</button>
             <button type="button" class="ghost" id="check-demo">예시로 채워 보기</button>
+            <button type="button" class="ghost" id="check-demo-shop">국내 판매페이지 예시</button>
             <button type="button" class="ghost" id="check-reset">입력 지우기</button>
             <span class="note-inline" id="form-note" aria-live="polite"></span>
           </div>
         </form>
+      </div>
+
+      <div class="card" id="ec-only-card">
+        <h2>국내 판매페이지 문구만 빠르게 검수</h2>
+        <p class="sub">수입 요건 없이 상세페이지 문구만 넣어도 됩니다. 공정거래위원회 표시광고법·전자상거래법 기준으로 위험 문구와 빠진 고지를 확인합니다. 입력한 문구는 저장하지 않습니다.</p>
+        <label class="field full" for="ec-copy">
+          <span class="lab">상세페이지 문구<span class="req">*</span></span>
+          <textarea id="ec-copy" rows="3" maxlength="8000"
+                    placeholder="예: 정가 39,000원 → 오늘만 19,900원! 단순변심 환불 불가 / 체험단으로 선정되어 직접 써봤어요"></textarea>
+          <span class="hint">가격·후기·청약철회·배송·구독 안내를 페이지에 적힌 그대로 붙여넣으세요. 고지 항목(상호·연락처·판매자 신고번호·청약철회·배송)까지 함께 대조합니다.</span>
+        </label>
+        <div class="grid">
+          <label class="field" for="ec-channel">
+            <span class="lab">판매 채널<span class="opt">선택</span></span>
+            <select id="ec-channel">
+              <option value="own">자사몰</option>
+              <option value="smartstore">네이버 스마트스토어</option>
+              <option value="coupang">쿠팡</option>
+              <option value="other">기타(오픈마켓·SNS 커머스)</option>
+            </select>
+          </label>
+        </div>
+        <div class="actions">
+          <button type="button" class="primary" id="ec-submit">판매페이지 검수</button>
+          <button type="button" class="ghost" id="ec-demo">예시로 채워 보기</button>
+          <span class="note-inline" id="ec-note" aria-live="polite"></span>
+        </div>
+        <div id="ec-result" aria-live="polite"></div>
       </div>
 
       <div id="result" aria-live="polite"></div>
@@ -473,8 +502,8 @@ footer strong{color:var(--ink)}
               <tr><td>GET</td><td><code>/healthz</code></td><td>헬스체크</td></tr>
               <tr><td>GET</td><td><code>/v1/meta</code></td><td>코퍼스 버전·판정 등급·무료 한도</td></tr>
               <tr><td>POST</td><td><code>/mcp</code> · <code>/v1/mcp</code></td><td>MCP JSON-RPC 2.0 (initialize·tools/list·tools/call·ping)</td></tr>
-              <tr><td>GET</td><td><code>/.well-known/mcp/server-card.json</code></td><td>MCP 서버 카드(인증 없음·툴 12종 스키마)</td></tr>
-              <tr><td>GET</td><td><code>/v1/mcp</code></td><td>MCP 툴 매니페스트(툴 12종, 사람이 읽는 JSON)</td></tr>
+              <tr><td>GET</td><td><code>/.well-known/mcp/server-card.json</code></td><td>MCP 서버 카드(인증 없음·툴 13종 스키마)</td></tr>
+              <tr><td>GET</td><td><code>/v1/mcp</code></td><td>MCP 툴 매니페스트(툴 13종, 사람이 읽는 JSON)</td></tr>
               <tr><td>GET</td><td><code>/guides/</code> · <code>/guides/{slug}</code></td><td>질문형·규제별 가이드(서버 렌더 HTML)</td></tr>
               <tr><td>GET</td><td><code>/v1/trends</code></td><td>일일 스냅샷 기반 리콜·행정처분 시계열 추이</td></tr>
               <tr><td>GET</td><td><code>/robots.txt</code> · <code>/llms.txt</code> · <code>/sitemap.xml</code></td><td>검색·AI 크롤러용 공개 파일</td></tr>
@@ -485,6 +514,7 @@ footer strong{color:var(--ink)}
               <tr><td>POST</td><td><code>/v1/tools/check_food_cosmetics</code></td><td>식품·화장품·건기식 요건</td></tr>
               <tr><td>POST</td><td><code>/v1/tools/check_drug_import</code></td><td>의약품·영양제 금지성분·반입 제한</td></tr>
               <tr><td>POST</td><td><code>/v1/tools/check_ad_labeling</code></td><td>과대광고·한글표시사항 검수</td></tr>
+              <tr><td>POST</td><td><code>/v1/tools/check_ecommerce_compliance</code></td><td>국내 판매페이지 공정위·전자상거래법 검수</td></tr>
               <tr><td>POST</td><td><code>/v1/tools/lookup_mfds_disposition</code></td><td>식약처 행정처분 이력</td></tr>
               <tr><td>POST</td><td><code>/v1/tools/lookup_recall</code></td><td>국내 리콜 이력</td></tr>
               <tr><td>POST</td><td><code>/v1/tools/get_legal_basis</code></td><td>근거 조항</td></tr>
@@ -516,7 +546,7 @@ footer strong{color:var(--ink)}
     <p>Clearance, simplified.</p>
     <p>무료 베타 · 결제 없음 · 회원가입 없음</p>
     <p><strong>품목별 수입 요건:</strong> <a href="/p/">선풍기·보조배터리·오메가3·선크림 등 35개 품목의 요건·인증·함정을 정리한 무료 체크 페이지</a></p>
-    <p><strong>질문형 가이드:</strong> <a href="/guides/">영양제 6병, 면세 한도 150/200달러, KC·전파 인증, 한글표시사항, 과대광고 금지 표현 등 자주 묻는 질문 36개에 근거 법령으로 답한 페이지</a></p>
+    <p><strong>질문형 가이드:</strong> <a href="/guides/">영양제 6병, 면세 한도 150/200달러, KC·전파 인증, 한글표시사항, 과대광고 금지 표현, 단순변심 환불 불가 문구, 체험단 대가성 표시 등 자주 묻는 질문 __GUIDE_COUNT__개에 근거 법령으로 답한 페이지</a></p>
     <p><strong>면책:</strong> 본 결과는 사전 참고용입니다. 법적 효력이 없으며, 최종 법적 판단과 통관·인증 가능 여부는 관세사, 관세청, 국가기술표준원·인증기관, 식품의약품안전처 등 소관 기관의 확인이 필요합니다. 본 서비스는 관세사법상 관세 상담·대리 업무를 수행하지 않습니다.</p>
     <p><strong>데이터:</strong> 관세청·식품의약품안전처·산업통상부 국가기술표준원·과학기술정보통신부 국립전파연구원·법제처 공공데이터를 활용합니다. 의약품 성분은 마약류 관리에 관한 법률 시행령 별표 1~8을 로컬 사전으로 만들어 대조하며, 식약처 의약품 허가정보·e약은요·DUR API는 활용승인 전이라 실시간 전수 대조를 제공하지 않습니다. 원본을 그대로 중계하지 않고 결합·정규화한 판정만 제공하며, 조회 실패나 개정 지연 시 캐시 시점을 밝히고 판정을 "추가 정보 필요"로 낮춥니다.</p>
     <p><strong>개인정보:</strong> 이름·연락처·이메일·사업자 정보를 받지 않습니다. 입력한 품목 정보(품목명·HS·원산지 등)는 판정 이력에 익명으로 저장될 수 있습니다. 상호·주소 등 식별 정보는 입력하지 마세요.</p>
@@ -914,6 +944,35 @@ footer strong{color:var(--ink)}
       '<p class="note-inline" style="margin-top:8px">' + esc(check.coverage_ko || "") + '</p>';
   }
 
+  function ecommerceFindingsBlock(review){
+    if (!review) return emptyBox("국내 판매페이지 검수 결과가 없습니다.");
+    var findings = review.findings || [];
+    if (!findings.length) return emptyBox("탐지된 공정위ㆍ전자상거래법 위험 문구가 없습니다. 근거 자료는 계속 보관해야 합니다(실증 의무).");
+    var body = findings.map(function(f){
+      return "<tr><td>" + riskTag(f.risk) + "</td><td><strong>" + esc(f.name_ko) + "</strong><br><span class='note-inline'>" +
+        esc((f.matched_phrases || []).join(", ")) + "</span></td><td>" + esc(f.why_ko) +
+        "</td><td>" + esc(f.safer_ko) +
+        (f.fix_example_ko ? "<br><span class='note-inline'>" + esc(f.fix_example_ko) + "</span>" : "") + "</td></tr>";
+    }).join("");
+    return '<div class="tbl-wrap"><table><thead><tr><th>위험도</th><th>유형·탐지 표현</th><th>판단 이유</th><th>수정 권고 문구</th></tr></thead><tbody>' + body + '</tbody></table></div>';
+  }
+
+  function ecommerceDisclosureBlock(check){
+    if (!check || !(check.checklist || []).length) return "";
+    var rows = (check.checklist || []).map(function(r){
+      var tag = r.status === "present" ? '<span class="tag ok">확인</span>' :
+        (r.status === "missing" ? '<span class="tag ' + (r.required ? "bad" : "warn") + '">' + (r.required ? "누락" : "확인 필요") + '</span>' :
+          (r.status === "not_applicable" ? '<span class="tag">해당 없음</span>' : '<span class="tag info">미확인</span>'));
+      var basis = (r.legal_basis && r.legal_basis[0]) ? (r.legal_basis[0].law + " " + r.legal_basis[0].article) : "";
+      return "<tr><td>" + (r.required ? "<strong>필수</strong>" : "조건부") + "</td><td>" + esc(r.label_ko) +
+        (r.example_ko ? "<br><span class='note-inline'>" + esc(r.example_ko) + "</span>" : "") +
+        "</td><td>" + tag + "</td><td>" + esc(basis) + "</td></tr>";
+    }).join("");
+    var head = '<p class="sub">필수 고지 ' + esc(String(check.required_count)) + "항목 중 " + esc(String(check.present_count)) +
+      "항목 확인 (완료율 " + esc(String(Math.round((check.completion_rate || 0) * 100))) + "%) — 입력한 문구에서 찾지 못한 결과이며, 실제 페이지에 없다는 단정은 아닙니다.</p>";
+    return head + '<div class="tbl-wrap"><table><thead><tr><th>구분</th><th>고지 항목</th><th>상태</th><th>근거</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
+  }
+
   function disclaimerBlock(result){
     var ko = result.disclaimer ? result.disclaimer.ko : "";
     var limits = result.scope_limits_ko || [];
@@ -1148,6 +1207,20 @@ footer strong{color:var(--ink)}
             html += sectionCollapsible("같은 문구의 유형별 판단", categoryCompareBlock(adRev.category_comparison),
               "유형별 허용 범위 비교 펼쳐 보기");
           }
+          if (adCopy && adResult.ecommerce_review) {
+            var ecRev = adResult.ecommerce_review;
+            html += section("국내 판매페이지 검수 (공정거래위원회)",
+              '<p class="sub">쿠팡·스마트스토어·자사몰에 올릴 때 걸리는 표시광고법·전자상거래법 위험 문구입니다. ' +
+              esc(ecRev.risk_summary_ko || "") + ' · 근거 확인 ' + esc(ecRev.checked_on || "") + '</p>' +
+              ecommerceFindingsBlock(ecRev),
+              "가격(허위 정가·마감임박), 후기(뒷광고), 청약철회·환불 제한, 배송·품절 책임 회피, 인증·수상, 최저가·1위, " +
+              "구독·자동결제, 가격·해지 다크패턴, 위약금, 보장 문구를 공정위 기준으로 대조합니다. " +
+              "판매자 정보·거래조건 고지 항목까지 보려면 상세페이지 전체를 check_ecommerce_compliance 로 넣으세요.");
+            if (ecRev.disclosure_check) {
+              html += sectionCollapsible("판매자 정보·거래조건 고지 체크",
+                ecommerceDisclosureBlock(ecRev.disclosure_check), "상세페이지 하단 고지 항목 펼쳐 보기");
+            }
+          }
           if (adLabel) {
             html += section("한글표시사항 라벨 체크", labelChecklistBlock(adLbl),
               "누락은 입력한 텍스트에서 항목을 찾지 못했다는 뜻입니다. 세부 서식은 고시를 확인하세요.");
@@ -1218,6 +1291,82 @@ footer strong{color:var(--ink)}
     syncConditionalFields();
     formNote.textContent = "예시를 채웠습니다. '리스크 체크'를 눌러 원스톱 검수를 확인해 보세요.";
   });
+
+  var demoShop = document.getElementById("check-demo-shop");
+  if (demoShop){
+    demoShop.addEventListener("click", function(){
+      document.getElementById("product").value = "국산 보습 핸드크림";
+      document.getElementById("hs").value = "";
+      document.getElementById("origin").value = "한국";
+      var wno = form.querySelector('input[name="wire"][value="no"]'); if (wno) wno.checked = true;
+      var cn2 = form.querySelector('input[name="child"][value="no"]'); if (cn2) cn2.checked = true;
+      document.getElementById("kind").value = "cosmetics";
+      var pr2 = form.querySelector('input[name="purpose"][value="resale"]'); if (pr2) pr2.checked = true;
+      var adShop = document.getElementById("ad-copy-onestop");
+      if (adShop) adShop.value = "정가 39,000원 → 오늘만 19,900원 (49% 할인)! 마감 임박! | 체험단으로 선정되어 직접 써봤어요. 국내 최저가! | 단순변심 환불 불가, 포장 개봉 시 교환·반품 불가";
+      if (adOnestopWrap) adOnestopWrap.open = true;
+      syncConditionalFields();
+      formNote.textContent = "국내 셀러 상세페이지 예시를 채웠습니다. '리스크 체크'를 누르면 식약처 광고 검수와 공정위·전자상거래법 검수를 함께 봅니다.";
+    });
+  }
+
+  var ecCopy = document.getElementById("ec-copy");
+  var ecChannel = document.getElementById("ec-channel");
+  var ecSubmit = document.getElementById("ec-submit");
+  var ecNote = document.getElementById("ec-note");
+  var ecResult = document.getElementById("ec-result");
+
+  function renderEcommerce(result){
+    var rev = result.ecommerce_review || {};
+    var disc = result.disclosure_check || rev.disclosure_check;
+    var html = '<div class="card"><h2>판매페이지 검수 결과</h2>' +
+      '<p class="sub">판매 채널: ' + esc(result.channel_label_ko || "") + ' · 근거 확인 ' + esc(rev.checked_on || "") +
+      ' · ' + esc(rev.risk_summary_ko || "") + '</p>' +
+      verdictBlock(result.verdict, result) +
+      '<h3>판정 요지</h3>' + guidanceBlock(result);
+    if (disc) {
+      html += '<h3>판매자 정보·거래조건 고지</h3>' + ecommerceDisclosureBlock(disc);
+    }
+    html += '</div>';
+    html += section("위험 문구 " + String((rev.findings || []).length) + "건", ecommerceFindingsBlock(rev),
+      "가격(허위 정가·마감임박), 후기 대비책, 청약철회·환불 제한, 배송·품절 회피, 인증·수상, 최저가·1위, 구독·자동결제, 가격·해지 다크패턴, 위약금, 보장 문구를 공정위 기준으로 대조합니다.");
+    html += sectionCollapsible("근거 법령·조항", evidenceBlock(result.evidence), String((result.evidence || []).length) + "건 펼쳐 보기",
+      "인용문은 요지 발췌입니다. 조문 전체는 원문에서 확인해야 하며, 출처 표시 없이 재배포할 수 없습니다.");
+    html += sectionCollapsible("면책·이용 범위", disclaimerBlock(result), "안내 보기");
+    return html;
+  }
+
+  if (ecSubmit){
+    ecSubmit.addEventListener("click", function(){
+      var text = (ecCopy && ecCopy.value || "").trim();
+      if (text.length < 2){
+        if (ecNote) ecNote.textContent = "상세페이지 문구를 2자 이상 입력해 주세요.";
+        return;
+      }
+      ecSubmit.disabled = true;
+      ecResult.innerHTML = '<div class="card"><p class="sub"><span class="spinner"></span> 공정위 기준으로 대조하고 있습니다…</p></div>';
+      postTool("check_ecommerce_compliance", {detail_copy: text, channel: (ecChannel && ecChannel.value) || "own", limit: 12})
+        .then(function(result){
+          ecResult.innerHTML = renderEcommerce(result);
+          ecResult.scrollIntoView({behavior: "smooth", block: "start"});
+        })
+        .catch(function(err){
+          ecResult.innerHTML = '<div class="card"><div class="empty">' + esc(err.message || "검수에 실패했습니다.") + '</div></div>';
+        })
+        .then(function(){
+          ecSubmit.disabled = false;
+          if (ecNote) ecNote.textContent = "";
+        });
+    });
+  }
+  var ecDemo = document.getElementById("ec-demo");
+  if (ecDemo){
+    ecDemo.addEventListener("click", function(){
+      if (ecCopy) ecCopy.value = "정가 39,000원 → 오늘만 19,900원 (49% 할인)! 마감 임박! 체험단으로 선정되어 직접 써봤어요. 국내 최저가! 단순변심 환불 불가, 포장 개봉 시 교환·반품 불가. 배송 지연 시 책임지지 않습니다.";
+      if (ecChannel) ecChannel.value = "smartstore";
+      if (ecNote) ecNote.textContent = "예시를 채웠습니다. '판매페이지 검수'를 눌러 보세요.";
+    });
+  }
 
   document.getElementById("check-reset").addEventListener("click", function(){
     form.reset();
@@ -1325,6 +1474,14 @@ footer strong{color:var(--ink)}
 def render_page(service_name: str = SERVICE_NAME, version: str = SERVICE_VERSION) -> str:
     """웹 UI HTML을 돌려준다(외부 자원 없음, 익명 서비스명만 사용)."""
     page = PAGE_HTML.replace("__VERSION__", version)
+    # 가이드 수는 카탈로그에서 읽는다(하드코딩하면 가이드를 추가할 때마다 어긋난다).
+    try:
+        from . import guides
+
+        guide_count = str(len(guides.items()))
+    except Exception:  # noqa: BLE001 - 카탈로그 문제가 첫 화면을 막지 않게
+        guide_count = ""
+    page = page.replace("__GUIDE_COUNT__", guide_count)
     if service_name != SERVICE_NAME:
         page = page.replace(SERVICE_NAME, service_name)
     verification = site_verification.meta_tags()
