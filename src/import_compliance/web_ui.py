@@ -4,9 +4,12 @@
 ----
 1. **외부 의존 0**: CSS·JS·이미지를 모두 인라인으로 넣는다(CDN·폰트·트래커 없음).
    서버 CSP가 외부 로드를 아예 막으므로, 페이지가 스스로 완결되어야 한다.
-2. **익명**: 실명·이메일·사업자 정보·연락처를 페이지 어디에도 넣지 않는다.
+2. **익명**: 운영 주체의 실명·이메일·사업자 정보·연락처를 페이지 어디에도 넣지 않는다.
+   예외는 하단 'CLNS Pro 사전 신청·도입 문의' 폼뿐이며, 여기서 받는 연락처는 회신 목적으로만
+   저장하고 화면·통계에 다시 노출하지 않는다.
 3. **단정 금지**: 판정 문구는 전부 "가능성·확인 필요"로 표기하고, 면책을 하단에 고정한다.
-4. **입력값만 전송**: 폼은 품목명·HS·원산지·무선 여부·어린이 대상·품목군·수입 목적만 보낸다.
+4. **입력값만 전송**: 조회 폼은 품목명·HS·원산지·무선 여부·어린이 대상·품목군·수입 목적만 보낸다.
+   문의 폼은 관심 항목·회신 연락처·선택 메모만 보낸다.
 5. **공유는 요약만**: 결과 공유 링크에는 품목명·품목군·원산지 같은 안전한 파라미터만 담고,
    상세페이지 전문·성분표·연락처 같은 입력 본문은 담지 않는다.
 """
@@ -157,6 +160,14 @@ input[type=text]:focus, select:focus, textarea:focus{outline:2px solid var(--bra
   color:var(--ink-soft); user-select:none}
 .seg input:checked + span{background:var(--brand-soft); border-color:var(--brand); color:var(--brand)}
 .seg input:focus-visible + span{outline:2px solid var(--brand); outline-offset:2px}
+.presets{display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin:0 0 14px}
+.presets .plabel{font-size:12px; font-weight:600; color:var(--ink-soft); margin-right:2px}
+.presets button{font:inherit; font-size:13px; font-weight:600; color:var(--brand);
+  background:var(--brand-soft); border:1px solid transparent; border-radius:999px;
+  padding:9px 13px; cursor:pointer; min-height:38px; white-space:nowrap}
+.presets button:hover{border-color:var(--brand)}
+.presets button:focus-visible{outline:2px solid var(--brand); outline-offset:2px}
+@media (max-width:430px){ .presets button{font-size:12.5px; padding:9px 11px} }
 .actions{display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:18px}
 button.primary{
   font:inherit; font-size:15px; font-weight:700; color:#fff; background:var(--brand);
@@ -237,6 +248,10 @@ footer strong{color:var(--ink)}
 .sharebar button:hover{border-color:var(--brand)}
 .sharebar button:focus-visible{outline:2px solid var(--brand); outline-offset:2px}
 .sharebar .copied{font-size:12.5px; font-weight:700; color:var(--ok)}
+.card.inquiry{margin-top:14px; padding:16px 18px; background:var(--card)}
+.card.inquiry h2{font-size:15px}
+.card.inquiry .sub{margin:0 0 12px; font-size:12.5px}
+.card.inquiry .hint{font-size:11.5px}
 .sr{position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden;
   clip:rect(0,0,0,0); white-space:nowrap; border:0}
 </style>
@@ -272,6 +287,14 @@ footer strong{color:var(--ink)}
         <h2>CLNS Check</h2>
         <p class="sub">수입·반입 전 10초 통합 체크 · 품목명만 넣어도 규제·의약품·리콜을 한 번에 확인합니다. 결과는 확정 판정이 아니라 <strong>확인할 항목의 목록</strong>입니다.</p>
         <form id="check-form" novalidate>
+          <div class="presets" role="group" aria-label="대표 품목으로 바로 체험">
+            <span class="plabel">대표 품목으로 1초 체험</span>
+            <button type="button" class="preset" id="preset-supplement" data-preset="supplement">영양제 직구</button>
+            <button type="button" class="preset" id="preset-dog-treat" data-preset="dog-treat">강아지 간식</button>
+            <button type="button" class="preset" id="preset-cosmetics" data-preset="cosmetics">수입 화장품</button>
+            <button type="button" class="preset" id="preset-earbuds" data-preset="earbuds">블루투스 이어폰</button>
+            <button type="button" class="preset" id="preset-kids-clothes" data-preset="kids-clothes">유아용 의류</button>
+          </div>
           <div class="grid">
             <label class="field full" for="product">
               <span class="lab">품목명<span class="req">*</span></span>
@@ -542,6 +565,7 @@ footer strong{color:var(--ink)}
               <tr><td>POST</td><td><code>/v1/tools/get_legal_basis</code></td><td>근거 조항</td></tr>
               <tr><td>POST</td><td><code>/v1/tools/get_compliance_trends</code></td><td>리콜·행정처분 시계열 추이</td></tr>
               <tr><td>POST</td><td><code>/v1/tools/explain_trap</code></td><td>함정 케이스 해설</td></tr>
+              <tr><td>POST</td><td><code>/v1/inquiry</code></td><td>CLNS Pro 사전 신청·도입 문의(비쿼터, 회신용 연락처만 보관)</td></tr>
               <tr><td>POST</td><td><code>/v1/tools/get_service_meta</code></td><td>서비스·티어 정보</td></tr>
             </tbody>
           </table>
@@ -562,16 +586,51 @@ footer strong{color:var(--ink)}
     </section>
   </main>
 
+  <!-- ================= CLNS Pro 사전 신청 · 도입 문의 ================= -->
+  <section class="card inquiry" id="inquiry" aria-labelledby="inquiry-title">
+    <h2 id="inquiry-title">CLNS Pro 사전 신청 · 도입 문의</h2>
+    <p class="sub">엑셀/CSV 일괄 검수와 API·MCP 연동은 준비 중입니다. 필요하시면 남겨 주세요. 확인 후 남기신 연락처로만 회신드리며, 며칠 걸릴 수 있습니다.</p>
+    <form id="inquiry-form" novalidate>
+      <div class="grid">
+        <label class="field" for="inquiry-topic">
+          <span class="lab">관심 항목</span>
+          <select id="inquiry-topic" name="inquiry-topic">
+            <option value="clns_pro_batch">CLNS Pro · 엑셀/CSV 일괄 검수</option>
+            <option value="api_mcp">API · MCP 연동</option>
+            <option value="other">그 외 문의</option>
+          </select>
+        </label>
+        <label class="field" for="inquiry-contact">
+          <span class="lab">이메일 또는 연락처 <span class="req">*</span></span>
+          <input type="text" id="inquiry-contact" name="inquiry-contact" maxlength="120"
+                 autocomplete="off" placeholder="회신받을 이메일이나 연락처"
+                 aria-describedby="inquiry-contact-hint">
+          <span class="hint" id="inquiry-contact-hint">회신 목적으로만 저장합니다.</span>
+        </label>
+        <label class="field full" for="inquiry-message">
+          <span class="lab">메모 <span class="opt">선택</span></span>
+          <textarea id="inquiry-message" name="inquiry-message" rows="2" maxlength="500"
+                    placeholder="다루는 품목 수, 연동하려는 서비스 등 편하게 적어 주세요."></textarea>
+        </label>
+      </div>
+      <div class="actions">
+        <button type="submit" class="primary" id="inquiry-submit">사전 신청 보내기</button>
+        <span class="note-inline" id="inquiry-note" role="status" aria-live="polite"></span>
+      </div>
+      <p class="hint">이 폼에서 받은 연락처는 이 문의에 회신하는 데만 쓰고, 통계·공개 화면에는 넣지 않습니다.</p>
+    </form>
+  </section>
+
   <footer>
     <p><strong>CLNS</strong></p>
     <p>PRODUCT COMPLIANCE INTELLIGENCE · KOREA</p>
     <p>Clearance, simplified.</p>
     <p>무료 베타 · 결제 없음 · 회원가입 없음</p>
     <p><strong>품목별 수입 요건:</strong> <a href="/p/">선풍기·보조배터리·오메가3·선크림 등 35개 품목의 요건·인증·함정을 정리한 무료 체크 페이지</a></p>
-    <p><strong>질문형 가이드:</strong> <a href="/guides/">영양제 6병, 면세 한도 150/200달러, KC·전파 인증, 한글표시사항, 과대광고 금지 표현, 단순변심 환불 불가 문구, 체험단 대가성 표시, 스마트스토어 상표권, 어린이제품 KC, 직구 전자제품 1인 1대 전파 예생, 화장품 미백·주름 문구, 목록통관 배제 품목 등 자주 묻는 질문 __GUIDE_COUNT__개에 근거 법령으로 답한 페이지</a></p>
+    <p><strong>질문형 가이드:</strong> <a href="/guides/">영양제 6병, 면세 한도 150/200달러, KC·전파 인증, 한글표시사항, 과대광고 금지 표현, 단순변심 환불 불가 문구, 체험단 대가성 표시, 스마트스토어 상표권, 어린이제품 KC, 직구 전자제품 1인 1대 전파 예생, 화장품 미백·주름 문구, 목록통관 배제 품목, 향수 60mL·와인 직구, 콘택트렌즈·유모차 KC, 원두·차 수입신고, 구매대행 청약철회 등 자주 묻는 질문 __GUIDE_COUNT__개에 근거 법령으로 답한 페이지</a></p>
     <p><strong>면책:</strong> 본 결과는 사전 참고용입니다. 법적 효력이 없으며, 최종 법적 판단과 통관·인증 가능 여부는 관세사, 관세청, 국가기술표준원·인증기관, 식품의약품안전처 등 소관 기관의 확인이 필요합니다. 본 서비스는 관세사법상 관세 상담·대리 업무를 수행하지 않습니다.</p>
     <p><strong>데이터:</strong> 관세청·식품의약품안전처·산업통상부 국가기술표준원·과학기술정보통신부 국립전파연구원·법제처 공공데이터를 활용합니다. 의약품 성분은 마약류 관리에 관한 법률 시행령 별표 1~8을 로컬 사전으로 만들어 대조하며, 식약처 의약품 허가정보·e약은요·DUR API는 활용승인 전이라 실시간 전수 대조를 제공하지 않습니다. 원본을 그대로 중계하지 않고 결합·정규화한 판정만 제공하며, 조회 실패나 개정 지연 시 캐시 시점을 밝히고 판정을 "추가 정보 필요"로 낮춥니다.</p>
-    <p><strong>개인정보:</strong> 이름·연락처·이메일·사업자 정보를 받지 않습니다. 입력한 품목 정보(품목명·HS·원산지 등)는 판정 이력에 익명으로 저장될 수 있습니다. 상호·주소 등 식별 정보는 입력하지 마세요.</p>
+    <p><strong>개인정보:</strong> 품목 조회에는 이름·연락처·이메일·사업자 정보를 받지 않습니다. 위 'CLNS Pro 사전 신청·도입 문의'에 남긴 연락처는 회신하는 용도로만 저장하고, 통계·공개 화면에는 쓰지 않습니다. 입력한 품목 정보(품목명·HS·원산지 등)는 판정 이력에 익명으로 저장될 수 있습니다. 상호·주소 등 식별 정보는 입력하지 마세요.</p>
     <p>© 2026 CLNS · 익명 운영 무료 베타 · <span id="version">v__VERSION__</span></p>
   </footer>
 </div>
@@ -1468,6 +1527,44 @@ footer strong{color:var(--ink)}
   });
   syncConditionalFields();
 
+  // 대표 품목 원클릭 체험 — 품목명·품목군·원산지를 채우고 바로 점검을 실행한다.
+  var PRESETS = {
+    "supplement": {product: "미국산 멜라토닌 영양제", kind: "health_functional", origin: "미국",
+                   wire: "no", child: "no", purpose: "self_use", hs: ""},
+    "dog-treat": {product: "미국산 강아지 동결건조 간식", kind: "feed", origin: "미국",
+                  wire: "no", child: "no", purpose: "resale", hs: "2309101000"},
+    "cosmetics": {product: "미국산 수딩 크림", kind: "cosmetics", origin: "미국",
+                  wire: "no", child: "no", purpose: "resale", hs: "3304992000"},
+    "earbuds": {product: "중국산 블루투스 이어폰", kind: "electronics", origin: "중국",
+                wire: "yes", child: "no", purpose: "resale", hs: "8518309000"},
+    "kids-clothes": {product: "베트남산 유아용 의류", kind: "", origin: "베트남",
+                     wire: "no", child: "yes", purpose: "resale", hs: ""}
+  };
+  function pickRadio(name, value){
+    var el = form.querySelector('input[name="' + name + '"][value="' + value + '"]');
+    if (el) el.checked = true;
+  }
+  function applyPreset(key){
+    var preset = PRESETS[key];
+    if (!preset) return;
+    document.getElementById("product").value = preset.product;
+    document.getElementById("hs").value = preset.hs || "";
+    document.getElementById("origin").value = preset.origin;
+    document.getElementById("kind").value = preset.kind;
+    pickRadio("wire", preset.wire);
+    pickRadio("child", preset.child);
+    pickRadio("purpose", preset.purpose);
+    var adPreset = document.getElementById("ad-copy-onestop");
+    if (adPreset) adPreset.value = "";
+    syncConditionalFields();
+    formNote.textContent = "대표 품목을 채우고 점검을 시작했습니다.";
+    if (form.requestSubmit) form.requestSubmit();
+    else form.dispatchEvent(new Event("submit", {cancelable: true}));
+  }
+  Array.prototype.slice.call(document.querySelectorAll(".preset[data-preset]")).forEach(function(btn){
+    btn.addEventListener("click", function(){ applyPreset(btn.getAttribute("data-preset")); });
+  });
+
   document.getElementById("check-demo").addEventListener("click", function(){
     document.getElementById("product").value = "중국산 블루투스 스피커";
     document.getElementById("hs").value = "8518220000";
@@ -1712,6 +1809,43 @@ footer strong{color:var(--ink)}
   } catch (e) {}
 
   Array.prototype.forEach.call(document.querySelectorAll(".base-slot"), function(el){ el.textContent = BASE; });
+
+  // ---------- CLNS Pro 사전 신청 · 도입 문의 ----------
+  var inquiryForm = document.getElementById("inquiry-form");
+  if (inquiryForm){
+    var inquiryNote = document.getElementById("inquiry-note");
+    var inquirySubmit = document.getElementById("inquiry-submit");
+    var inquiryContact = document.getElementById("inquiry-contact");
+    var inquiryButtonText = inquirySubmit.textContent;
+    inquiryForm.addEventListener("submit", function(ev){
+      ev.preventDefault();
+      var contact = (inquiryContact.value || "").trim();
+      if (contact.length < 3){
+        inquiryNote.textContent = "회신받을 이메일이나 연락처를 3자 이상 적어 주세요.";
+        inquiryContact.focus();
+        return;
+      }
+      var topicEl = document.getElementById("inquiry-topic");
+      var messageEl = document.getElementById("inquiry-message");
+      inquirySubmit.disabled = true;
+      inquirySubmit.textContent = "보내는 중";
+      inquiryNote.textContent = "";
+      request("POST", "/v1/inquiry", {
+        contact: contact,
+        topic: topicEl ? topicEl.value : "other",
+        message: messageEl ? (messageEl.value || "").trim() : ""
+      }).then(function(res){
+        inquiryForm.reset();
+        inquiryNote.textContent = "접수되었습니다 (접수번호 " + text(res && res.id) +
+          "). 확인 후 남기신 연락처로 회신드리겠습니다.";
+      }).catch(function(err){
+        inquiryNote.textContent = (err && err.message) ? err.message : "접수되지 않았습니다. 잠시 후 다시 시도해 주세요.";
+      }).then(function(){
+        inquirySubmit.disabled = false;
+        inquirySubmit.textContent = inquiryButtonText;
+      });
+    });
+  }
 
   // ---------- 무료 한도 ----------
   var quotaPill = document.getElementById("quota-pill");

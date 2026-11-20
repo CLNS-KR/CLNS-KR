@@ -14,11 +14,12 @@
 - `GET /p/` 품목별 수입 요건 인덱스 · `GET /p/{slug}` 품목별 무료 체크 페이지(서버 렌더 HTML, JS 없음)
 - `GET /guides/` 질문형 가이드 인덱스 · `GET /guides/{slug}` 질문형·규제별 가이드(서버 렌더 HTML, FAQPage 구조화 데이터)
 - `GET /v1/trends` 일일 스냅샷 기반 리콜·행정처분 시계열 추이(읽기 전용)
+- `POST /v1/tools/{tool}` REST JSON
 - `GET /v1/stats` 익명 일별 사용 통계(IP·UA·쿠키 미저장)
 - `POST /mcp` · `POST /v1/mcp` MCP JSON-RPC 2.0 (initialize·tools/list·tools/call·ping)
 - `GET /.well-known/mcp/server-card.json` MCP 서버 카드
 - `GET /v1/mcp` 툴 매니페스트(사람이 읽는 JSON) · `GET /v1/meta`
-- `POST /v1/tools/{tool}` REST JSON
+- `POST /v1/inquiry` CLNS Pro 사전 신청·도입 문의(비쿼터·연락처는 회신용으로만 보관)
 - `GET /robots.txt` · `GET /llms.txt` · `GET /sitemap.xml` · `GET /static/og.png`
 - `OPTIONS *` CORS preflight(204) — 모든 응답에 `Access-Control-Allow-Origin: *`
 
@@ -40,7 +41,7 @@ from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
 
 from . import guides, mcp_http, pseo, site_verification, static_files, usage
-from .api import call_tool, mcp_manifest
+from .api import call_tool, mcp_manifest, submit_inquiry
 from .live_api import from_environment, register_sources
 from .store import Store
 from .version import __version__
@@ -365,6 +366,9 @@ def make_handler(store: Store, live=None):
             if path.rstrip("/") in MCP_PATHS:
                 self._handle_mcp()
                 return
+            if path.rstrip("/") == "/v1/inquiry":
+                self._handle_inquiry()
+                return
             if not path.startswith("/v1/tools/"):
                 self._send_json(404, {"ok": False, "error": "not_found"})
                 return
@@ -395,6 +399,34 @@ def make_handler(store: Store, live=None):
                 self._send_json(500, {"ok": False, "error": "internal_error", "tool": name})
                 return
             self._send_json(200, result)
+
+        # --- 사전 신청·도입 문의 --------------------------------------------
+        def _handle_inquiry(self) -> None:
+            """`POST /v1/inquiry` — CLNS Pro 사전 신청·도입 문의 접수.
+
+            툴 호출과 달리 무료 쿼터를 쓰지 않는다(신청 자체는 비용이 아니다).
+            접수한 연락처는 응답에 되돌려주지 않는다.
+            """
+            try:
+                length = int(self.headers.get("Content-Length", "0") or "0")
+            except ValueError:
+                self._send_json(400, {"ok": False, "error": "invalid_content_length"})
+                return
+            if length > MAX_BODY:
+                self._send_json(413, {"ok": False, "error": "payload_too_large"})
+                return
+            raw = self.rfile.read(length) if length else b"{}"
+            try:
+                payload = json.loads(raw.decode("utf-8") or "{}")
+            except (UnicodeDecodeError, json.JSONDecodeError):
+                self._send_json(400, {"ok": False, "error": "invalid_json"})
+                return
+            try:
+                result = submit_inquiry(payload, store)
+            except Exception:  # noqa: BLE001 - 내부 정보를 노출하지 않는다
+                self._send_json(500, {"ok": False, "error": "internal_error"})
+                return
+            self._send_json(200 if result.get("ok") else 400, result)
 
         # --- MCP (JSON-RPC 2.0) ---------------------------------------------
         def _handle_mcp(self) -> None:

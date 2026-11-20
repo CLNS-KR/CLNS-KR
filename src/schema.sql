@@ -158,3 +158,14 @@ CREATE TABLE snapshot_runs (
     counts_json TEXT NOT NULL,
     diff_json   TEXT NOT NULL
 );
+
+-- CLNS Pro 사전 신청·도입 문의(POST /v1/inquiry).
+-- 연락처는 회신 목적으로만 보관하며 공개 집계(/v1/stats)에는 절대 포함하지 않는다.
+CREATE TABLE inquiries (
+    id          BIGSERIAL PRIMARY KEY,
+    contact     TEXT NOT NULL,
+    topic       TEXT NOT NULL CHECK (topic IN ('clns_pro_batch', 'api_mcp', 'other')),
+    message     TEXT NOT NULL DEFAULT '',
+    received_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX idx_inquiries_received ON inquiries(received_at DESC);

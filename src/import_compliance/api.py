@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Dict, List, Optional
@@ -2241,3 +2242,82 @@ def call_tool(name: str, arguments: Optional[Dict[str, Any]], store: Store,
     # 익명 일별 카운터(툴·verdict.code·0건/오류). IP·UA·쿠키·질의문은 넘기지 않는다.
     usage.record_tool(store, name, result)
     return result
+
+
+# --- CLNS Pro 사전 신청 · 도입 문의 (POST /v1/inquiry) --------------------------
+#
+# 유료 기능(일괄 검수·API/MCP 연동)의 수요를 익명 운영자가 직접 확인하기 위한 최소 접수구다.
+# 연락처는 회신 목적으로만 저장하고, `/v1/stats` 같은 공개 집계·공개 응답에는 일절 쓰지 않는다.
+INQUIRY_TOPICS = ("clns_pro_batch", "api_mcp", "other")
+INQUIRY_TOPIC_LABELS_KO = {
+    "clns_pro_batch": "CLNS Pro · 엑셀/CSV 일괄 검수",
+    "api_mcp": "API · MCP 연동",
+    "other": "그 외 문의",
+}
+INQUIRY_CONTACT_MIN = 3
+INQUIRY_CONTACT_MAX = 120
+INQUIRY_MESSAGE_MAX = 500
+
+_CONTACT_EMAIL_RE = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]{2,}$")
+_CONTACT_CHARS_RE = re.compile(r"^[^\x00-\x1f\x7f<>]+$")
+_MESSAGE_CHARS_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
+
+
+def _inquiry_error(field: str, message: str) -> Dict[str, Any]:
+    return {"ok": False, "error": "invalid_argument", "field": field, "message": message}
+
+
+def submit_inquiry(payload: Any, store: Store) -> Dict[str, Any]:
+    """`POST /v1/inquiry` — CLNS Pro 사전 신청·도입 문의 1건 접수.
+
+    입력: `{contact, topic, message}`
+    - `contact` 이메일 또는 연락처 3~120자(필수)
+    - `topic` `clns_pro_batch` | `api_mcp` | `other` (필수)
+    - `message` 선택 0~500자
+
+    성공 시 `{ok: true, id, received_at}` 만 돌려준다. 접수한 연락처를 응답에 되돌려주지 않고
+    (화면 재노출·로그 유출 방지), 문의 내용도 다른 공개 경로로 내보내지 않는다.
+    """
+    if not isinstance(payload, dict):
+        return _inquiry_error("body", "요청 본문은 JSON 객체여야 합니다.")
+
+    raw_contact = payload.get("contact")
+    if not isinstance(raw_contact, str):
+        return _inquiry_error("contact", "회신받을 이메일이나 연락처를 적어 주세요.")
+    contact = raw_contact.strip()
+    if len(contact) < INQUIRY_CONTACT_MIN or len(contact) > INQUIRY_CONTACT_MAX:
+        return _inquiry_error(
+            "contact",
+            f"연락처는 {INQUIRY_CONTACT_MIN}~{INQUIRY_CONTACT_MAX}자로 적어 주세요.",
+        )
+    if not _CONTACT_CHARS_RE.match(contact):
+        return _inquiry_error("contact", "연락처에 쓸 수 없는 문자가 들어 있습니다.")
+    if "@" in contact and not _CONTACT_EMAIL_RE.match(contact):
+        return _inquiry_error("contact", "이메일 형식을 확인해 주세요.")
+
+    raw_topic = payload.get("topic")
+    topic = raw_topic.strip() if isinstance(raw_topic, str) else ""
+    if topic not in INQUIRY_TOPICS:
+        return _inquiry_error(
+            "topic", "관심 항목은 " + " | ".join(INQUIRY_TOPICS) + " 중 하나여야 합니다.",
+        )
+
+    raw_message = payload.get("message")
+    if raw_message is None:
+        message = ""
+    elif isinstance(raw_message, str):
+        message = raw_message.strip()
+    else:
+        return _inquiry_error("message", "메모는 문자열로 적어 주세요.")
+    if len(message) > INQUIRY_MESSAGE_MAX:
+        return _inquiry_error("message", f"메모는 {INQUIRY_MESSAGE_MAX}자까지 쓸 수 있습니다.")
+    message = _MESSAGE_CHARS_RE.sub("", message)
+
+    record = store.record_inquiry(contact, topic, message)
+    return {
+        "ok": True,
+        "id": record["id"],
+        "received_at": record["received_at"],
+        "topic": topic,
+        "note_ko": "남겨 주신 연락처로만 회신드립니다. 문의 내용은 통계·공개 화면에 쓰지 않습니다.",
+    }

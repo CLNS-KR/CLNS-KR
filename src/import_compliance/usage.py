@@ -41,7 +41,7 @@ FLAG_QUOTA = "quota_exceeded"
 FIXED_PATHS = (
     "/", "/p/", "/guides/", "/healthz", "/robots.txt", "/llms.txt", "/sitemap.xml",
     "/.well-known/mcp/server-card.json", "/static/og.png", "/v1/meta", "/v1/mcp",
-    "/v1/stats", "/v1/trends", "/v1/tools", "/mcp", "/favicon.ico", "/404",
+    "/v1/stats", "/v1/trends", "/v1/tools", "/v1/inquiry", "/mcp", "/favicon.ico", "/404",
 )
 
 KEY_RE = re.compile(r"[^0-9A-Za-z._:/{}-]")

@@ -166,6 +166,17 @@ CREATE TABLE IF NOT EXISTS snapshot_runs (
     counts_json TEXT NOT NULL,
     diff_json   TEXT NOT NULL
 );
+
+-- CLNS Pro 사전 신청·도입 문의. 회신 목적의 연락처 1건만 보관한다.
+-- 이 테이블은 공개 집계(/v1/stats)에도, 공개 응답에도 절대 쓰지 않는다.
+CREATE TABLE IF NOT EXISTS inquiries (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    contact     TEXT NOT NULL,              -- 이메일 또는 연락처(회신용)
+    topic       TEXT NOT NULL,              -- clns_pro_batch | api_mcp | other
+    message     TEXT NOT NULL DEFAULT '',
+    received_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_inquiries_received ON inquiries(received_at DESC);
 """
 
 
@@ -461,6 +472,33 @@ class Store:
                 written += 1
             self.conn.commit()
         return written
+
+    # --- 도입 문의(사전 신청) ------------------------------------------------
+    def record_inquiry(self, contact: str, topic: str, message: str = "") -> Dict[str, Any]:
+        """CLNS Pro 사전 신청·도입 문의 1건을 저장한다.
+
+        연락처(`contact`)는 회신 목적으로만 보관한다. 공개 집계(usage_daily·/v1/stats)와
+        공개 응답에는 연락처·문의 본문을 넘기지 않는다.
+        """
+        stamp = iso(now_kst())
+        with self._lock:
+            cur = self.conn.execute(
+                "INSERT INTO inquiries(contact, topic, message, received_at) VALUES (?,?,?,?)",
+                (contact, topic, message, stamp),
+            )
+            self.conn.commit()
+            return {"id": int(cur.lastrowid or 0), "received_at": stamp}
+
+    def count_inquiries(self, since_day: Optional[str] = None) -> int:
+        """문의 건수만 센다(선택: KST 날짜 하한 YYYY-MM-DD). 연락처·본문은 읽지 않는다."""
+        sql = "SELECT COUNT(*) AS c FROM inquiries"
+        params: Tuple[Any, ...] = ()
+        if since_day:
+            sql += " WHERE received_at >= ?"
+            params = (f"{str(since_day)[:10]}T00:00:00",)
+        with self._lock:
+            row = self.conn.execute(sql, params).fetchone()
+        return int(row["c"])
 
 
 class SourceGateway:
