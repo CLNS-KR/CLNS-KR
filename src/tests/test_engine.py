@@ -241,14 +241,14 @@ class QuotaAndTierTest(unittest.TestCase):
         self.assertTrue(meta["ok"])  # 메타 조회는 과금/한도 미적용
 
     def test_billable_tools_exclude_meta(self):
-        # 0.5.0: check_feed_import 추가로 14종(과금 13종)
-        self.assertEqual(len(TOOL_DEFS), 14)
-        self.assertEqual(len(BILLABLE_TOOLS), 13)
+        # 0.5.1: check_korean_labeling 추가로 15종(과금 14종)
+        self.assertEqual(len(TOOL_DEFS), 15)
+        self.assertEqual(len(BILLABLE_TOOLS), 14)
         self.assertNotIn("get_service_meta", BILLABLE_TOOLS)
 
     def test_mcp_manifest_lists_8_tools(self):
         manifest = mcp_manifest()
-        self.assertEqual(len(manifest["tools"]), 14)
+        self.assertEqual(len(manifest["tools"]), 15)
         names = {t["name"] for t in manifest["tools"]}
         self.assertIn("assess_import_case", names)
         self.assertIn("get_legal_basis", names)

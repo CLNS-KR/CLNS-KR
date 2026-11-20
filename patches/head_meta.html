@@ -1,0 +1,48 @@
+<!-- CLNS — <head> 보강안 (제안안, 아직 배포 안 됨)
+     web_ui.py 의 render_page() <head> 안, <meta name="description"> 바로 뒤에 넣는다.
+     지금은 title/description/icon 만 있어서 카카오톡·X·슬랙 공유 시 미리보기가 비어 있고,
+     canonical 이 없어서 onrender.com / index.html 두 주소가 각각 색인될 수 있다. -->
+
+<!-- 중복 URL 정리: /index.html 로 들어와도 대표 주소 하나로 모은다 -->
+<link rel="canonical" href="https://clns-kr.onrender.com/">
+
+<!-- Open Graph (카카오톡·페이스북·슬랙·디스코드 미리보기) -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="CLNS">
+<meta property="og:locale" content="ko_KR">
+<meta property="og:title" content="CLNS — 수입 요건 10초 확인 (한국 수입 규제 사전 점검)">
+<meta property="og:description" content="품목명과 HS 10자리만 넣으면 세관장확인 요건·식약처 수입 이력·국내 리콜·근거 법령을 한 번에. 무료, 회원가입 없음.">
+<meta property="og:url" content="https://clns-kr.onrender.com/">
+<!-- 1200x630 PNG 를 만들어 두고 절대 URL 로 넣는다. 외부 CDN 을 쓰지 않으므로 /static/og.png 로 직접 서빙할 것 -->
+<meta property="og:image" content="https://clns-kr.onrender.com/static/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+
+<!-- X(트위터) 카드 -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="CLNS — 수입 요건 10초 확인">
+<meta name="twitter:description" content="세관장확인 요건·식약처 수입 이력·국내 리콜·근거 법령을 한 화면에서. 무료 베타.">
+<meta name="twitter:image" content="https://clns-kr.onrender.com/static/og.png">
+
+<!-- 구조화 데이터: 서비스가 무엇인지 기계가 읽는 형태 -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "CLNS",
+  "alternateName": "Korea Import Compliance MCP & API",
+  "url": "https://clns-kr.onrender.com/",
+  "applicationCategory": "BusinessApplication",
+  "operatingSystem": "Web",
+  "inLanguage": "ko-KR",
+  "description": "한국 수입 규제(세관장확인 요건·식약처 수입 이력·국내 리콜·근거 법령)를 3단계로 판정하는 무료 사전 점검 서비스. 관세사·법률 자문이 아닌 참고용.",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "KRW" },
+  "isAccessibleForFree": true
+}
+</script>
+
+<!-- 네이버 서치어드바이저 / 구글 서치콘솔 소유확인 메타태그는 발급받은 뒤 여기에 정적으로 넣는다.
+     두 곳 모두 자바스크립트로 삽입한 태그는 인정하지 않으므로 반드시 서버가 내려주는 HTML <head> 안에 있어야 한다.
+<meta name="naver-site-verification" content="발급값">
+<meta name="google-site-verification" content="발급값">
+-->

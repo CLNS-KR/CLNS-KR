@@ -511,11 +511,11 @@ class PagePatchTest(unittest.TestCase):
         self.assertIn("입력한 품목: ' + esc(data.product)", self.page)
         self.assertNotIn("result.query ? result.query.text", self.page)
 
-    def test_mobile_tab_grid_prevents_third_tab_clipping(self):
+    def test_mobile_tab_grid_prevents_tab_clipping(self):
         self.assertIn("@media (max-width:430px)", self.page)
         start = self.page.index("@media (max-width:430px)")
         block = self.page[start:start + 420]
-        self.assertIn("grid-template-columns:repeat(3,minmax(0,1fr))", block)
+        self.assertIn("grid-template-columns:repeat(2,minmax(0,1fr))", block)
         self.assertIn("white-space:normal", block)
         self.assertIn("nav.tabs button .tab-ko{font-size:9.5px}", block)
 

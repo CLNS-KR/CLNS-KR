@@ -119,9 +119,9 @@ nav.tabs button .tab-ko{display:block; margin-top:1px; font-size:10.5px; font-we
   nav.tabs button{font-size:12.5px; padding:8px 11px}
   nav.tabs button .tab-ko{font-size:9.5px}
 }
-/* 390px 폭에서 3개 탭이 잘리지 않게 3열로 정렬한다. */
+/* 390px 폭에서 탭이 잘리지 않게 2열로 정렬한다(0.5.1에서 4개 탭). */
 @media (max-width:430px){
-  nav.tabs{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px;
+  nav.tabs{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px;
     overflow:visible; padding-top:12px}
   nav.tabs button{width:100%; font-size:11.5px; padding:8px 6px; line-height:1.25;
     white-space:normal; word-break:keep-all; text-align:center}
@@ -281,6 +281,7 @@ footer strong{color:var(--ink)}
 
   <nav class="tabs" role="tablist" aria-label="화면 선택">
     <button type="button" role="tab" id="tabbtn-check" aria-controls="tab-check" aria-selected="true" data-tab="check">CLNS Check<span class="tab-ko">통합 리스크 체크</span></button>
+    <button type="button" role="tab" id="tabbtn-label" aria-controls="tab-label" aria-selected="false" data-tab="label">CLNS Label<span class="tab-ko">한글표시사항 체크</span></button>
     <button type="button" role="tab" id="tabbtn-hs" aria-controls="tab-hs" aria-selected="false" data-tab="hs">CLNS Intelligence<span class="tab-ko">HS·법령·리콜</span></button>
     <button type="button" role="tab" id="tabbtn-api" aria-controls="tab-api" aria-selected="false" data-tab="api">CLNS API &amp; MCP<span class="tab-ko">개발자 연결</span></button>
   </nav>
@@ -508,6 +509,78 @@ footer strong{color:var(--ink)}
       </div>
     </section>
 
+    <!-- ================= 한글표시사항(라벨) ================= -->
+    <section id="tab-label" role="tabpanel" aria-labelledby="tabbtn-label" hidden>
+      <div class="card">
+        <h2>CLNS Label — 수입품 한글표시사항 1초 체크</h2>
+        <p class="sub">수입품 포장의 <strong>한글표시사항(라벨링)</strong>을 품목군별 법정 항목과 대조합니다. 라벨 문구를 붙여넣으면 빠진 항목을 짚고, 비워 두면 <strong>체크리스트와 흔한 과태료 사례</strong>를 보여 줍니다. 결과는 <strong>확인할 항목의 목록</strong>이며 표시의 적법을 확정하지 않습니다.</p>
+        <form id="label-form" novalidate>
+          <div class="presets" role="group" aria-label="한글라벨 예시로 체험">
+            <span class="plabel">예시로 1초 체크</span>
+            <button type="button" id="label-preset-cosmetics" data-label-preset="cosmetics">수입 화장품 라벨</button>
+            <button type="button" id="label-preset-food" data-label-preset="general_food">수입식품 라벨</button>
+            <button type="button" id="label-preset-kc" data-label-preset="kc_electronics">KC 가전 라벨</button>
+            <button type="button" id="label-preset-pet" data-label-preset="pet_food">수입 사료 라벨</button>
+          </div>
+          <div class="grid">
+            <label class="field" for="label-group">
+              <span class="lab">품목군</span>
+              <select id="label-group" name="label-group">
+                <option value="">자동 판단(라벨 문구에서)</option>
+                <option value="cosmetics">화장품</option>
+                <option value="functional_cosmetics">기능성화장품</option>
+                <option value="general_food">식품(일반식품·수입식품)</option>
+                <option value="health_functional_food">건강기능식품</option>
+                <option value="kc_electronics">전기·생활용품(KC)</option>
+                <option value="pet_food">반려동물 사료·간식</option>
+                <option value="general_goods">일반 공산품</option>
+              </select>
+              <span class="hint">품목군마다 근거 법령과 필수 항목이 다릅니다.</span>
+            </label>
+            <label class="field" for="label-imported">
+              <span class="lab">수입 제품 여부</span>
+              <select id="label-imported" name="label-imported">
+                <option value="yes">수입 제품</option>
+                <option value="no">국내 제조</option>
+                <option value="unknown">모름</option>
+              </select>
+            </label>
+            <label class="field" for="label-channel">
+              <span class="lab">유통 경로<span class="opt">선택</span></span>
+              <select id="label-channel" name="label-channel">
+                <option value="direct">직수입·직판</option>
+                <option value="agency">구매대행</option>
+                <option value="parallel_import">병행수입</option>
+                <option value="online">온라인 판매</option>
+                <option value="unknown">모름</option>
+              </select>
+              <span class="hint">구매대행·병행수입이면 고지·표시 항목이 추가됩니다(KC).</span>
+            </label>
+            <label class="field" for="label-animal-origin">
+              <span class="lab">사료 동물성 원료<span class="opt">사료만</span></span>
+              <select id="label-animal-origin" name="label-animal-origin">
+                <option value="unknown">모름·해당 없음</option>
+                <option value="yes">반추동물 유래 포함</option>
+                <option value="no">없음</option>
+              </select>
+            </label>
+            <label class="field full" for="label-text">
+              <span class="lab">라벨·한글표시사항 문구<span class="opt">선택 — 넣으면 대조</span></span>
+              <textarea id="label-text" name="label-text" rows="4" maxlength="4000"
+                        placeholder="포장에 적힌 항목을 그대로 옮겨 주세요. 예: 제품명 수분 크림 / 상호 (주)예시 / 전성분 정제수, 글리세린 / 용량 50mL / 제조번호 A1B2 / 사용기한 2027.12.31 / 가격 29,000원 / 주의사항 …"></textarea>
+              <span class="hint">항목을 찾지 못한 것은 '입력에 없다'는 뜻이며, 실제 포장에 없다는 확정이 아닙니다. 라벨 사진 인식은 하지 않습니다.</span>
+            </label>
+          </div>
+          <div class="actions">
+            <button type="submit" class="primary" id="label-submit">한글라벨 체크</button>
+            <button type="button" class="ghost" id="label-reset">입력 지우기</button>
+            <span class="note-inline" id="label-note" aria-live="polite"></span>
+          </div>
+        </form>
+      </div>
+      <div id="label-result" aria-live="polite"></div>
+    </section>
+
     <!-- ================= HS 조회 ================= -->
     <section id="tab-hs" role="tabpanel" aria-labelledby="tabbtn-hs" hidden>
       <div class="card">
@@ -552,8 +625,8 @@ footer strong{color:var(--ink)}
               <tr><td>GET</td><td><code>/healthz</code></td><td>헬스체크</td></tr>
               <tr><td>GET</td><td><code>/v1/meta</code></td><td>코퍼스 버전·판정 등급·무료 한도</td></tr>
               <tr><td>POST</td><td><code>/mcp</code> · <code>/v1/mcp</code></td><td>MCP JSON-RPC 2.0 (initialize·tools/list·tools/call·ping)</td></tr>
-              <tr><td>GET</td><td><code>/.well-known/mcp/server-card.json</code></td><td>MCP 서버 카드(인증 없음·툴 14종 스키마)</td></tr>
-              <tr><td>GET</td><td><code>/v1/mcp</code></td><td>MCP 툴 매니페스트(툴 14종, 사람이 읽는 JSON)</td></tr>
+              <tr><td>GET</td><td><code>/.well-known/mcp/server-card.json</code></td><td>MCP 서버 카드(인증 없음·툴 15종 스키마)</td></tr>
+              <tr><td>GET</td><td><code>/v1/mcp</code></td><td>MCP 툴 매니페스트(툴 15종, 사람이 읽는 JSON)</td></tr>
               <tr><td>GET</td><td><code>/guides/</code> · <code>/guides/{slug}</code></td><td>질문형·규제별 가이드(서버 렌더 HTML)</td></tr>
               <tr><td>GET</td><td><code>/v1/trends</code></td><td>일일 스냅샷 기반 리콜·행정처분 시계열 추이</td></tr>
               <tr><td>GET</td><td><code>/robots.txt</code> · <code>/llms.txt</code> · <code>/sitemap.xml</code></td><td>검색·AI 크롤러용 공개 파일</td></tr>
@@ -564,6 +637,7 @@ footer strong{color:var(--ink)}
               <tr><td>POST</td><td><code>/v1/tools/check_food_cosmetics</code></td><td>식품·화장품·건기식 요건</td></tr>
               <tr><td>POST</td><td><code>/v1/tools/check_drug_import</code></td><td>의약품·영양제 금지성분·반입 제한</td></tr>
               <tr><td>POST</td><td><code>/v1/tools/check_ad_labeling</code></td><td>과대광고·한글표시사항 검수</td></tr>
+              <tr><td>POST</td><td><code>/v1/tools/check_korean_labeling</code></td><td>품목군별 한글표시사항(라벨) 1초 체크</td></tr>
               <tr><td>POST</td><td><code>/v1/tools/check_ecommerce_compliance</code></td><td>국내 판매페이지 공정위·전자상거래법 검수</td></tr>
               <tr><td>POST</td><td><code>/v1/tools/lookup_mfds_disposition</code></td><td>식약처 행정처분 이력</td></tr>
               <tr><td>POST</td><td><code>/v1/tools/lookup_recall</code></td><td>국내 리콜 이력</td></tr>
@@ -1941,6 +2015,154 @@ footer strong{color:var(--ink)}
         inquirySubmit.textContent = inquiryButtonText;
       });
     });
+  }
+
+  // ---------- 한글표시사항(라벨) 체크 (0.5.1) ----------
+  var labelForm = document.getElementById("label-form");
+  if (labelForm){
+    var labelNote = document.getElementById("label-note");
+    var labelResult = document.getElementById("label-result");
+    var labelSubmit = document.getElementById("label-submit");
+
+    function labelStatusChip(status){
+      var map = {present: ["ok", "확인됨"], missing: ["warn", "확인 안 됨"],
+                 not_checked: ["info", "미확인"], not_applicable: ["", "해당 없음"]};
+      var row = map[status] || ["", status];
+      return '<span class="tag ' + row[0] + '">' + esc(row[1]) + '</span>';
+    }
+    function renderLabelChecklist(data){
+      var rows = (data.checklist || []).map(function(item){
+        var req = item.required ? "<strong>필수</strong>" : "조건부";
+        var when = item.applies_when_ko ? '<br><span class="note-inline">' + esc(item.applies_when_ko) + '</span>' : "";
+        var example = item.example_ko ? '<br><span class="note-inline">' + esc(item.example_ko) + '</span>' : "";
+        return '<tr><td>' + esc(item.label_ko) + when + example + '</td><td>' + req + '</td><td>' + labelStatusChip(item.status) + '</td></tr>';
+      }).join("");
+      return '<div class="tbl-wrap"><table><thead><tr><th>표시항목</th><th>구분</th><th>대조 결과</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
+    }
+    function renderLabelFineCases(data){
+      var cases = data.fine_cases || [];
+      if (!cases.length) return "";
+      var rows = cases.map(function(item){
+        return '<tr><td><strong>' + esc(item.case_ko) + '</strong></td><td>' + esc(item.why_ko) + '</td><td>' + esc(item.fix_ko) + '</td></tr>';
+      }).join("");
+      return '<div class="tbl-wrap"><table><thead><tr><th>흔한 지적 사례</th><th>왜 문제인가</th><th>보완</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
+    }
+    function renderLabelBasis(data){
+      var rows = (data.evidence || []).filter(function(row){ return row && row.law && row.article; }).slice(0, 8);
+      if (!rows.length) return "";
+      var lis = rows.map(function(row){
+        var head = esc(row.law) + " " + esc(row.article);
+        var when = row.effective_date ? ' <span class="note-inline">(시행 ' + esc(row.effective_date) + ')</span>' : "";
+        var link = row.url ? ' <a href="' + esc(row.url) + '" target="_blank" rel="noopener noreferrer">원문</a>' : "";
+        return '<li>' + head + when + link + '<br><span class="note-inline">' + esc(row.quote) + '</span></li>';
+      }).join("");
+      return '<ul class="plain">' + lis + '</ul>';
+    }
+    function renderLabel(data){
+      var v = data.verdict || {};
+      var html = '<div class="card">' +
+        '<div class="verdict v-' + esc(v.code) + '">' +
+        '<div class="code">한글표시사항 체크</div>' +
+        '<div class="lab">' + esc(v.label_ko) + '</div>' +
+        '<p>' + esc(v.note_ko) + '</p>' +
+        '<div class="meta-line"><span>' + esc(data.product_type_label_ko) + '</span>' +
+        '<span>' + esc(data.governing_law_ko) + '</span>' +
+        '<span>필수 ' + esc(data.required_count) + '개 · 확인 ' + esc(data.present_count) + '개 · 누락 ' + esc(data.missing_count) + '개</span></div>' +
+        '</div>' +
+        '<p class="sub" style="margin-top:12px">' + esc(data.group_note_ko) + '</p>' +
+        '</div>';
+      var missing = data.missing || [];
+      var cond = data.conditional_missing || [];
+      var head = "";
+      if (missing.length){
+        head += '<p class="lead">확인되지 않은 필수 항목: ' + esc(missing.join(", ")) + '</p>';
+      }
+      if (cond.length){
+        head += '<p class="note-inline">조건부 확인 항목: ' + esc(cond.join(", ")) + '</p>';
+      }
+      html += section("체크리스트", head + renderLabelChecklist(data),
+        "항목을 찾지 못한 것은 입력한 문구에 그 항목이 없다는 뜻입니다(실제 포장에 없다는 단정이 아닙니다).");
+      html += section("흔한 과태료ㆍ지적 사례", renderLabelFineCases(data),
+        "같은 유형에서 실제로 문제가 되는 지점과 보완 방법입니다. 구체적 처분은 최신 법령ㆍ처분 기준을 확인하세요.");
+      var methods = data.method_checks_ko || [];
+      if (methods.length){
+        html += section("글자만으로는 확인할 수 없는 표시 방법", 
+          '<ul class="check">' + methods.map(function(m){ return '<li>' + esc(m) + '</li>'; }).join("") + '</ul>',
+          "한글 표기ㆍ부착 방법ㆍ글씨 크기는 실물ㆍ사진으로 확인해야 합니다.");
+      }
+      var sources = data.basis_sources || [];
+      if (sources.length){
+        html += section("세부 기준", '<ul class="plain">' + sources.map(function(s){
+          return '<li><a href="' + esc(s.url) + '" target="_blank" rel="noopener noreferrer">' + esc(s.name_ko) + '</a> — ' + esc(s.note_ko) + '</li>';
+        }).join("") + '</ul>');
+      }
+      html += sectionCollapsible("근거 조문", renderLabelBasis(data),
+        String((data.evidence || []).length) + "건", "법제처 현행본으로 확인한 조문과 시행일입니다.");
+      if ((data.next_actions || []).length){
+        html += section("다음에 할 일", '<ul class="check">' + data.next_actions.map(function(a){ return '<li>' + esc(a) + '</li>'; }).join("") + '</ul>');
+      }
+      html += '<p class="note-inline">' + esc(data.coverage_ko || "") + '</p>';
+      return html;
+    }
+
+    function runLabelCheck(){
+      var groupEl = document.getElementById("label-group");
+      var textEl = document.getElementById("label-text");
+      var payload = {
+        label_text: (textEl.value || "").trim(),
+        imported: document.getElementById("label-imported").value,
+        channel: document.getElementById("label-channel").value,
+        animal_origin: document.getElementById("label-animal-origin").value
+      };
+      if (groupEl.value) payload.product_type = groupEl.value;
+      if (!payload.label_text && !payload.product_type){
+        labelNote.textContent = "품목군을 고르거나 라벨 문구를 넣어 주세요.";
+        groupEl.focus();
+        return;
+      }
+      labelSubmit.disabled = true;
+      labelSubmit.textContent = "확인 중…";
+      labelNote.textContent = "";
+      labelResult.innerHTML = '<div class="card"><p class="sub"><span class="spinner"></span> 품목군별 법정 표시항목과 대조하고 있습니다…</p></div>';
+      postTool("check_korean_labeling", payload).then(function(data){
+        labelResult.innerHTML = renderLabel(data);
+        labelNote.textContent = "항목 대조를 마쳤습니다. 결과는 확인 목록이며 적법 확정이 아닙니다.";
+      }).catch(function(err){
+        labelResult.innerHTML = "";
+        labelNote.textContent = (err && err.message) ? err.message : "체크하지 못했습니다. 잠시 후 다시 시도해 주세요.";
+      }).then(function(){
+        labelSubmit.disabled = false;
+        labelSubmit.textContent = "한글라벨 체크";
+      });
+    }
+
+    var LABEL_PRESETS = {
+      "cosmetics": {group: "cosmetics", text: "제품명 수분 진정 크림 / 영업자 상호 (주)예시코스메틱 주소 서울 / 전성분 정제수, 글리세린, 부틸렌글라이콜 / 용량 50mL / 제조번호 A1B2 / 사용기한 2027.12.31 / 가격 29,000원 / 주의사항 이상이 생기면 사용을 중지하고 전문의와 상담하세요"},
+      "general_food": {group: "general_food", text: "제품명 제주 감귤주스 / 내용량 500mL / 원재료명 감귤과즙 99% / 영업소 (주)예시식품 인천 / 식품유형 과채주스 / 품목보고번호 2019-0000 / 소비기한 2027.03.15 / 보관방법 냉장보관 / 주의사항 개봉 후 빠르게 섭취 / 영양정보 열량 120kcal 나트륨 30mg"},
+      "kc_electronics": {group: "kc_electronics", text: "KC 마크 / 안전확인신고번호 XU12345-20001 / 모델명 ABC-100 / 제조업자 OOO / 정격 220V 60Hz 15W / MADE IN CHINA"},
+      "pet_food": {group: "pet_food", text: "성분등록번호 제00-000호 / 제품명 닭고기 함유 배합사료 펠릿 / 조단백질 26% 이상 조지방 12% 이상 / 원료명 닭고기, 옥수수, 대두박 / 용도 성견용 / 주의사항 개봉 후 냉장보관 / 실제 중량 2kg / 제조일 2026.05.01 유통기한 2027.05.01 / 제조업자 (주)예시펫푸드 인천"}
+    };
+    Array.prototype.slice.call(document.querySelectorAll("[data-label-preset]")).forEach(function(btn){
+      btn.addEventListener("click", function(){
+        var preset = LABEL_PRESETS[btn.getAttribute("data-label-preset")];
+        if (!preset) return;
+        document.getElementById("label-group").value = preset.group;
+        document.getElementById("label-text").value = preset.text;
+        document.getElementById("label-imported").value = "yes";
+        document.getElementById("label-channel").value = "direct";
+        document.getElementById("label-animal-origin").value = "unknown";
+        runLabelCheck();
+      });
+    });
+    var labelReset = document.getElementById("label-reset");
+    if (labelReset){
+      labelReset.addEventListener("click", function(){
+        labelForm.reset();
+        labelResult.innerHTML = "";
+        labelNote.textContent = "입력을 지웠습니다.";
+      });
+    }
+    labelForm.addEventListener("submit", function(ev){ ev.preventDefault(); runLabelCheck(); });
   }
 
   // ---------- 무료 한도 ----------

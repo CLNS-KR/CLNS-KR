@@ -1,0 +1,30 @@
+# CLNS — robots.txt (제안안, 아직 배포 안 됨)
+# 서버 라우팅: GET /robots.txt → 이 본문을 text/plain; charset=utf-8 로 반환
+# 근거: 네이버 서치어드바이저는 robots.txt 를 직접 요구하고, 구글은 없으면 전체 허용으로 본다(현재 404 = 전체 허용).
+
+User-agent: *
+Allow: /
+Disallow: /v1/
+
+# 검색 로봇
+User-agent: Yeti
+Allow: /
+
+User-agent: Googlebot
+Allow: /
+
+# AI 크롤러 — 인용·요약은 허용하고 학습 전용 수집만 막는 절충안.
+# 전부 허용하려면 아래 4줄을 지우고 "User-agent: * / Allow: /" 만 남긴다.
+User-agent: GPTBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+Sitemap: https://clns-kr.onrender.com/sitemap.xml

@@ -448,12 +448,12 @@ class LicenseAndCiTest(unittest.TestCase):
     def test_version_bumped_to_0_2_0(self):
         # 0.3.0: 질문형 가이드(/guides/) + 일일 시계열 스냅샷·추이
         version_text = self.read("src", "import_compliance", "version.py")
-        self.assertIn('__version__ = "0.5.0"', version_text)
+        self.assertIn('__version__ = "0.5.1"', version_text)
         docker = self.read("Dockerfile")
-        self.assertIn('org.opencontainers.image.version="0.5.0"', docker)
+        self.assertIn('org.opencontainers.image.version="0.5.1"', docker)
         from import_compliance import web_ui
 
-        self.assertEqual(web_ui.SERVICE_VERSION, "0.5.0")
+        self.assertEqual(web_ui.SERVICE_VERSION, "0.5.1")
 
     def test_committed_files_have_no_secrets_or_personal_data(self):
         patterns = [

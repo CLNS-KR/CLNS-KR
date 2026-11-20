@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- CLNS — sitemap.xml (제안안, 아직 배포 안 됨)
+     서버 라우팅: GET /sitemap.xml → application/xml; charset=utf-8
+     지금 사이트는 페이지가 하나뿐이라 1개 URL이 전부다.
+     pSEO(/p/{품목}, /hs/{10자리})를 붙이면 그 목록을 이 파일에 동적으로 생성해야 한다.
+     lastmod 은 콘텐츠가 바뀐 날짜(코퍼스 verified_on, 요건 조회 캐시 갱신일)로 채운다. -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://clns-kr.onrender.com/</loc>
+    <lastmod>2026-11-18</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+</urlset>

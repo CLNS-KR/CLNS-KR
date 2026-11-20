@@ -1,4 +1,4 @@
-"""0.5.0 반려동물 사료·간식(사료관리법ㆍ동물검역) + 재배포 영속화 테스트.
+"""0.5.0 반려동물 사료·간식(사료관리법ㆍ동물검역) + 재배포 영속화 테스트(0.5.1에서 툴 15종).
 
 검증 대상
 ---------
@@ -558,14 +558,14 @@ class PersistenceTest(unittest.TestCase):
 
 
 class VersionAndAnonymityTest(unittest.TestCase):
-    def test_version_is_0_5_0(self):
-        self.assertEqual(__version__, "0.5.0")
+    def test_version_is_0_5_1(self):
+        self.assertEqual(__version__, "0.5.1")
         with open(os.path.join(ROOT, "server.json"), encoding="utf-8") as handle:
             manifest = json.load(handle)
         self.assertEqual(manifest["version"], __version__)
         self.assertEqual(web_ui.SERVICE_VERSION, __version__)
         with open(os.path.join(ROOT, "Dockerfile"), encoding="utf-8") as handle:
-            self.assertIn('org.opencontainers.image.version="0.5.0"', handle.read())
+            self.assertIn('org.opencontainers.image.version="0.5.1"', handle.read())
 
     def test_trap_25_entry_has_no_personal_data(self):
         from import_compliance.corpus import load_corpus
@@ -577,9 +577,9 @@ class VersionAndAnonymityTest(unittest.TestCase):
             with self.subTest(pattern=pattern):
                 self.assertIsNone(re.search(pattern, text))
 
-    def test_tool_count_is_14(self):
-        self.assertEqual(len(TOOL_DEFS), 14)
-        self.assertEqual(len(BILLABLE_TOOLS), 13)
+    def test_tool_count_is_15(self):
+        self.assertEqual(len(TOOL_DEFS), 15)
+        self.assertEqual(len(BILLABLE_TOOLS), 14)
 
     def test_new_files_have_no_personal_data_or_secrets(self):
         patterns = [re.compile(pattern) for pattern in PERSONAL_PATTERNS]

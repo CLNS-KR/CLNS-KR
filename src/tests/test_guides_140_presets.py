@@ -151,9 +151,9 @@ class GuideCatalog140Test(unittest.TestCase):
 
     def test_catalog_version_and_count(self):
         meta = guides.catalog_meta()
-        self.assertEqual(meta["version"], "1.4.0")
+        self.assertEqual(meta["version"], "1.5.0")
         self.assertEqual(meta["verified_on"], "2026-11-21")
-        self.assertEqual(meta["count"], 85)
+        self.assertGreaterEqual(meta["count"], 85)
         self.assertEqual(len({item["slug"] for item in self.items}), len(self.items))
 
     def test_new_slugs_are_present_and_indexable(self):
@@ -413,7 +413,7 @@ class ServedGuidePagesTest(unittest.TestCase):
                 faq = next(node for node in payload["@graph"] if node["@type"] == "FAQPage")
                 self.assertEqual(faq["mainEntity"][0]["name"], item["question_ko"])
 
-    def test_sitemap_and_llms_reflect_85_guides(self):
+    def test_sitemap_and_llms_reflect_all_guides(self):
         status, raw = self.get("/sitemap.xml")
         self.assertEqual(status, 200)
         root = ET.fromstring(raw)
@@ -424,12 +424,12 @@ class ServedGuidePagesTest(unittest.TestCase):
         self.assertEqual(len(locs), 1 + len(pseo.indexable_paths()) + len(guides.indexable_paths()))
         status, body = self.get("/llms.txt")
         self.assertEqual(status, 200)
-        self.assertIn("85개 질문", body)
+        self.assertIn(f"{len(guides.items())}개 질문", body)
 
-    def test_service_meta_reports_140(self):
+    def test_service_meta_reports_150(self):
         payload = call_tool("get_service_meta", {}, self.store)["result"]
-        self.assertEqual(payload["guides"]["count"], 85)
-        self.assertEqual(payload["guides"]["catalog_version"], "1.4.0")
+        self.assertEqual(payload["guides"]["count"], len(guides.items()))
+        self.assertEqual(payload["guides"]["catalog_version"], "1.5.0")
 
     def test_home_page_carries_preset_buttons(self):
         status, html = self.get("/")

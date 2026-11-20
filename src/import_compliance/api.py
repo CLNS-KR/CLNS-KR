@@ -1,4 +1,4 @@
-"""API / MCP 툴 14종."""
+"""API / MCP 툴 15종."""
 from __future__ import annotations
 
 import json
@@ -1843,6 +1843,154 @@ def tool_check_ad_labeling(args: Dict[str, Any], store: Store, client_id: str, t
     return _envelope("check_ad_labeling", result)
 
 
+def tool_check_korean_labeling(args: Dict[str, Any], store: Store, client_id: str, tier: str,
+                               live: Any = None) -> Dict[str, Any]:
+    """품목군별 법정 한글표시사항(라벨) 체크리스트와 누락 의심 항목을 대조한다.
+
+    품목군은 화장품ㆍ식품/건강기능식품ㆍ전기ㆍ생활용품(KC)ㆍ반려동물 사료ㆍ일반 공산품 5개 축이다.
+    라벨 문구를 주면 항목 존재만 대조해 누락을 짚고, 주지 않으면 체크리스트와 흔한 과태료
+    사례를 돌려준다. 항목을 찾지 못한 것은 '누락'이며, 0건이 라벨의 적법을 확정하지 않는다.
+    """
+    from . import labeling
+    from .policy import DISCLAIMER_EN, DISCLAIMER_KO
+
+    product_name = str(args.get("product_name") or "").strip()
+    label_text = str(args.get("label_text") or "").strip()
+    raw_group = str(args.get("product_type") or args.get("product_group") or "").strip()
+    if len(label_text) > 4000:
+        raise ValueError("label_text_too_long")
+    if label_text and len(label_text) < 2:
+        raise ValueError("label_text_too_short")
+    label_items = args.get("label_items")
+    if label_items is not None and not isinstance(label_items, dict):
+        raise ValueError("label_items_must_be_object")
+    label_items = label_items or {}
+    if not raw_group and not label_text and not label_items and not product_name:
+        raise ValueError("product_type_or_label_text_required")
+    group = labeling.normalize_group(raw_group, " ".join(part for part in (product_name, label_text) if part))
+    known_items = {row["item_id"] for row in labeling.checklist(group)}
+    unknown_items = [key for key in label_items if key not in known_items]
+    if unknown_items:
+        raise ValueError("unknown_label_item: " + ", ".join(sorted(unknown_items)[:5]))
+
+    block = labeling.check(
+        group,
+        label_text=label_text,
+        provided=label_items,
+        imported=args.get("imported"),
+        channel=args.get("channel"),
+        animal_origin=args.get("animal_origin"),
+    )
+    limit = max(1, min(int(args.get("limit", 13) or 13), 13))
+    result: Dict[str, Any] = dict(block)
+    result["group"] = block["product_type"]
+    result["fine_cases"] = list(block.get("fine_cases") or [])[:limit]
+    result["regulation_tags"] = list(labeling.GROUP_TAGS.get(block["product_type"], ["KOREAN_LABELING"]))
+    result["korean_labeling"] = {
+        "group": block["product_type"],
+        "group_label_ko": block["product_type_label_ko"],
+        "governing_law_ko": block["governing_law_ko"],
+        "label_text_chars": len(label_text),
+        "item_count": block["item_count"],
+        "required_count": block["required_count"],
+        "missing_count": block["missing_count"],
+        "conditional_missing_count": len(block.get("conditional_missing") or []),
+        "completion_rate": block["completion_rate"],
+        "fine_case_count": len(block.get("fine_cases") or []),
+        "verdict": block["verdict"],
+    }
+    if block.get("missing"):
+        headline = "필수 표시항목 중 확인되지 않은 항목이 있습니다: " + ", ".join(block["missing"][:3])
+    elif not label_text and not label_items:
+        headline = f"{block['product_type_label_ko']} 한글표시사항 체크리스트입니다. 라벨 문구를 넣으면 누락을 대조합니다."
+    elif block.get("conditional_missing"):
+        headline = "필수 항목은 확인됐고, 조건부 항목의 해당 여부를 확인해야 합니다."
+    else:
+        headline = "입력한 범위에서 필수 표시항목이 확인됐습니다. 표시 방법ㆍ서식은 별도 확인이 필요합니다."
+    guidance = labeling.summarize(block)
+    if block.get("fine_cases"):
+        guidance.append("흔한 지적 사례: " + ", ".join(case["case_ko"] for case in block["fine_cases"][:3]))
+    result["answer"] = {"headline": headline, "guidance": guidance}
+    result["verdict"] = {
+        "code": block["verdict"],
+        "label_ko": VERDICT_LABEL_KO[block["verdict"]],
+        "label_en": VERDICT_LABEL_EN[block["verdict"]],
+        "determinative": False,
+        "note_ko": "라벨 문구 대조 결과이며, 항목을 찾지 못한 것은 입력에 그 항목이 없다는 뜻입니다. 0건이 표시의 적법을 확정하지 않습니다.",
+    }
+    result["missing_information"] = [] if label_text or label_items else ["label_text"]
+    result["evidence"] = _label_evidence(block)
+    result["findings"] = [_label_check_finding(block)]
+    result["data_provenance"] = {
+        "policy": "원본 API 1:1 재전송 금지 · 결합·정규화한 판정만 제공",
+        "sources": [{"state": "corpus_only",
+                     "note": "법제처 국가법령정보 OPEN API로 조회한 현행 조문ㆍ시행규칙 별표와 식약처 고시만 사용(실시간 API 호출 없음)"}],
+        "checked_at": iso(now_kst()),
+    }
+    result["next_actions"] = list(block.get("next_actions") or [])
+    result["tier"] = {"name": tier, "boundaries": TIER_BOUNDARIES["free"],
+                      "paid_notice_ko": PAID_TIER_NOTICE_KO}
+    result["disclaimer"] = {"ko": DISCLAIMER_KO, "en": DISCLAIMER_EN}
+    result["scope_limits_ko"] = SCOPE_LIMITS_KO
+    apply_status(result)
+    return _envelope("check_korean_labeling", result)
+
+
+def _label_check_finding(block: Dict[str, Any]) -> Dict[str, Any]:
+    """라벨 대조 결과를 findings 모양 한 건으로 만든다(표준 상태 계산에 필요)."""
+    target = list(block.get("missing") or []) or list(block.get("conditional_missing") or [])
+    basis: List[Dict[str, Any]] = []
+    wanted = set(target)
+    for row in block.get("checklist") or []:
+        if row.get("label_ko") in wanted and row.get("legal_basis"):
+            basis.append(dict(row["legal_basis"]))
+    if not basis:
+        basis = [dict(row["legal_basis"]) for row in (block.get("checklist") or [])
+                 if row.get("required") and row.get("legal_basis")][:3]
+    code = str(block.get("verdict") or "info_needed")
+    if target:
+        issue = "입력한 라벨에서 확인되지 않은 항목: " + ", ".join(target[:6])
+    else:
+        issue = f"{block.get('product_type_label_ko', '라벨')} 필수 표시항목 {block.get('required_count', 0)}개를 대조했습니다"
+    confidence = 0.75 if block.get("missing") else (0.55 if target else 0.6)
+    return {
+        "case_id": "LABEL-01",
+        "title": "한글표시사항(라벨) 필수 항목 점검",
+        "issue_ko": issue,
+        "category": "label",
+        "regulation_tags": list(block.get("regulation_tags") or ["KOREAN_LABELING"]),
+        "verdict": code,
+        "verdict_label_ko": VERDICT_LABEL_KO.get(code, VERDICT_LABEL_KO["info_needed"]),
+        "verdict_label_en": VERDICT_LABEL_EN.get(code, VERDICT_LABEL_EN["info_needed"]),
+        "confidence": confidence,
+        "reason": "법정 표시항목 대조",
+        "matched_signals": target[:6],
+        "missing_inputs": [],
+        "misconception": "",
+        "explanation": block.get("verdict_note_ko", ""),
+        "scenario": "",
+        "next_steps": list(block.get("next_actions") or []),
+        "notes": "",
+        "legal_basis": basis,
+    }
+
+
+def _label_evidence(block: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """라벨 체크리스트ㆍ과태료 사례의 근거 조항을 (법, 조문) 기준으로 중복 없이 모은다."""
+    out: List[Dict[str, Any]] = []
+    seen = set()
+    rows = [row.get("legal_basis") or {} for row in block.get("checklist") or []]
+    for case in block.get("fine_cases") or []:
+        rows.extend(case.get("basis") or [])
+    for row in rows:
+        key = (row.get("law"), row.get("article"))
+        if not row.get("law") or key in seen:
+            continue
+        seen.add(key)
+        out.append(dict(row))
+    return out
+
+
 def tool_check_feed_import(args: Dict[str, Any], store: Store, client_id: str, tier: str,
                            live: Any = None) -> Dict[str, Any]:
     """반려동물 사료·간식·영양제 수입의 사료관리법ㆍ동물검역 확인 항목을 정리한다.
@@ -2242,6 +2390,33 @@ TOOL_DEFS: List[Dict[str, Any]] = [    {
                 "limit": {"type": "integer", "minimum": 1, "maximum": 20, "default": 12},
             },
             "required": ["detail_copy"],
+        },
+    },
+    {
+        "name": "check_korean_labeling",
+        "title_ko": "수입품 한글표시사항(라벨링) 1초 체크",
+        "description_ko": "품목군(화장품·식품/건강기능식품·전기·생활용품 KC·반려동물 사료·일반 공산품)별 법정 한글표시사항 체크리스트를 근거 조문(시행일·원문 URL)과 함께 주고, 입력한 라벨 문구에서 누락 의심 항목을 짚습니다. 라벨 문구가 없으면 체크리스트와 흔한 과태료 사례(한글 스티커 훼손, 전성분 누락, 소비기한/제조일자 혼동, KC 표시 누락, 원산지 미표시 등)를 돌려줍니다. 항목을 찾지 못한 것은 입력에 없다는 뜻이며, 0건이 라벨의 적법을 확정하지 않습니다.",
+        "handler": tool_check_korean_labeling,
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "product_type": {"type": "string",
+                                 "enum": ["cosmetics", "functional_cosmetics", "general_food",
+                                          "health_functional_food", "kc_electronics", "pet_food",
+                                          "general_goods"],
+                                 "description": "품목군. 화장품·식품/건기식·전기생활용품(KC)·반려동물 사료·일반 공산품. 생략하면 제품명·라벨에서 판단"},
+                "product_group": {"type": "string", "description": "product_type 별칭(한글 가능: 화장품ㆍ사료ㆍ공산품)"},
+                "product_name": {"type": "string", "description": "제품명(선택). 품목군 추정에 쓰고 저장하지 않음"},
+                "label_text": {"type": "string", "description": "포장 라벨ㆍ한글표시사항을 텍스트로 옮긴 내용(최대 4,000자)"},
+                "label_items": {"type": "object", "description": "항목별 체크(예: {'kc_mark': true, 'cert_number': false}). 키는 응답 checklist 의 item_id"},
+                "imported": {"type": "string", "enum": ["yes", "no", "unknown"], "description": "수입 제품 여부(수입 사료의 한글 포장지 등 조건부 항목 판단)"},
+                "channel": {"type": "string", "enum": ["direct", "agency", "parallel_import", "online", "unknown"],
+                            "description": "유통 경로. 구매대행(agency)ㆍ병행수입(parallel_import)이면 고지ㆍ표시 항목이 추가됨"},
+                "animal_origin": {"type": "string", "enum": ["yes", "no", "unknown"],
+                                  "description": "반려동물 사료에 동물성(반추동물) 원료가 포함되는지"},
+                "limit": {"type": "integer", "minimum": 1, "maximum": 13, "default": 13},
+            },
+            "required": [],
         },
     },
     {

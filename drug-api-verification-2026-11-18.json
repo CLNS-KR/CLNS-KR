@@ -1,0 +1,90 @@
+{
+ "checked_on": "2026-11-18",
+ "checked_at": "2026-11-18T23:10:24+09:00",
+ "source": "공공데이터포털(data.go.kr) 실호출 · 마약류/의약품 계열 5종",
+ "note_ko": "이 계정의 서비스키로 후보 엔드포인트를 호출한 결과만 남긴다. 코드 30은 '해당 서비스에 등록되지 않은 키'로, 그 데이터셋에 대한 활용신청이 없다는 뜻이다(같은 키가 관세청·수입식품 API에서는 정상 동작함을 별도 확인). 키·원본 응답은 저장하지 않는다.",
+ "results": [
+  {
+   "dataset_id": "15058963",
+   "name_ko": "식약처_마약류 약물 및 오남용 정보",
+   "endpoint": "https://apis.data.go.kr/1471000/NrcdGnrlzInfoService01/getNrcdGnrlzList",
+   "http_status": 403,
+   "elapsed_ms": 500,
+   "gateway_code": "30",
+   "gateway_message": "SERVICE_KEY_IS_NOT_REGISTERED_ERROR",
+   "state": "approval_required"
+  },
+  {
+   "dataset_id": "15058041",
+   "name_ko": "식약처_마약류 및 원료물질 정보",
+   "endpoint": "https://apis.data.go.kr/1471000/NrcdNdRwmtrInfoService01/getNrcdNdRwmtrInfoList01",
+   "http_status": 403,
+   "elapsed_ms": 496,
+   "gateway_code": "30",
+   "gateway_message": "SERVICE_KEY_IS_NOT_REGISTERED_ERROR",
+   "state": "approval_required"
+  },
+  {
+   "dataset_id": "15095677",
+   "name_ko": "식약처_의약품 제품 허가정보",
+   "endpoint": "https://apis.data.go.kr/1471000/DrugPrdtPrmsnInfoService08/getDrugPrdtPrmsnInq08",
+   "http_status": 403,
+   "elapsed_ms": 498,
+   "gateway_code": "30",
+   "gateway_message": "SERVICE_KEY_IS_NOT_REGISTERED_ERROR",
+   "state": "approval_required"
+  },
+  {
+   "dataset_id": "15075057",
+   "name_ko": "식약처_의약품개요정보(e약은요)",
+   "endpoint": "https://apis.data.go.kr/1471000/DrbEasyDrugInfoService/getDrbEasyDrugList",
+   "http_status": 403,
+   "elapsed_ms": 1095,
+   "gateway_code": "30",
+   "gateway_message": "SERVICE_KEY_IS_NOT_REGISTERED_ERROR",
+   "state": "approval_required"
+  },
+  {
+   "dataset_id": "15059486",
+   "name_ko": "식약처_의약품안전사용서비스(DUR) 품목정보",
+   "endpoint": "https://apis.data.go.kr/1471000/DURPrdlstInfoService03/getDurPrdlstInfoList03",
+   "http_status": 403,
+   "elapsed_ms": 484,
+   "gateway_code": "30",
+   "gateway_message": "SERVICE_KEY_IS_NOT_REGISTERED_ERROR",
+   "state": "approval_required"
+  }
+ ],
+ "summary": {
+  "total": 5,
+  "live": 0,
+  "approval_required": 5
+ },
+ "apply_urls": [
+  {
+   "dataset_id": "15058963",
+   "name_ko": "식약처_마약류 약물 및 오남용 정보",
+   "apply_url": "https://www.data.go.kr/data/15058963/openapi.do"
+  },
+  {
+   "dataset_id": "15058041",
+   "name_ko": "식약처_마약류 및 원료물질 정보",
+   "apply_url": "https://www.data.go.kr/data/15058041/openapi.do"
+  },
+  {
+   "dataset_id": "15095677",
+   "name_ko": "식약처_의약품 제품 허가정보",
+   "apply_url": "https://www.data.go.kr/data/15095677/openapi.do"
+  },
+  {
+   "dataset_id": "15075057",
+   "name_ko": "식약처_의약품개요정보(e약은요)",
+   "apply_url": "https://www.data.go.kr/data/15075057/openapi.do"
+  },
+  {
+   "dataset_id": "15059486",
+   "name_ko": "식약처_의약품안전사용서비스(DUR) 품목정보",
+   "apply_url": "https://www.data.go.kr/data/15059486/openapi.do"
+  }
+ ]
+}

@@ -1,0 +1,89 @@
+{
+  "checked_on": "2026-11-19",
+  "source": "공공데이터포털 식약처 행정처분결과 OpenAPI",
+  "datasets": [
+    {
+      "dataset_id": "15124560",
+      "name_ko": "식품의약품안전처_행정처분결과(식품제조가공업)",
+      "endpoint": "https://apis.data.go.kr/1471000/AdmmRsltFoodMnftPrcsService01/getAdmmRsltFoodMnftPrcsBssh01",
+      "apply_url": "https://www.data.go.kr/data/15124560/openapi.do",
+      "license_scope": "이용허락범위 제한 없음",
+      "state": "live",
+      "http_result_code": "00",
+      "total_count": 249,
+      "fetched_rows": 100
+    },
+    {
+      "dataset_id": "15124559",
+      "name_ko": "식품의약품안전처_행정처분결과(식품판매업)",
+      "endpoint": "https://apis.data.go.kr/1471000/AdmmRsltFoodSaleService01/getAdmmRsltFoodSaleBssh01",
+      "apply_url": "https://www.data.go.kr/data/15124559/openapi.do",
+      "license_scope": "이용허락범위 제한 없음",
+      "state": "approval_pending",
+      "result_code": "30",
+      "note_ko": "mfds_disposition_sales: SERVICE_KEY_IS_NOT_REGISTERED_ERROR | 등록되지 않은 서비스키 (code 30)"
+    }
+  ],
+  "aggregate": {
+    "fetched_rows": 100,
+    "by_dataset": {
+      "15124560": 100,
+      "15124559": 0
+    },
+    "by_law_reference": [
+      {
+        "law_reference": "식품위생법 제36조(시설기준)",
+        "count": 54
+      },
+      {
+        "law_reference": "식품위생법 제75조(허가취소 등) 3항",
+        "count": 31
+      },
+      {
+        "law_reference": "식품위생법 제37조(영업허가 등)",
+        "count": 12
+      },
+      {
+        "law_reference": "식품위생법 제37조(영업허가 등) 7항",
+        "count": 1
+      },
+      {
+        "law_reference": "식품위생법 제4조(위해식품등의 판매 등 금지)",
+        "count": 1
+      },
+      {
+        "law_reference": "식품 등의 표시·광고에 관한 법률 제16조(영업정지 등)",
+        "count": 1
+      }
+    ],
+    "by_disposition_type": [
+      {
+        "disposition_type": "영업허가·등록취소",
+        "count": 77
+      },
+      {
+        "disposition_type": "영업소폐쇄",
+        "count": 23
+      }
+    ]
+  },
+  "pii_policy_ko": "원본 필드(업소명·대표자명·전화번호·주소·인허가번호)는 수집·저장·응답 어디에도 남기지 않았다. 아래 집계는 위반법령·처분유형만 센 값이다.",
+  "builtin_pattern_counts_ko": {
+    "PD-01": 94,
+    "PD-02": 37,
+    "PD-03": 16,
+    "PD-04": 7,
+    "PD-05": 6,
+    "PD-06": 4,
+    "PD-07": 1,
+    "PD-08": 2,
+    "PD-09": 1,
+    "PD-10": null,
+    "PD-11": null,
+    "PD-12": null
+  },
+  "notes_ko": [
+    "15124559(식품판매업)는 2026-11-19 기준 활용신청 승인 후 게이트웨이 전파 전으로 코드 30이 반환되어 집계에 포함되지 않았다.",
+    "재조회 시 자동으로 붙으며, 붙기 전에는 내장 대표 적발 패턴으로 폴백한다."
+  ]
+}
