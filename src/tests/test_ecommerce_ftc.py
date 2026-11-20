@@ -477,8 +477,9 @@ class GuideTest(unittest.TestCase):
             self.assertIn(f"/guides/{slug}", html)
 
     def test_guide_count_matches_catalog(self):
-        self.assertEqual(guides.catalog_meta()["version"], "1.1.0")
-        self.assertGreaterEqual(len(guides.items()), 50)
+        # 카탈로그 버전은 가이드를 추가할 때마다 여기서 함께 올린다(1.2.0: 롱테일 15종).
+        self.assertEqual(guides.catalog_meta()["version"], "1.2.0")
+        self.assertGreaterEqual(len(guides.items()), 65)
 
 
 class WebUiTest(unittest.TestCase):

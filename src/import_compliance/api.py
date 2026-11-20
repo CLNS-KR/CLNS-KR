@@ -1172,6 +1172,7 @@ def tool_get_service_meta(args: Dict[str, Any], store: Store, client_id: str, ti
         "guides": {
             "path": "/guides/",
             "count": _guide_meta().get("count"),
+            "catalog_version": _guide_meta().get("version"),
             "verified_on": _guide_meta().get("verified_on"),
             "page_pattern": "/guides/{slug}",
             "structured_data": ["FAQPage", "WebPage", "BreadcrumbList"],

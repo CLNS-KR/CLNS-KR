@@ -7,6 +7,8 @@
 2. **익명**: 실명·이메일·사업자 정보·연락처를 페이지 어디에도 넣지 않는다.
 3. **단정 금지**: 판정 문구는 전부 "가능성·확인 필요"로 표기하고, 면책을 하단에 고정한다.
 4. **입력값만 전송**: 폼은 품목명·HS·원산지·무선 여부·어린이 대상·품목군·수입 목적만 보낸다.
+5. **공유는 요약만**: 결과 공유 링크에는 품목명·품목군·원산지 같은 안전한 파라미터만 담고,
+   상세페이지 전문·성분표·연락처 같은 입력 본문은 담지 않는다.
 """
 from __future__ import annotations
 
@@ -227,6 +229,14 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
 footer{margin-top:30px; padding-top:16px; border-top:1px solid var(--line); font-size:12px; color:var(--ink-soft)}
 footer p{margin:6px 0}
 footer strong{color:var(--ink)}
+.sharebar{display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:12px}
+.sharebar button{
+  font:inherit; font-size:13px; font-weight:700; color:var(--brand); background:var(--brand-soft);
+  border:1px solid transparent; border-radius:10px; padding:9px 13px; cursor:pointer;
+}
+.sharebar button:hover{border-color:var(--brand)}
+.sharebar button:focus-visible{outline:2px solid var(--brand); outline-offset:2px}
+.sharebar .copied{font-size:12.5px; font-weight:700; color:var(--ok)}
 .sr{position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden;
   clip:rect(0,0,0,0); white-space:nowrap; border:0}
 </style>
@@ -453,9 +463,19 @@ footer strong{color:var(--ink)}
           <span class="note-inline" id="ec-note" aria-live="polite"></span>
         </div>
         <div id="ec-result" aria-live="polite"></div>
+        <div class="sharebar" id="ec-share" hidden>
+          <button type="button" id="ec-copy-summary">결과 요약 복사</button>
+          <button type="button" id="ec-copy-link">공유 링크 복사</button>
+          <span class="copied" id="ec-share-note" role="status" aria-live="polite"></span>
+        </div>
       </div>
 
       <div id="result" aria-live="polite"></div>
+      <div class="sharebar" id="result-share" hidden>
+        <button type="button" id="result-copy-summary">결과 요약 복사</button>
+        <button type="button" id="result-copy-link">공유 링크 복사</button>
+        <span class="copied" id="result-share-note" role="status" aria-live="polite"></span>
+      </div>
     </section>
 
     <!-- ================= HS 조회 ================= -->
@@ -546,7 +566,7 @@ footer strong{color:var(--ink)}
     <p>Clearance, simplified.</p>
     <p>무료 베타 · 결제 없음 · 회원가입 없음</p>
     <p><strong>품목별 수입 요건:</strong> <a href="/p/">선풍기·보조배터리·오메가3·선크림 등 35개 품목의 요건·인증·함정을 정리한 무료 체크 페이지</a></p>
-    <p><strong>질문형 가이드:</strong> <a href="/guides/">영양제 6병, 면세 한도 150/200달러, KC·전파 인증, 한글표시사항, 과대광고 금지 표현, 단순변심 환불 불가 문구, 체험단 대가성 표시 등 자주 묻는 질문 __GUIDE_COUNT__개에 근거 법령으로 답한 페이지</a></p>
+    <p><strong>질문형 가이드:</strong> <a href="/guides/">영양제 6병, 면세 한도 150/200달러, KC·전파 인증, 한글표시사항, 과대광고 금지 표현, 단순변심 환불 불가 문구, 체험단 대가성 표시, 스마트스토어 상표권, 어린이제품 KC, 직구 전자제품 1인 1대 전파 예생, 화장품 미백·주름 문구, 목록통관 배제 품목 등 자주 묻는 질문 __GUIDE_COUNT__개에 근거 법령으로 답한 페이지</a></p>
     <p><strong>면책:</strong> 본 결과는 사전 참고용입니다. 법적 효력이 없으며, 최종 법적 판단과 통관·인증 가능 여부는 관세사, 관세청, 국가기술표준원·인증기관, 식품의약품안전처 등 소관 기관의 확인이 필요합니다. 본 서비스는 관세사법상 관세 상담·대리 업무를 수행하지 않습니다.</p>
     <p><strong>데이터:</strong> 관세청·식품의약품안전처·산업통상부 국가기술표준원·과학기술정보통신부 국립전파연구원·법제처 공공데이터를 활용합니다. 의약품 성분은 마약류 관리에 관한 법률 시행령 별표 1~8을 로컬 사전으로 만들어 대조하며, 식약처 의약품 허가정보·e약은요·DUR API는 활용승인 전이라 실시간 전수 대조를 제공하지 않습니다. 원본을 그대로 중계하지 않고 결합·정규화한 판정만 제공하며, 조회 실패나 개정 지연 시 캐시 시점을 밝히고 판정을 "추가 정보 필요"로 낮춥니다.</p>
     <p><strong>개인정보:</strong> 이름·연락처·이메일·사업자 정보를 받지 않습니다. 입력한 품목 정보(품목명·HS·원산지 등)는 판정 이력에 익명으로 저장될 수 있습니다. 상호·주소 등 식별 정보는 입력하지 마세요.</p>
@@ -991,6 +1011,140 @@ footer strong{color:var(--ink)}
     return '<div class="meta-line">' + bits.map(function(b){ return "<span>" + esc(b) + "</span>"; }).join("") + "</div>";
   }
 
+  // ---------- 결과 공유·복사 ----------
+  // 판정 요약과 공유 링크만 클립보드로 내보낸다. 요약에는 품목명·판정·주요 항목·근거 법령·
+  // 출처 링크만 담고, 원문 상세 문구나 입력한 긴 텍스트는 넣지 않는다.
+  var SOURCE_URL = "https://clns-kr.onrender.com";
+  var NL = String.fromCharCode(10);
+  var shareState = { check: null, ec: null };
+
+  function flashNote(el, message){
+    if (!el) return;
+    el.textContent = message;
+    window.setTimeout(function(){
+      if (el.textContent === message) el.textContent = "";
+    }, 2600);
+  }
+  function copyText(value, done){
+    var payload = String(value === null || value === undefined ? "" : value);
+    function fallback(){
+      var area = document.createElement("textarea");
+      area.value = payload;
+      area.setAttribute("readonly", "readonly");
+      area.style.position = "fixed";
+      area.style.top = "-1000px";
+      area.style.left = "-1000px";
+      document.body.appendChild(area);
+      var ok = false;
+      try {
+        area.select();
+        ok = document.execCommand("copy");
+      } catch (e) {
+        ok = false;
+      }
+      document.body.removeChild(area);
+      done(ok);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(payload).then(function(){ done(true); }, function(){ fallback(); });
+      return;
+    }
+    fallback();
+  }
+  function uniqueLabels(values, limit){
+    var out = [];
+    (values || []).forEach(function(value){
+      var label = String(value === null || value === undefined ? "" : value).trim();
+      if (label && out.indexOf(label) === -1) out.push(label);
+    });
+    return out.slice(0, limit || 5);
+  }
+  function basisLabels(rows, limit){
+    return uniqueLabels((rows || []).map(function(row){
+      if (!row || !row.law) return "";
+      return (row.law + " " + (row.article || "")).trim();
+    }), limit);
+  }
+  function checkSummaryText(productName, result){
+    result = result || {};
+    var verdict = result.verdict || {};
+    var lines = ["[CLNS 사전 점검] " + (productName || "입력 품목")];
+    lines.push("판정: " + (verdict.label_ko || "-") + " (" + (verdict.code || "-") + ")");
+    var needCheck = [];
+    var lowRisk = [];
+    (result.findings || []).forEach(function(f){
+      var label = f.issue_ko || f.title || "";
+      if (!label) return;
+      if (f.verdict === "low_risk") lowRisk.push(label);
+      else needCheck.push(label);
+    });
+    if (needCheck.length) lines.push("주요 위험·확인 항목: " + uniqueLabels(needCheck, 5).join(", "));
+    if (lowRisk.length) lines.push("현재 정보상 가능성 낮음: " + uniqueLabels(lowRisk, 3).join(", "));
+    var basis = basisLabels(result.evidence, 5);
+    if (basis.length) lines.push("근거 법령: " + basis.join(" / "));
+    var rules = uniqueLabels((result.findings || []).map(function(f){ return f.case_id; }), 6);
+    if (rules.length) lines.push("규칙·케이스 ID: " + rules.join(", "));
+    lines.push("사전 참고용이며 확정 판정이 아닙니다. " + SOURCE_URL);
+    return lines.join(NL);
+  }
+  function ecSummaryText(result){
+    result = result || {};
+    var verdict = result.verdict || {};
+    var review = result.ecommerce_review || {};
+    var lines = ["[CLNS 판매페이지 사전 점검] " + (result.channel_label_ko || "채널 미지정")];
+    lines.push("판정: " + (verdict.label_ko || "-") + " (" + (verdict.code || "-") + ")");
+    var high = [];
+    var caution = [];
+    (review.findings || []).forEach(function(f){
+      var label = f.name_ko || f.rule_id || "";
+      if (!label) return;
+      if (f.risk === "high") high.push(label);
+      else caution.push(label);
+    });
+    if (high.length) lines.push("금지 위험 문구: " + uniqueLabels(high, 5).join(", "));
+    if (caution.length) lines.push("주의·확인 문구: " + uniqueLabels(caution, 5).join(", "));
+    var basis = basisLabels(result.evidence, 5);
+    if (basis.length) lines.push("근거 법령: " + basis.join(" / "));
+    lines.push("사전 참고용이며 확정 판정이 아닙니다. " + SOURCE_URL);
+    return lines.join(NL);
+  }
+  function shareUrl(kind){
+    var parts = [];
+    if (kind === "check" && shareState.check){
+      if (shareState.check.product) parts.push("item=" + encodeURIComponent(shareState.check.product));
+      if (shareState.check.cat) parts.push("cat=" + encodeURIComponent(shareState.check.cat));
+      if (shareState.check.origin) parts.push("origin=" + encodeURIComponent(shareState.check.origin));
+    }
+    if (kind === "ec") parts.push("cat=ec");
+    return SOURCE_URL + "/" + (parts.length ? "?" + parts.join("&") : "") + "#check";
+  }
+  function setShareBar(barId, visible){
+    var bar = document.getElementById(barId);
+    if (bar) bar.hidden = !visible;
+  }
+  function bindShare(barId, noteId, copyId, linkId, kind){
+    var note = document.getElementById(noteId);
+    var copyBtn = document.getElementById(copyId);
+    var linkBtn = document.getElementById(linkId);
+    if (copyBtn) copyBtn.addEventListener("click", function(){
+      var state = shareState[kind];
+      if (!state || !state.summary){
+        flashNote(note, "먼저 점검을 실행해 주세요.");
+        return;
+      }
+      copyText(state.summary, function(ok){
+        flashNote(note, ok ? "복사됨 ✓" : "복사 권한이 없어 클립보드에 넣지 못했습니다. 브라우저 설정에서 클립보드 접근을 허용해 주세요.");
+      });
+    });
+    if (linkBtn) linkBtn.addEventListener("click", function(){
+      copyText(shareUrl(kind), function(ok){
+        flashNote(note, ok ? "복사됨 ✓" : "복사 권한이 없어 클립보드에 넣지 못했습니다. 브라우저 설정에서 클립보드 접근을 허용해 주세요.");
+      });
+    });
+  }
+  bindShare("result-share", "result-share-note", "result-copy-summary", "result-copy-link", "check");
+  bindShare("ec-share", "ec-share-note", "ec-copy-summary", "ec-copy-link", "ec");
+
   // ---------- 리스크 체크 ----------
   var form = document.getElementById("check-form");
   var resultEl = document.getElementById("result");
@@ -1235,8 +1389,19 @@ footer strong{color:var(--ink)}
       html += sectionCollapsible("면책·이용 범위", disclaimerBlock(result), "안내 보기");
 
       resultEl.innerHTML = html;
+      shareState.check = {
+        product: data.product,
+        cat: data.kind || "",
+        origin: data.origin || "",
+        summary: checkSummaryText(data.product, result)
+      };
+      setShareBar("result-share", true);
+      var resultShareNote = document.getElementById("result-share-note");
+      if (resultShareNote) resultShareNote.textContent = "";
       resultEl.scrollIntoView({ behavior: "smooth", block: "start" });
     }).catch(function(err){
+      shareState.check = null;
+      setShareBar("result-share", false);
       resultEl.innerHTML = '<div class="card"><div class="empty">' + esc(err.message || "조회에 실패했습니다.") + "</div>" +
         '<p class="note-inline" style="margin-top:10px">잠시 후 다시 시도해 주세요. 계속 실패하면 HS 10자리 조회 탭만 따로 이용해 보세요.</p></div>';
     }).then(function(){
@@ -1348,9 +1513,15 @@ footer strong{color:var(--ink)}
       postTool("check_ecommerce_compliance", {detail_copy: text, channel: (ecChannel && ecChannel.value) || "own", limit: 12})
         .then(function(result){
           ecResult.innerHTML = renderEcommerce(result);
+          shareState.ec = { summary: ecSummaryText(result) };
+          setShareBar("ec-share", true);
+          var ecShareNote = document.getElementById("ec-share-note");
+          if (ecShareNote) ecShareNote.textContent = "";
           ecResult.scrollIntoView({behavior: "smooth", block: "start"});
         })
         .catch(function(err){
+          shareState.ec = null;
+          setShareBar("ec-share", false);
           ecResult.innerHTML = '<div class="card"><div class="empty">' + esc(err.message || "검수에 실패했습니다.") + '</div></div>';
         })
         .then(function(){
@@ -1373,6 +1544,8 @@ footer strong{color:var(--ink)}
     if (adOnestopWrap) adOnestopWrap.open = false;
     syncConditionalFields();
     resultEl.innerHTML = "";
+    shareState.check = null;
+    setShareBar("result-share", false);
     formNote.textContent = "";
   });
 
@@ -1447,6 +1620,53 @@ footer strong{color:var(--ink)}
       showTab("check");
       if (form.requestSubmit) form.requestSubmit();
       else form.dispatchEvent(new Event("submit", { cancelable: true }));
+    }
+  } catch (e) {}
+
+  // ---------- /?item=&cat=&origin= 프리필 (공유 링크로 들어온 경우) ----------
+  // 공유 링크에는 품목명·품목군·원산지만 담는다. 상세 문구나 개인정보는 받지 않으므로
+  // 여기서도 입력란에 그대로 채우지 않고, 허용된 선택지 값일 때만 반영한다.
+  try {
+    var shared = new URLSearchParams(location.search);
+    var sharedItem = shared.get("item");
+    var sharedCat = shared.get("cat");
+    var sharedOrigin = shared.get("origin");
+    var filled = false;
+    var optionValue = function(selectEl, wanted){
+      var found = null;
+      if (!selectEl) return null;
+      Array.prototype.forEach.call(selectEl.options, function(opt){
+        if (opt.value === wanted) found = opt.value;
+      });
+      return found;
+    };
+    if (sharedItem && !shared.get("q")){
+      var itemInput = document.getElementById("product");
+      if (itemInput && !itemInput.value){
+        itemInput.value = sharedItem.slice(0, 80);
+        filled = true;
+      }
+    }
+    if (sharedCat){
+      var catSelect = document.getElementById("kind");
+      var catValue = optionValue(catSelect, sharedCat);
+      if (catValue !== null){
+        catSelect.value = catValue;
+        filled = true;
+      }
+    }
+    if (sharedOrigin){
+      var originSelect = document.getElementById("origin");
+      var originValue = optionValue(originSelect, sharedOrigin);
+      if (originValue !== null){
+        originSelect.value = originValue;
+        filled = true;
+      }
+    }
+    if (filled){
+      showTab("check");
+      syncConditionalFields();
+      formNote.textContent = "공유 링크의 품목·구분·원산지를 채웠습니다. 내용을 확인하고 '리스크 체크'를 눌러 주세요.";
     }
   } catch (e) {}
 

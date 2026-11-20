@@ -19,9 +19,11 @@ AI 챗봇에 입력되는 질문 문장**으로 들어오는 유입을 받는다
 
 데이터
 ------
-`src/guides_items.json` — 질문 35종. 문안은 위 모듈들의 검증된 사실(6병 기준, $150/$200,
-KC 유형 구분, 광고 금지 표현 16종 등)을 근거로 작성했고, `cases` 는 함정 코퍼스
-(`traps_20.json`)의 케이스 ID 다.
+`src/guides_items.json` — 질문 65종(기본 50종 + 롱테일 15종, 카탈로그 1.2.0). 문안은 위
+모듈들의 검증된 사실(6병 기준, $150/$200, KC 유형 구분, 광고 금지 표현 16종 등)을 근거로
+작성했고, `cases` 는 함정 코퍼스(`traps_20.json`)의 케이스 ID, `basis_keys` 는 이 저장소에서
+검증한 조문 상수 키다. 새 질문을 넣을 때도 둘 중 하나는 반드시 실제로 해석되어야 한다
+(근거 없는 페이지는 서버가 뜨지 않는다).
 """
 from __future__ import annotations
 
@@ -526,7 +528,7 @@ def render_guide(slug: str, base: Optional[str] = None) -> Optional[str]:
 
 
 def render_index(base: Optional[str] = None) -> str:
-    """`/guides/` 인덱스 — 질문 35종으로 들어오는 입구."""
+    """`/guides/` 인덱스 — 카탈로그 전체 질문으로 들어오는 입구."""
     root = static_files.base_url(base)
     meta = catalog_meta()
     canonical = f"{root}{index_path()}"

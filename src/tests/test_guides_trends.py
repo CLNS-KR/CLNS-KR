@@ -29,6 +29,7 @@ import unittest
 import urllib.error
 import urllib.request
 import xml.etree.ElementTree as ET
+from html import escape
 from http.server import ThreadingHTTPServer
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -186,7 +187,8 @@ class GuidePageTest(ServerCase):
                 status, headers, html = self.get_text(f"/guides/{item['slug']}")
                 self.assertEqual(status, 200)
                 self.assertIn("text/html", headers["Content-Type"])
-                self.assertIn(f"<h1>{item['question_ko']}</h1>", html)
+                # 질문에 따옴표가 들어가면 H1 은 HTML 이스케이프된 형태로 렌더된다.
+                self.assertIn(f"<h1>{escape(item['question_ko'])}</h1>", html)
                 self.assertIn("한 줄 답변", html)
                 self.assertIn("대표 체크포인트", html)
                 self.assertIn("근거 법령", html)
