@@ -1,0 +1,99 @@
+# CLNS 일일 스냅샷 — 무료 플랜(Render 등)에서도 시계열·통계가 사라지지 않게 저장소에 커밋한다.
+#
+# 왜 이 워크플로가 필요한가
+#   서버 작업 DB(SQLite)는 영구 디스크가 없는 무료 플랜에서 재배포·슬립 때 초기화된다.
+#   그래서 하루치 스냅샷(리콜·행정처분·금지성분·성분 사전 지문)을 매일 만들어
+#   `data/snapshots/YYYY-MM-DD.json` 으로 커밋하고, 서버는 기동할 때 이 파일을 DB 로 복원한다
+#   (`python -m import_compliance.snapshots --seed`, 서버는 자동 수행).
+#   익명 사용 통계(`/v1/stats`)도 같은 방식으로 `data/usage/stats.json` 에 보관한다.
+#
+# 시간
+#   0 19 * * * (UTC) = 04:00 KST. 트래픽이 가장 적은 시각.
+#
+# 수동 실행
+#   Actions 화면에서 이 워크플로를 Run workflow 로 한 번 돌리면 그날 스냅샷이 생긴다.
+#   과거 30일을 채우려면 workflow_dispatch 입력 backfill_days 를 30 으로 준다.
+name: daily-snapshot
+
+on:
+  schedule:
+    - cron: "0 19 * * *"
+  workflow_dispatch:
+    inputs:
+      backfill_days:
+        description: "과거 N일 스냅샷 재구성(0이면 오늘만)"
+        required: false
+        default: "0"
+
+permissions:
+  contents: write          # 스냅샷 JSON 을 커밋·푸시하기 위해 필요
+
+concurrency:
+  group: daily-snapshot
+  cancel-in-progress: false
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    env:
+      PYTHONPATH: ${{ github.workspace }}/src
+      PUBLIC_BASE_URL: ${{ vars.PUBLIC_BASE_URL || 'https://clns-kr.onrender.com' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 테스트(네트워크 불필요)
+        working-directory: src
+        run: python -m unittest discover -s tests -p "test_*.py" -q
+
+      - name: 오늘 스냅샷 적재·내보내기
+        run: |
+          set -euo pipefail
+          mkdir -p data/snapshots data/usage
+          python -m import_compliance.snapshots \
+            --db data/ci.sqlite \
+            --take \
+            --export data/snapshots \
+            --include-items
+
+      - name: 과거 N일 재구성(선택)
+        if: ${{ github.event.inputs.backfill_days != '' && github.event.inputs.backfill_days != '0' }}
+        run: |
+          set -euo pipefail
+          python -m import_compliance.snapshots \
+            --db data/ci.sqlite \
+            --backfill "${{ github.event.inputs.backfill_days }}" \
+            --export data/snapshots \
+            --include-items
+
+      - name: 익명 사용 통계 스냅샷(라이브 서버가 있으면)
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          curl -fsS --max-time 60 "${PUBLIC_BASE_URL}/v1/stats?days=30" -o data/usage/stats.json
+          python -c "import json;d=json.load(open('data/usage/stats.json',encoding='utf-8'));print('stats days',len(d.get('days') or []),'requests',(d.get('totals') or {}).get('requests',0))"
+
+      - name: 오래된 스냅샷 정리(90일 보관)
+        run: |
+          set -euo pipefail
+          # 추이 API 는 최대 90일만 본다. 그보다 오래된 파일은 저장소가 커지지 않게 지운다.
+          find data/snapshots -name '*.json' -mtime +92 -delete
+
+      - name: 커밋·푸시(변경 있을 때만)
+        run: |
+          set -euo pipefail
+          rm -f data/ci.sqlite data/ci.sqlite-wal data/ci.sqlite-shm
+          git config user.name "clns-snapshot-bot"
+          git config user.email "clns-snapshot-bot@users.noreply.github.com"
+          git add data/snapshots data/usage
+          if git diff --cached --quiet; then
+            echo "변경 없음"
+            exit 0
+          fi
+          git commit -m "chore(data): daily snapshot $(date -u +%F)"
+          git push
