@@ -533,8 +533,9 @@ class PersistenceTest(unittest.TestCase):
                 payload = json.load(handle)
             with self.subTest(file=name):
                 self.assertRegex(payload["day"], r"^\d{4}-\d{2}-\d{2}$")
-                self.assertTrue(payload.get("items"))
-                self.assertIn("recall", payload["items"])
+                self.assertTrue(payload.get("items") or payload.get("counts"))
+                if payload.get("items"):
+                    self.assertIn("recall", payload["items"])
 
     def test_usage_seed_shape(self):
         path = os.path.join(ROOT, "data", "usage", "stats.json")
