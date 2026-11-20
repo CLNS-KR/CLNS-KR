@@ -156,6 +156,14 @@ REGULATION_TAGS: Dict[str, Dict[str, str]] = {
     "SUBSCRIPTION_AUTO_RENEWAL": {"label_ko": "구독ㆍ자동결제 고지", "label_en": "Subscription auto-renewal notice"},
     "DARK_PATTERN_UI": {"label_ko": "온라인 인터페이스 다크패턴", "label_en": "Online interface dark pattern"},
     "SELLER_DISCLOSURE": {"label_ko": "판매자 신원ㆍ거래조건 고지", "label_en": "Seller identity / transaction terms"},
+    "FEED_IMPORT_DECLARATION": {"label_ko": "사료 수입신고ㆍ검정", "label_en": "Feed import declaration"},
+    "FEED_INGREDIENT_REGISTRATION": {"label_ko": "사료 성분등록", "label_en": "Feed ingredient registration"},
+    "FEED_BUSINESS_REGISTRATION": {"label_ko": "사료 제조업 등록", "label_en": "Feed manufacturing registration"},
+    "FEED_LABELING": {"label_ko": "사료 표시사항", "label_en": "Feed labeling"},
+    "FEED_HAZARD_STANDARD": {"label_ko": "사료 유해물질ㆍ유통기한", "label_en": "Feed hazard standard"},
+    "FEED_SELF_QUALITY_INSPECTION": {"label_ko": "사료 자가품질검사", "label_en": "Feed self-quality inspection"},
+    "ANIMAL_PRODUCT_QUARANTINE": {"label_ko": "동물검역(지정검역물)", "label_en": "Animal product quarantine"},
+    "PET_FOOD_QUARANTINE": {"label_ko": "반려동물 사료 수입위생조건", "label_en": "Pet food import health condition"},
 }
 
 # 코퍼스 케이스 → 규제 태그(테스트셋 required_findings 가 참조하는 유일한 매핑).
@@ -184,6 +192,8 @@ CASE_REGULATION_TAGS: Dict[str, List[str]] = {
     "TRAP-22": ["HYGIENE_PRODUCT_IMPORT"],
     "TRAP-23": ["NARCOTIC_IMPORT_BAN"],
     "TRAP-24": ["DRUG_INGREDIENT_RESTRICTION"],
+    "TRAP-25": ["FEED_INGREDIENT_REGISTRATION", "FEED_IMPORT_DECLARATION", "FEED_LABELING",
+                "ANIMAL_PRODUCT_QUARANTINE"],
 }
 
 
@@ -212,6 +222,8 @@ def unknown_tags(tags: Iterable[str]) -> List[str]:
 # 에 그대로 남기고, 응답 최상위 missing_information 만 표준명으로 노출한다.
 MISSING_FIELD_ALIAS: Dict[str, str] = {
     "ac_plug": "ac_plug",
+    "animal": "target_animal",
+    "animal_origin": "animal_origin_ingredient",
     "ad_copy": "ad_copy",
     "additive_names": "additive_names",
     "agreement": "fta_agreement",
@@ -236,6 +248,7 @@ MISSING_FIELD_ALIAS: Dict[str, str] = {
     "item": "item_name",
     "label_items": "label_items",
     "label_text": "label_text",
+    "manufacture": "manufacture_or_repacking",
     "material": "material",
     "material_origin": "material_origin",
     "nicotine": "nicotine_content",

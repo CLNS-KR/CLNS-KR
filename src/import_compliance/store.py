@@ -433,6 +433,35 @@ class Store:
             row = self.conn.execute("SELECT COALESCE(SUM(count), 0) AS c FROM usage_daily").fetchone()
         return int(row["c"])
 
+    def seed_usage_rows(self, rows: List[Dict[str, Any]]) -> int:
+        """과거 익명 카운터를 복원한다(재배포 대응). 큰 값만 남기는 멱등 적재.
+
+        - 기존 값보다 작은 값은 쓰지 않는다(`MAX`) — 여러 번 기동해도 카운트가 부풀지 않는다.
+        - 받는 키는 날짜ㆍ종류ㆍ경로/툴/판정/플래그 문자열뿐이다(개인 식별자 없음).
+        """
+        written = 0
+        stamp = iso(now_kst())
+        with self._lock:
+            for row in rows or []:
+                day = str(row.get("day") or "").strip()
+                kind = str(row.get("kind") or "").strip()
+                key = str(row.get("key") or "").strip()
+                try:
+                    count = int(row.get("count") or 0)
+                except (TypeError, ValueError):
+                    continue
+                if not day or not kind or not key or count <= 0:
+                    continue
+                self.conn.execute(
+                    "INSERT INTO usage_daily(day, kind, key, count, updated_at) VALUES (?,?,?,?,?) "
+                    "ON CONFLICT(day, kind, key) DO UPDATE SET "
+                    "count = MAX(count, excluded.count), updated_at = excluded.updated_at",
+                    (day[:10], kind[:16], key[:64], count, stamp),
+                )
+                written += 1
+            self.conn.commit()
+        return written
+
 
 class SourceGateway:
     """공공 API 호출부.

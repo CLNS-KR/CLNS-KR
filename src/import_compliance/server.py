@@ -36,7 +36,7 @@ import os
 import re
 import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
 
 from . import guides, mcp_http, pseo, site_verification, static_files, usage
@@ -89,6 +89,42 @@ def default_db_path() -> str:
     return os.path.join(project_root(), "data", "app.sqlite")
 
 
+def resolve_db_path(env: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
+    """작업 DB 경로를 환경변수 우선순위로 정한다(설정 확인용, 부작용 없음).
+
+    1. `CLNS_DB_PATH` — 서비스 전용 경로(영구 볼륨을 붙일 때 여기를 마운트한다)
+    2. `IMPORT_COMPLIANCE_DB` — Docker 이미지가 쓰는 기존 이름(호환 유지)
+    3. `DATABASE_URL` — 지금은 `sqlite:///경로` 만 해석한다. `postgres://` 는 표준 라이브러리만
+       쓰는 배포 이미지에 드라이버가 없어 작업 DB 로 쓰지 않고, 그 사실을 note 로 밝힌다.
+    4. 기본값 `data/app.sqlite`
+    """
+    env = os.environ if env is None else env
+    notes: List[str] = []
+    for key in ("CLNS_DB_PATH", "IMPORT_COMPLIANCE_DB"):
+        value = str(env.get(key) or "").strip()
+        if value:
+            return {"db_path": value, "db_source": key, "notes": notes}
+    url = str(env.get("DATABASE_URL") or "").strip()
+    if url:
+        if url.startswith("sqlite://"):
+            path = url[len("sqlite://"):]
+            if path.startswith("/") and not path.startswith("//"):
+                path = path[1:]
+            path = path.replace("//", "/") or ":memory:"
+            return {"db_path": path, "db_source": "DATABASE_URL(sqlite)", "notes": notes}
+        if url.startswith(("postgres://", "postgresql://")):
+            notes.append(
+                "DATABASE_URL 이 Postgres 형식이지만 이 이미지는 표준 라이브러리만 쓰므로 "
+                "작업 DB 는 SQLite(data/app.sqlite)로 유지합니다. 지속이 필요하면 data/ 디렉터리를 "
+                "영구 볼륨으로 마운트하고 일일 스냅샷 시드(data/snapshots)를 함께 두세요."
+            )
+            return {"db_path": default_db_path(), "db_source": "DATABASE_URL(postgres, unsupported)",
+                    "notes": notes}
+        notes.append("DATABASE_URL 형식을 해석하지 못해 기본 SQLite 경로를 사용합니다.")
+        return {"db_path": default_db_path(), "db_source": "DATABASE_URL(unknown)", "notes": notes}
+    return {"db_path": default_db_path(), "db_source": "default", "notes": notes}
+
+
 def _int_env(value: Optional[str], fallback: int) -> int:
     try:
         parsed = int(str(value).strip())
@@ -104,10 +140,15 @@ def _truthy(value: Optional[str]) -> bool:
 def config_from_env(env: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
     """환경변수만 읽어 서버 설정을 만든다(부작용 없음)."""
     env = os.environ if env is None else env
+    db = resolve_db_path(env)
     return {
         "host": (env.get("HOST") or DEFAULT_HOST).strip() or DEFAULT_HOST,
         "port": _int_env(env.get("PORT"), DEFAULT_PORT),
-        "db_path": (env.get("IMPORT_COMPLIANCE_DB") or "").strip() or default_db_path(),
+        "db_path": db["db_path"],
+        "db_source": db["db_source"],
+        "persistence_notes": db["notes"],
+        "seed_dir": (env.get("CLNS_SEED_DIR") or "").strip(),
+        "usage_seed": (env.get("CLNS_USAGE_SEED") or "").strip(),
         "live_mode": _truthy(env.get("IMPORT_COMPLIANCE_LIVE")),
     }
 
@@ -406,11 +447,15 @@ def make_handler(store: Store, live=None):
 
 
 def serve(host: str = DEFAULT_HOST, port: int = DEFAULT_PORT, db_path: str = "",
-          live=None, snapshot: bool = False) -> None:
+          live=None, snapshot: bool = False, seed_dir: str = "", usage_seed: str = "") -> None:
     """서버를 기동한다(블로킹). db_path가 비면 작업 DB(data/app.sqlite)를 쓴다.
 
     `snapshot=True`(또는 `IMPORT_COMPLIANCE_SNAPSHOT=1`)면 기동 시 그날 스냅샷을 적재한다.
     같은 날 여러 번 기동해도 일자 기준으로 덮어쓰므로 중복이 쌓이지 않는다.
+
+    기동 시 `data/snapshots/*.json`(저장소 커밋분)과 익명 사용 통계를 DB 로 복원한다.
+    Render 무료 플랜처럼 영구 디스크가 없어 재배포 때 DB 가 비는 환경에서 시계열·통계를
+    되살리기 위한 것으로, DB 에 이미 있는 날짜는 덮어쓰지 않는다(멱등).
     """
     from . import recall_index, snapshots
 
@@ -424,6 +469,14 @@ def serve(host: str = DEFAULT_HOST, port: int = DEFAULT_PORT, db_path: str = "",
         recall_index.load_from_index(store)
     except Exception:  # noqa: BLE001 - 인덱스 복사 실패가 기동을 막지 않게
         pass
+    try:
+        seeded = snapshots.seed_persistence(store, seed_dir, usage_seed)
+        if seeded.get("seeded_days") or seeded.get("usage", {}).get("rows"):
+            print(f"영속 시드 복원: 스냅샷 {len(seeded['seeded_days'])}일 "
+                  f"({seeded['seeded_rows']}행), 사용통계 {seeded.get('usage', {}).get('rows', 0)}행",
+                  flush=True)
+    except Exception as exc:  # noqa: BLE001 - 시드 실패가 기동을 막지 않게
+        print(f"경고: 영속 시드 복원 실패({exc})", file=sys.stderr, flush=True)
     if live is not None:
         register_sources(store)
     if snapshot:
@@ -477,7 +530,10 @@ def main(argv: Optional[list] = None) -> int:
             print(f"실API 모드: {live.capabilities()}", flush=True)
 
     snapshot_on = args.snapshot or _truthy(os.environ.get("IMPORT_COMPLIANCE_SNAPSHOT"))
-    serve(host=host, port=port, db_path=db_path, live=live, snapshot=snapshot_on)
+    for note in cfg.get("persistence_notes") or []:
+        print(f"참고: {note}", file=sys.stderr, flush=True)
+    serve(host=host, port=port, db_path=db_path, live=live, snapshot=snapshot_on,
+          seed_dir=cfg.get("seed_dir") or "", usage_seed=cfg.get("usage_seed") or "")
     return 0
 
 

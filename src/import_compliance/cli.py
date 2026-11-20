@@ -14,11 +14,22 @@ from .policy import find_conclusive_phrasing
 from .store import Store
 
 
+# 코퍼스 기대 케이스(번호가 비면 카드 누락이다). 0.5.0 에서 TRAP-25(반려동물 사료) 추가.
+EXPECTED_CASE_IDS = tuple(f"TRAP-{index:02d}" for index in range(1, 26))
+
+
 def run_corpus_checks() -> int:
     corpus = load_corpus()
     problems = []
-    if len(corpus.traps) != 24:
-        problems.append(f"trap count is {len(corpus.traps)}, expected 24")
+    if len(corpus.traps) != len(EXPECTED_CASE_IDS):
+        problems.append(f"trap count is {len(corpus.traps)}, expected {len(EXPECTED_CASE_IDS)}")
+    missing_ids = [case_id for case_id in EXPECTED_CASE_IDS
+                   if corpus.by_id(case_id) is None]
+    if missing_ids:
+        problems.append("missing cases: " + ", ".join(missing_ids))
+    extra_ids = [trap.id for trap in corpus.traps if trap.id not in EXPECTED_CASE_IDS]
+    if extra_ids:
+        problems.append("unexpected cases: " + ", ".join(extra_ids))
     for trap in corpus.traps:
         if trap.default_verdict not in ("check_likely", "info_needed", "low_risk"):
             problems.append(f"{trap.id}: bad verdict {trap.default_verdict}")

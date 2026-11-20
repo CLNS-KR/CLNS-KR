@@ -435,7 +435,7 @@ class CorpusAndDocsTest(unittest.TestCase):
 
     def test_scoring_scope_limits_mention_drugs(self):
         scope = " ".join(SCOPE_LIMITS_KO)
-        self.assertIn("24개", scope)
+        self.assertIn("25개", scope)
         self.assertIn("마약류", scope)
         self.assertIn("활용승인", scope)
         self.assertIn("의약외품", scope)

@@ -341,6 +341,7 @@ footer strong{color:var(--ink)}
                 <option value="drug">의약품·영양제</option>
                 <option value="food_contact">식품용 기구·용기·포장</option>
                 <option value="electronics">전자·생활용품</option>
+                <option value="feed">반려동물 사료·간식</option>
               </select>
               <span class="hint">화장품·의약품·식품을 고르거나 품목명에 적으면 추가 대조 항목이 자동으로 열립니다.</span>
             </label>
@@ -431,6 +432,7 @@ footer strong{color:var(--ink)}
             <button type="submit" class="primary" id="check-submit">리스크 체크</button>
             <button type="button" class="ghost" id="check-demo">예시로 채워 보기</button>
             <button type="button" class="ghost" id="check-demo-shop">국내 판매페이지 예시</button>
+            <button type="button" class="ghost" id="check-demo-feed">반려동물 사료 예시</button>
             <button type="button" class="ghost" id="check-reset">입력 지우기</button>
             <span class="note-inline" id="form-note" aria-live="polite"></span>
           </div>
@@ -522,8 +524,8 @@ footer strong{color:var(--ink)}
               <tr><td>GET</td><td><code>/healthz</code></td><td>헬스체크</td></tr>
               <tr><td>GET</td><td><code>/v1/meta</code></td><td>코퍼스 버전·판정 등급·무료 한도</td></tr>
               <tr><td>POST</td><td><code>/mcp</code> · <code>/v1/mcp</code></td><td>MCP JSON-RPC 2.0 (initialize·tools/list·tools/call·ping)</td></tr>
-              <tr><td>GET</td><td><code>/.well-known/mcp/server-card.json</code></td><td>MCP 서버 카드(인증 없음·툴 13종 스키마)</td></tr>
-              <tr><td>GET</td><td><code>/v1/mcp</code></td><td>MCP 툴 매니페스트(툴 13종, 사람이 읽는 JSON)</td></tr>
+              <tr><td>GET</td><td><code>/.well-known/mcp/server-card.json</code></td><td>MCP 서버 카드(인증 없음·툴 14종 스키마)</td></tr>
+              <tr><td>GET</td><td><code>/v1/mcp</code></td><td>MCP 툴 매니페스트(툴 14종, 사람이 읽는 JSON)</td></tr>
               <tr><td>GET</td><td><code>/guides/</code> · <code>/guides/{slug}</code></td><td>질문형·규제별 가이드(서버 렌더 HTML)</td></tr>
               <tr><td>GET</td><td><code>/v1/trends</code></td><td>일일 스냅샷 기반 리콜·행정처분 시계열 추이</td></tr>
               <tr><td>GET</td><td><code>/robots.txt</code> · <code>/llms.txt</code> · <code>/sitemap.xml</code></td><td>검색·AI 크롤러용 공개 파일</td></tr>
@@ -977,6 +979,23 @@ footer strong{color:var(--ink)}
     return '<div class="tbl-wrap"><table><thead><tr><th>위험도</th><th>유형·탐지 표현</th><th>판단 이유</th><th>수정 권고 문구</th></tr></thead><tbody>' + body + '</tbody></table></div>';
   }
 
+  function feedCheckBlock(block){
+    if (!block) return emptyBox("반려동물 사료·간식 검수 결과가 없습니다.");
+    var rows = (block.findings || []);
+    if (!rows.length) return emptyBox("입력한 범위에서 확인이 남은 사료관리법·동물검역 항목이 없습니다.");
+    var body = rows.map(function(f){
+      var tag = f.status === "missing" ? '<span class="tag bad">갖추지 못함</span>' : '<span class="tag info">확인 필요</span>';
+      var basis = (f.legal_basis && f.legal_basis[0]) ? (f.legal_basis[0].law + " " + f.legal_basis[0].article) : "";
+      return "<tr><td>" + tag + "</td><td><strong>" + esc(f.name_ko) + "</strong><br><span class='note-inline'>" +
+        esc(f.axis_ko || "") + " · " + esc(basis) + "</span></td><td>" + esc(f.safer_ko || "") + "</td></tr>";
+    }).join("");
+    var head = '<p class="sub">' + esc(block.input ? block.input.product_type_label_ko : "") + " · " +
+      esc(block.input ? block.input.purpose_label_ko : "") + " · " + esc(block.risk_summary_ko || "") +
+      " · 근거 확인 " + esc(block.checked_on || "") + "</p>";
+    return head + '<div class="tbl-wrap"><table><thead><tr><th>상태</th><th>확인 항목</th><th>무엇을 하면 되나</th></tr></thead><tbody>' +
+      body + '</tbody></table></div>';
+  }
+
   function ecommerceDisclosureBlock(check){
     if (!check || !(check.checklist || []).length) return "";
     var rows = (check.checklist || []).map(function(r){
@@ -1250,7 +1269,7 @@ footer strong{color:var(--ink)}
 
     Promise.all([mainP, hsP, recallP, adP, drugP]).then(function(res){
       var result = res[0], hsResult = res[1], recall = res[2], adResult = res[3], drugResult = res[4];
-      var kind = (data.kind && data.kind !== "drug") ? data.kind : "";
+      var kind = (data.kind && data.kind !== "drug" && data.kind !== "feed") ? data.kind : "";
       if (!kind){
         var cats = (result.findings || []).map(function(f){ return f.category; });
         if (cats.indexOf("cosmetics") !== -1) kind = "cosmetics";
@@ -1347,6 +1366,13 @@ footer strong{color:var(--ink)}
           "2023-08-09 배포본 기준 과거 이력입니다. 최신 리콜은 제품안전정보센터에서 확인하세요.");
       } else {
         html += sectionCollapsible("로컬 리콜 참고 (국표원)", recallInner, "일치 0건 (과거 스냅샷)");
+      }
+
+      if (result.feed_check && result.feed_check.is_feed) {
+        html += section("반려동물 사료·간식 검수 (사료관리법·농림축산검역본부)",
+          feedCheckBlock(result.feed_check),
+          "반려동물이 먹는 사료·간식은 식품이 아니라 사료관리법이 적용됩니다. 판매 목적이면 성분등록·사료 수입신고·한글 표시가 붙고, " +
+          "동물성 원료가 있으면 지정검역물로 수입검역이 따로 필요합니다. 사료관리법에 '수입업 등록' 제도는 없습니다.");
       }
 
       if (adResult) {
@@ -1472,6 +1498,21 @@ footer strong{color:var(--ink)}
       if (adOnestopWrap) adOnestopWrap.open = true;
       syncConditionalFields();
       formNote.textContent = "국내 셀러 상세페이지 예시를 채웠습니다. '리스크 체크'를 누르면 식약처 광고 검수와 공정위·전자상거래법 검수를 함께 봅니다.";
+    });
+  }
+
+  var demoFeed = document.getElementById("check-demo-feed");
+  if (demoFeed){
+    demoFeed.addEventListener("click", function(){
+      document.getElementById("product").value = "미국산 강아지 동결건조 간식 수입 판매";
+      document.getElementById("hs").value = "2309101000";
+      document.getElementById("origin").value = "미국";
+      var wno2 = form.querySelector('input[name="wire"][value="no"]'); if (wno2) wno2.checked = true;
+      var cn3 = form.querySelector('input[name="child"][value="no"]'); if (cn3) cn3.checked = true;
+      document.getElementById("kind").value = "feed";
+      var pr3 = form.querySelector('input[name="purpose"][value="resale"]'); if (pr3) pr3.checked = true;
+      syncConditionalFields();
+      formNote.textContent = "반려동물 사료 예시를 채웠습니다. '리스크 체크'를 누르면 사료관리법·동물검역 확인 항목과 세관장확인 요건을 함께 봅니다.";
     });
   }
 

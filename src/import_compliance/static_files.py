@@ -83,15 +83,15 @@ def llms_txt(base: Optional[str] = None) -> str:
 ## 사람용
 - [리스크 체크]({root}/): 품목명(+HS 10자리)으로 확인 항목·요건·리콜·근거 조문을 한 화면에서 본다.
 - [품목별 수입 요건]({root}/p/): {pseo_count}개 품목(선풍기·보조배터리·오메가3·선크림·반려동물 사료 등)의 세관장확인 요건·KC·전파·식약처 확인 항목·함정·근거를 정적 HTML로 정리. 개별 페이지는 `{root}/p/<slug>`.
-- [질문형 가이드]({root}/guides/): {guide_count}개 질문(영양제 6병, 면세 한도 150/200달러, KC·전파 인증, 한글표시사항, 과대광고 금지 표현, 단순변심 환불 불가 문구, 체험단 대가성 표시, 스마트스토어 상표권·지재권, 어린이제품 KC 안전확인, 직구 전자제품 1인 1대 전파 예생, 화장품 미백·주름 문구, 목록통관 배제대상물품, '100% 천연' 실증 의무 등)에 한 줄 답변·체크포인트·근거 조문으로 답하는 정적 HTML. `FAQPage` 구조화 데이터 포함, 개별 페이지는 `{root}/guides/<slug>`.
+- [질문형 가이드]({root}/guides/): {guide_count}개 질문(영양제 6병, 면세 한도 150/200달러, KC·전파 인증, 한글표시사항, 과대광고 금지 표현, 단순변심 환불 불가 문구, 체험단 대가성 표시, 반려동물 사료·간식 수입과 동물검역, 스마트스토어 상표권·지재권, 어린이제품 KC 안전확인, 직구 전자제품 1인 1대 전파 예생, 화장품 미백·주름 문구, 목록통관 배제대상물품, '100% 천연' 실증 의무 등)에 한 줄 답변·체크포인트·근거 조문으로 답하는 정적 HTML. `FAQPage` 구조화 데이터 포함, 개별 페이지는 `{root}/guides/<slug>`.
 - [시계열 추이]({root}/v1/trends): 일일 리콜·행정처분 스냅샷 기반 신규/변경 건수와 최근 7·30일 급증 품목·유형 요약(읽기 전용 GET).
 - [서비스 메타]({root}/v1/meta): 코퍼스 버전, 판정 등급, 무료 한도, 이용 범위.
 - [익명 사용 통계]({root}/v1/stats): IP·User-Agent·쿠키를 저장하지 않고 일별 호출 수·툴·판정 분포만 집계한 JSON.
 
 ## 기계용 (MCP · JSON-RPC 2.0)
 - [MCP 엔드포인트]({root}/mcp): POST. `initialize` → `tools/list` → `tools/call` 순서로 쓰는 JSON-RPC 2.0 서버. 인증 불필요, 응답은 `application/json` 한 덩어리(SSE 스트리밍 없음).
-- [MCP 서버 카드]({root}/.well-known/mcp/server-card.json): 서버 정보·인증 방식·툴 13종 스키마.
-- [툴 매니페스트]({root}/v1/mcp): GET. 툴 13종의 이름·설명·inputSchema(사람이 읽는 JSON).
+- [MCP 서버 카드]({root}/.well-known/mcp/server-card.json): 서버 정보·인증 방식·툴 14종 스키마.
+- [툴 매니페스트]({root}/v1/mcp): GET. 툴 14종의 이름·설명·inputSchema(사람이 읽는 JSON).
 
 ## 기계용 (REST JSON)
 - [종합 판정]({root}/v1/tools/assess_import_case): POST. `{{"query": "...", "facts": {{"purpose": "resale", "hs_code": "8414519000", "rf_tx": "no"}}}}`
@@ -101,6 +101,7 @@ def llms_txt(base: Optional[str] = None) -> str:
 - [국내 리콜 이력]({root}/v1/tools/lookup_recall): POST. `{{"product_name": "전지"}}`
 - [의약품·영양제 금지성분]({root}/v1/tools/check_drug_import): POST. `{{"product_name": "졸피뎀", "channel": "online", "quantity": 30}}` — 마약류·원료물질·국내 전용 성분과 자가사용 인정기준(6병·3개월분)을 대조
 - [과대광고·한글표시사항 검수]({root}/v1/tools/check_ad_labeling): POST. `{{"product_type": "general_food", "ad_copy": "먹기만 하면 100% 다이어트, 항암 효과", "label_text": "제품명 … 소비기한 …"}}` — 유형별 금지 표현과 필수 표시항목 누락을 대조
+- [반려동물 사료·간식 사료관리법·동물검역]({root}/v1/tools/check_feed_import): POST. `{{"product_name": "강아지 동결건조 간식", "product_type": "treat", "animal": "dog", "purpose": "resale", "animal_origin": "yes"}}` — 성분등록·사료 수입신고·표시·유해물질·제조업 등록과 지정검역물·반려동물 사료 수입위생조건 확인 항목(사료관리법에 수입업 등록은 없음)
 - [국내 판매페이지 공정위·전자상거래법 검수]({root}/v1/tools/check_ecommerce_compliance): POST. `{{"detail_copy": "정가 39,000원 → 오늘만 19,900원! 단순변심 환불 불가", "channel": "smartstore"}}` — 허위 정가·마감임박·체험단 대가성 미표기·청약철회 제한·배송 회피·최저가/1위·구독 자동결제·가격/해지 다크패턴과 판매자 정보 고지 누락을 근거 조문(시행일·원문 URL)·수정 전→후 문구와 함께 반환
 - [식약처 행정처분 이력]({root}/v1/tools/lookup_mfds_disposition): POST. `{{"industry": "manufacturing", "keyword": "표시"}}` — 식품제조가공업·식품판매업 처분 이력(개인정보 필드는 폐기)
 - [근거 조항]({root}/v1/tools/get_legal_basis): POST. `{{"law": "관세법", "article": "제226조"}}`

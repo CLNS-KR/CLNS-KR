@@ -57,11 +57,11 @@ class GuideCatalogError(RuntimeError):
 # 카탈로그는 조문 문안을 직접 갖지 않는다. 이 저장소에서 법제처 현행본으로 검증한
 # 상수만 키로 참조한다(오탈자·구법 인용이 페이지에 새어 나가지 않게).
 def _basis_registry() -> Dict[str, Dict[str, Any]]:
-    from . import advertising, ecommerce, drugs, labeling
+    from . import advertising, ecommerce, drugs, feed, labeling
 
     registry: Dict[str, Dict[str, Any]] = {}
     for module_name, module in (("advertising", advertising), ("labeling", labeling),
-                                ("ecommerce", ecommerce)):
+                                ("ecommerce", ecommerce), ("feed", feed)):
         for name in dir(module):
             if not name.startswith("B_"):
                 continue
@@ -233,6 +233,14 @@ AUTHORITY_KO: Dict[str, str] = {
     "SUBSCRIPTION_AUTO_RENEWAL": "공정거래위원회",
     "DARK_PATTERN_UI": "공정거래위원회",
     "SELLER_DISCLOSURE": "공정거래위원회",
+    "FEED_IMPORT_DECLARATION": "농림축산식품부·관세청",
+    "FEED_INGREDIENT_REGISTRATION": "농림축산식품부·시·도지사",
+    "FEED_BUSINESS_REGISTRATION": "농림축산식품부·시·도지사",
+    "FEED_LABELING": "농림축산식품부",
+    "FEED_HAZARD_STANDARD": "농림축산식품부",
+    "FEED_SELF_QUALITY_INSPECTION": "농림축산식품부",
+    "ANIMAL_PRODUCT_QUARANTINE": "농림축산검역본부",
+    "PET_FOOD_QUARANTINE": "농림축산검역본부",
 }
 
 TOOL_BY_TAG: Dict[str, str] = {
@@ -252,6 +260,14 @@ TOOL_BY_TAG: Dict[str, str] = {
     "SUBSCRIPTION_AUTO_RENEWAL": "check_ecommerce_compliance",
     "DARK_PATTERN_UI": "check_ecommerce_compliance",
     "SELLER_DISCLOSURE": "check_ecommerce_compliance",
+    "FEED_IMPORT_DECLARATION": "check_feed_import",
+    "FEED_INGREDIENT_REGISTRATION": "check_feed_import",
+    "FEED_BUSINESS_REGISTRATION": "check_feed_import",
+    "FEED_LABELING": "check_feed_import",
+    "FEED_HAZARD_STANDARD": "check_feed_import",
+    "FEED_SELF_QUALITY_INSPECTION": "check_feed_import",
+    "ANIMAL_PRODUCT_QUARANTINE": "check_feed_import",
+    "PET_FOOD_QUARANTINE": "check_feed_import",
 }
 
 

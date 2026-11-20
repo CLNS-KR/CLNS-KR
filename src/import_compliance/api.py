@@ -1,4 +1,4 @@
-"""API / MCP 툴 13종."""
+"""API / MCP 툴 14종."""
 from __future__ import annotations
 
 import json
@@ -585,6 +585,46 @@ def tool_assess_import_case(args: Dict[str, Any], store: Store, client_id: str, 
             "판매페이지 문구는 check_ecommerce_compliance 로 가격ㆍ후기ㆍ청약철회 고지까지 따로 확인할 수 있습니다.",
         ]
 
+    # 반려동물 사료·간식(선택): 사료관리법ㆍ동물검역 축을 원스톱 결과에 합친다.
+    from . import feed
+
+    feed_block = None
+    if feed.detect(query)["is_feed"] or str(facts.get("product_type") or "") in feed.PRODUCT_TYPES:
+        feed_checks = facts.get("feed_checks")
+        feed_block = feed.assess(
+            query=query,
+            product_type=str(facts.get("product_type") or ""),
+            purpose=str(facts.get("purpose") or resolved.get("purpose") or ""),
+            animal=str(facts.get("animal") or ""),
+            animal_origin=str(facts.get("animal_origin") or ""),
+            channel=str(facts.get("channel") or resolved.get("channel") or ""),
+            manufacture=facts.get("manufacture"),
+            checks=feed_checks if isinstance(feed_checks, dict) else None,
+            limit=5,
+        )
+    if feed_block and feed_block.get("is_feed"):
+        result["feed_check"] = feed_block
+        answer = result.setdefault("answer", {})
+        answer.setdefault("guidance", []).extend(feed.summarize(feed_block, limit=2))
+        merged_tags = list(result.get("regulation_tags") or [])
+        for tag in feed_block.get("regulation_tags") or []:
+            if tag not in merged_tags:
+                merged_tags.append(tag)
+        result["regulation_tags"] = merged_tags
+        if feed_block.get("missing_count"):
+            _raise_verdict(result, "check_likely")
+        result["next_actions"] = (list(feed_block.get("next_steps_ko") or [])
+                                  + list(result.get("next_actions") or [])[:2])
+        result["evidence"] = list(result.get("evidence") or []) + [
+            row for row in _unique_basis(feed_block)
+            if (row.get("law"), row.get("article")) not in
+            {(e.get("law"), e.get("article")) for e in (result.get("evidence") or [])}
+        ]
+        result["feed_next_step_ko"] = (
+            "반려동물 사료는 식품이 아닙니다. 같은 확인 항목을 항목별 체크리스트로 보려면 "
+            "check_feed_import 에 품목 유형ㆍ동물ㆍ목적ㆍ확인 결과를 넣어 조회하세요."
+        )
+
     # 실시간 조회로 verdict 가 올라갔으면 표준 판정 상태도 함께 맞춘다.
     apply_status(result)
     verdict_obj = result.get("verdict") or {}
@@ -1113,9 +1153,20 @@ def _snapshot_days(store: Store) -> int:
         return 0
 
 
+def _persistence_meta() -> Dict[str, Any]:
+    """재배포·서버 슬립 대응 상태(저장소 시드 복원 결과)를 그대로 보여준다."""
+    try:
+        from . import snapshots
+
+        return snapshots.persistence_status()
+    except Exception:  # noqa: BLE001 - 메타 응답을 막지 않게
+        return {"mode": "repo_seed + sqlite", "seed_present": False,
+                "note_ko": "영속화 상태를 읽지 못했습니다."}
+
+
 def tool_get_service_meta(args: Dict[str, Any], store: Store, client_id: str, tier: str,
                           live: Any = None) -> Dict[str, Any]:
-    from . import advertising, drugs, ecommerce, labeling, mfds_dispositions
+    from . import advertising, drugs, ecommerce, feed, labeling, mfds_dispositions
 
     corpus = load_corpus()
     testset = testset_meta()
@@ -1169,6 +1220,7 @@ def tool_get_service_meta(args: Dict[str, Any], store: Store, client_id: str, ti
             "laws": [ecommerce.FTC_NAME_KO, ecommerce.FTC_DECREE_NAME_KO,
                      ecommerce.EC_NAME_KO, ecommerce.EC_DECREE_NAME_KO],
         },
+        "feed": feed.meta(),
         "guides": {
             "path": "/guides/",
             "count": _guide_meta().get("count"),
@@ -1185,6 +1237,7 @@ def tool_get_service_meta(args: Dict[str, Any], store: Store, client_id: str, ti
             "snapshot_available_days": _snapshot_days(store),
             "note_ko": "일일 스냅샷은 리콜·행정처분·금지성분·성분 사전의 항목별 지문을 일자 단위로 쌓은 것으로, 전일 대비 신규/변경/삭제와 최근 N일 급증을 계산합니다.",
         },
+        "persistence": _persistence_meta(),
         "mfds_dispositions": {
             "datasets": [{"dataset_id": meta["dataset_id"], "name_ko": meta["name_ko"],
                           "industry_ko": meta["industry_ko"]}
@@ -1610,6 +1663,89 @@ def tool_check_ad_labeling(args: Dict[str, Any], store: Store, client_id: str, t
     return _envelope("check_ad_labeling", result)
 
 
+def tool_check_feed_import(args: Dict[str, Any], store: Store, client_id: str, tier: str,
+                           live: Any = None) -> Dict[str, Any]:
+    """반려동물 사료·간식·영양제 수입의 사료관리법ㆍ동물검역 확인 항목을 정리한다.
+
+    `checks` 로 확인 결과(성분등록ㆍ수입신고ㆍ표시 등 갖춤 여부)를 주면 '갖추지 못함'을
+    집어 주고, 주지 않은 항목은 '확인 필요'로 남긴다(단정하지 않는다).
+    """
+    from . import feed
+    from .policy import DISCLAIMER_EN, DISCLAIMER_KO
+
+    product = str(args.get("product_name") or args.get("query") or "").strip()
+    if len(product) < 2 and not str(args.get("product_type") or "").strip():
+        raise ValueError("product_name_required")
+    checks = args.get("checks") or {}
+    if not isinstance(checks, dict):
+        raise ValueError("checks_must_be_object")
+    unknown_checks = [key for key in checks if key not in feed.CHECK_INDEX]
+    if unknown_checks:
+        raise ValueError("unknown_check_id: " + ", ".join(sorted(unknown_checks)[:5]))
+    limit = max(1, min(int(args.get("limit", 13) or 13), 13))
+    block = feed.assess(
+        query=product,
+        product_type=str(args.get("product_type") or ""),
+        purpose=str(args.get("purpose") or ""),
+        animal=str(args.get("animal") or ""),
+        animal_origin=str(args.get("animal_origin") or ""),
+        channel=str(args.get("channel") or ""),
+        manufacture=args.get("manufacture"),
+        checks=checks,
+        limit=limit,
+    )
+    result: Dict[str, Any] = dict(block)
+    result["feed_check"] = block
+    result["answer"] = {
+        "headline": (f"확인이 필요한 쟁점: {block['findings'][0]['name_ko']}"
+                     if block.get("findings") else block["verdict_note_ko"]),
+        "guidance": feed.summarize(block, limit=3),
+    }
+    result["verdict"] = {
+        "code": block["verdict"],
+        "label_ko": block["verdict_label_ko"],
+        "determinative": False,
+        "note_ko": "판정은 입력한 사실관계에 대한 확인 항목 정리이며, 법적 확정 판단이 아닙니다.",
+    }
+    result["missing_information"] = [row["name_ko"] for row in block.get("checklist") or []
+                                     if row["status"] == "not_checked"]
+    result["evidence"] = _unique_basis(block)
+    result["data_provenance"] = {
+        "policy": "원본 API 1:1 재전송 금지 · 결합·정규화한 판정만 제공",
+        "sources": [{"state": "corpus_only",
+                     "note": "법제처 현행 조문으로 검증한 사료관리법·가축전염병 예방법·고시 근거만 사용(실시간 API 호출 없음)"}],
+        "checked_at": iso(now_kst()),
+    }
+    result["next_actions"] = list(block.get("next_steps_ko") or [])
+    result["tier"] = {"name": tier, "boundaries": TIER_BOUNDARIES["free"],
+                      "paid_notice_ko": PAID_TIER_NOTICE_KO}
+    result["disclaimer"] = {"ko": DISCLAIMER_KO, "en": DISCLAIMER_EN}
+    result["scope_limits_ko"] = SCOPE_LIMITS_KO
+    # HS 10자리를 함께 주면 세관장확인(사료수입신고필증ㆍ동물검역증명서)을 실조회한다.
+    hs_code = str(args.get("hs_code") or "").strip()
+    if len(hs_code) == 10 and hs_code.isdigit():
+        customs = _customs_live(live, hs_code, "import")
+        if customs is not None:
+            result["hs_requirements_live"] = customs
+            _apply_customs_requirements(result, customs)
+    apply_status(result)
+    return _envelope("check_feed_import", result)
+
+
+def _unique_basis(block: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """검수 결과의 근거 조항을 (법, 조문) 기준으로 중복 없이 모은다."""
+    out: List[Dict[str, Any]] = []
+    seen = set()
+    for finding in block.get("findings") or []:
+        for row in finding.get("legal_basis") or []:
+            key = (row.get("law"), row.get("article"))
+            if not row.get("law") or key in seen:
+                continue
+            seen.add(key)
+            out.append(dict(row))
+    return out
+
+
 def tool_lookup_mfds_disposition(args: Dict[str, Any], store: Store, client_id: str, tier: str,
                                  live: Any = None) -> Dict[str, Any]:
     """식약처 행정처분 이력(식품제조가공업ㆍ식품판매업)을 조회한다.
@@ -1929,6 +2065,36 @@ TOOL_DEFS: List[Dict[str, Any]] = [    {
         },
     },
     {
+        "name": "check_feed_import",
+        "title_ko": "반려동물 사료·간식 사료관리법·동물검역 검수",
+        "description_ko": "강아지·고양이 사료ㆍ간식, 단미사료, 반려동물 영양제를 수입ㆍ판매할 때 사료관리법(성분등록ㆍ사료 수입신고ㆍ표시ㆍ유해물질ㆍ제조업 등록)과 동물검역(지정검역물ㆍ검역증명서ㆍ반려동물 사료 수입위생조건)에서 확인해야 할 항목을 정리합니다. 사료관리법에 '수입업 등록' 제도는 없다는 점을 포함해 근거 조문(시행일ㆍ원문 URL)과 함께 돌려줍니다.",
+        "handler": tool_check_feed_import,
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "product_name": {"type": "string", "description": "품목명ㆍ질의(예: '강아지 동결건조 간식', '고양이 사료 수입 판매')"},
+                "product_type": {"type": "string",
+                                 "enum": ["feed", "treat", "supplement", "raw_material", "unknown"],
+                                 "description": "사료ㆍ간식ㆍ보조사료(영양제)ㆍ단미사료(원료). 생략하면 품목명에서 판단"},
+                "animal": {"type": "string", "enum": ["dog", "cat", "other", "unknown"],
+                           "description": "급여 대상 동물. 수입위생조건 대상은 개·고양이·페럿·햄스터"},
+                "purpose": {"type": "string", "enum": ["resale", "self_use", "unknown"],
+                            "description": "판매ㆍ영업 목적인지 자가소비(직구ㆍ휴대)인지"},
+                "animal_origin": {"type": "string", "enum": ["yes", "no", "unknown"],
+                                  "description": "동물성 원료(육포ㆍ육분ㆍ유제품 등) 포함 여부"},
+                "channel": {"type": "string", "enum": ["direct", "agency", "carry", "unknown"],
+                            "description": "수입 경로: 직구ㆍ구매대행ㆍ휴대 반입"},
+                "manufacture": {"type": "string", "enum": ["yes", "no", "unknown"],
+                                "description": "국내 제조ㆍ가공ㆍ재포장(OEM 포함) 여부(제조업 등록 대상 판단)"},
+                "checks": {"type": "object",
+                           "description": "확인 결과(예: {'ingredient_registration': true, 'import_declaration': false, 'korean_label': 'yes'}). 키는 응답 checklist 의 check_id"},
+                "hs_code": {"type": "string", "description": "HS 10자리(예: 2309101000). 있으면 세관장확인 요건을 실조회"},
+                "limit": {"type": "integer", "minimum": 1, "maximum": 13, "default": 13},
+            },
+            "required": ["product_name"],
+        },
+    },
+    {
         "name": "lookup_mfds_disposition",
         "title_ko": "식약처 행정처분 이력 조회",
         "description_ko": "식품제조가공업(15124560)·식품판매업(15124559) 행정처분결과를 조회합니다. 승인 전파 전·오프라인이면 내장 대표 적발 패턴으로 안내하며, 업소명·대표자·연락처·주소·인허가번호는 반환하지 않습니다.",
@@ -1977,11 +2143,11 @@ TOOL_DEFS: List[Dict[str, Any]] = [    {
     {
         "name": "explain_trap",
         "title_ko": "함정 케이스 해설",
-        "description_ko": "케이스 ID(TRAP-01~22)의 시나리오, 흔한 AI 오답, 정답, 근거를 반환합니다.",
+        "description_ko": "케이스 ID(TRAP-01~25)의 시나리오, 흔한 AI 오답, 정답, 근거를 반환합니다.",
         "handler": tool_explain_trap,
         "input_schema": {
             "type": "object",
-            "properties": {"case_id": {"type": "string", "pattern": "^TRAP-(0[1-9]|1[0-9]|2[0-2])$"}},
+            "properties": {"case_id": {"type": "string", "pattern": "^TRAP-(0[1-9]|1[0-9]|2[0-5])$"}},
             "required": ["case_id"],
         },
     },

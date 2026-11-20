@@ -56,21 +56,21 @@ def assess_once(query: str, facts=None) -> dict:
 
 class VersionTest(unittest.TestCase):
     def test_package_version_is_0_2_0(self):
-        self.assertEqual(__version__, "0.4.0")
+        self.assertEqual(__version__, "0.5.0")
         # 엔진 버전이 0.3.0 으로 올라가도 응답 스키마 0.1.3 의 필드 계약은 그대로 둔다
         # (0.2.0 이후 추가된 ad_review·labeling_check·disposition_lookup·trends 는 블록 추가뿐, 기존 필드 삭제·의미 변경이 없다).
         self.assertEqual(SCHEMA_VERSION, "0.1.3")
-        self.assertEqual(web_ui.SERVICE_VERSION, "0.4.0")
+        self.assertEqual(web_ui.SERVICE_VERSION, "0.5.0")
 
     def test_dockerfile_version_is_0_2_0(self):
         with open(os.path.join(ROOT, "Dockerfile"), encoding="utf-8") as handle:
             docker = handle.read()
-        self.assertIn('org.opencontainers.image.version="0.4.0"', docker)
+        self.assertIn('org.opencontainers.image.version="0.5.0"', docker)
 
     def test_response_reports_schema_version(self):
         result = assess_once("중국산 과자를 구매대행으로 들여와 판매")
         self.assertEqual(result["schema_version"], SCHEMA_VERSION)
-        self.assertEqual(result["engine"]["version"], "1.0.6")
+        self.assertEqual(result["engine"]["version"], "1.0.7")
 
 
 class StandardFieldsTest(unittest.TestCase):
@@ -120,6 +120,7 @@ class StandardFieldsTest(unittest.TestCase):
                 "check_drug_import": {"product_name": "멜라토닌", "channel": "carry"},
                 "check_ad_labeling": {"product_type": "general_food", "ad_copy": "다이어트에 좋은 차"},
                 "check_ecommerce_compliance": {"detail_copy": "단순변심 환불 불가, 오늘만 특가"},
+                "check_feed_import": {"product_name": "강아지 간식", "purpose": "resale"},
                 "lookup_mfds_disposition": {"industry": "manufacturing"},
                 "lookup_recall": {"brand": "테스트브랜드"},
                 "get_legal_basis": {"law": "관세법"},

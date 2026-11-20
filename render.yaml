@@ -12,6 +12,9 @@
 #   - free 플랜은 영구 디스크가 없다. 작업 DB(IMPORT_COMPLIANCE_DB, 기본 /app/data/app.sqlite)는
 #     재배포·재시작 시 사라진다(판정 이력·쿼터 카운터 초기화). 리콜 인덱스(/app/data/recalls.sqlite)는
 #     이미지에 포함되어 있어 재기동 때마다 자동으로 작업 DB에 다시 적재된다.
+#   - 시계열·익명 통계는 이미지에 포함된 시드(data/snapshots, data/usage)로 기동 시 복원된다.
+#     최신 상태는 GitHub Actions(.github/workflows/daily-snapshot.yml)가 매일 커밋한다.
+#     영구 저장이 꼭 필요하면 유료 플랜에서 디스크를 붙이고 CLNS_DB_PATH=/app/data/app.sqlite 로 지정한다.
 #   - free 플랜은 미접속 시 슬립되므로 첫 요청이 30~60초 걸릴 수 있다.
 services:
   - type: web

@@ -398,6 +398,14 @@ TAG_AUTHORITY_KO: Dict[str, str] = {
     "IP_PARALLEL_IMPORT": "관세청·특허청",
     "MEDICAL_DEVICE_IMPORT": "식품의약품안전처",
     "HYGIENE_PRODUCT_IMPORT": "식품의약품안전처",
+    "FEED_IMPORT_DECLARATION": "농림축산식품부·관세청",
+    "FEED_INGREDIENT_REGISTRATION": "농림축산식품부·시·도지사",
+    "FEED_BUSINESS_REGISTRATION": "농림축산식품부·시·도지사",
+    "FEED_LABELING": "농림축산식품부",
+    "FEED_HAZARD_STANDARD": "농림축산식품부",
+    "FEED_SELF_QUALITY_INSPECTION": "농림축산식품부",
+    "ANIMAL_PRODUCT_QUARANTINE": "농림축산검역본부",
+    "PET_FOOD_QUARANTINE": "농림축산검역본부",
     "PRICE_AD_CLAIM": "공정거래위원회",
     "REVIEW_MARKETING": "공정거래위원회",
     "WITHDRAWAL_REFUND": "공정거래위원회",
@@ -433,6 +441,14 @@ TAG_TOOL: Dict[str, str] = {
     "ORIGIN_FTA": "assess_import_case",
     "ORIGIN_MARKING": "assess_import_case",
     "IP_PARALLEL_IMPORT": "assess_import_case",
+    "FEED_IMPORT_DECLARATION": "check_feed_import",
+    "FEED_INGREDIENT_REGISTRATION": "check_feed_import",
+    "FEED_BUSINESS_REGISTRATION": "check_feed_import",
+    "FEED_LABELING": "check_feed_import",
+    "FEED_HAZARD_STANDARD": "check_feed_import",
+    "FEED_SELF_QUALITY_INSPECTION": "check_feed_import",
+    "ANIMAL_PRODUCT_QUARANTINE": "check_feed_import",
+    "PET_FOOD_QUARANTINE": "check_feed_import",
     "PRICE_AD_CLAIM": "check_ecommerce_compliance",
     "REVIEW_MARKETING": "check_ecommerce_compliance",
     "WITHDRAWAL_REFUND": "check_ecommerce_compliance",
@@ -454,6 +470,7 @@ TOOL_ONE_LINE_KO: Dict[str, str] = {
     "explain_trap": "이 페이지의 함정 케이스 해설(오답·정답·근거)",
     "check_ad_labeling": "상세페이지·라벨 문구를 식약처 광고 기준으로 검수",
     "check_ecommerce_compliance": "판매페이지 문구를 공정위 표시광고법·전자상거래법으로 검수",
+    "check_feed_import": "반려동물 사료·간식의 사료관리법 등록·표시와 동물검역 확인 항목 정리",
 }
 
 
@@ -716,6 +733,9 @@ def render_item(slug: str, base: Optional[str] = None) -> Optional[str]:
 <div class="card">{_axes_block(item)}</div>
 
 {_classification_block(item)}
+
+<h2>왜 이렇게 갈리나요</h2>
+<div class="card"><ul class="clean">{key_points or "<li>확인 항목 없음</li>"}</ul></div>
 
 <h2>인증·허가 요건</h2>
 <div class="card"><ul class="clean">{certifications or "<li>확인 항목 없음</li>"}</ul></div>

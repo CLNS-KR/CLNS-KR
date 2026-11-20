@@ -2,8 +2,8 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.CLNS-KR/clns",
   "title": "CLNS — Korea Import Compliance",
-  "description": "Korea import pre-check: clearance requirements, MFDS history, recalls, RRA conformity, statutes.",
-  "version": "0.4.0",
+  "description": "Korea import pre-check: clearance, MFDS, recalls, RRA, pet-food (feed) rules.",
+  "version": "0.5.0",
   "websiteUrl": "https://clns-kr.onrender.com/",
   "repository": {
     "url": "https://github.com/CLNS-KR/CLNS-KR",

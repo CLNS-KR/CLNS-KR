@@ -20,15 +20,29 @@
 - `backfill_from_history()` 는 이벤트 날짜로 과거 시점의 누적 상태를 **재구성**한다.
   실제 그날 관측한 값이 아니므로 `origin="backfilled"` 로 구분해 남긴다.
 - 스냅샷은 서버 작업 DB(SQLite)에 쌓인다. Render 무료 플랜처럼 영구 디스크가 없는
-  환경에서는 재배포 시 사라지므로, `--export` 로 만든 JSON 을 별도 보관하거나
-  영구 볼륨·외부 저장소로 옮겨야 한다.
+  환경에서는 재배포 시 사라지므로, `--export` 로 만든 JSON 을 저장소(`data/snapshots/`)에
+  커밋해 두고 기동 시 `seed_snapshots()` 로 다시 적재한다(0원 영속화). 외부 유료 DB 없이도
+  날짜별 지문이 유지되고, 같은 날짜는 덮어쓰지 않아 멱등이다.
+
+0원 영속화(재배포·서버 슬립 대응)
+--------------------------------
+- `data/snapshots/YYYY-MM-DD.json` (항목 포함 내보내기) → 기동 시 `seed_persistence()` 가
+  DB 에 없던 날짜만 적재한다.
+- `data/usage/stats.json`(`/v1/stats` 응답 그대로 또는 행 목록) → 지난 날짜의 익명 카운터를
+  복원한다(오늘 행은 새 트래픽과 겹치지 않게 건너뛴다. 값은 MAX 로만 키운다).
+- `.github/workflows/daily-snapshot.yml` 이 매일 04:00 KST 에 스냅샷을 만들어 커밋하고,
+  라이브 서버의 `/v1/stats` 를 받아 함께 저장한다.
+- 외부 Postgres 를 쓰려면 `DATABASE_URL` 이 아니라 이 저장소의 SQLite 경로와 백업 파일을
+  쓰는 구조다(표준 라이브러리만 쓰는 배포 이미지 전제). 즉시 DB 를 붙이는 경로는
+  `data/` 디렉터리를 영구 볼륨으로 마운트하는 것이다.
 
 쓰는 법
 -------
-    python -m import_compliance.snapshots --take --export data/snapshots
+    python -m import_compliance.snapshots --take --export data/snapshots --include-items
     python -m import_compliance.snapshots --take --backfill 30
     python -m import_compliance.snapshots --trends 30
     python -m import_compliance.snapshots --diff 2026-11-20
+    python -m import_compliance.snapshots --seed data/snapshots --seed-usage data/usage/stats.json
 
 네트워크를 쓰지 않는다. 입력은 이미 적재된 로컬 DB·카탈로그뿐이라 결과가 결정적이다.
 """
@@ -59,7 +73,16 @@ SOURCE_LABEL_KO: Dict[str, str] = {
 }
 ORIGIN_OBSERVED = "observed"
 ORIGIN_BACKFILLED = "backfilled"
-ORIGIN_SOURCES = (ORIGIN_OBSERVED, ORIGIN_BACKFILLED)
+ORIGIN_SEED = "seed"
+ORIGIN_SOURCES = (ORIGIN_OBSERVED, ORIGIN_BACKFILLED, ORIGIN_SEED)
+
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+DEFAULT_SEED_DIR = os.path.join(PROJECT_ROOT, "data", "snapshots")
+DEFAULT_USAGE_SEED = os.path.join(PROJECT_ROOT, "data", "usage", "stats.json")
+USAGE_SEED_SCHEMA = "clns.usage_seed/1"
+
+# 기동 시 적재 결과(엔드포인트 `/v1/meta` 가 같은 프로세스에서 읽는다).
+_LAST_SEED: Dict[str, Any] = {}
 
 MAX_TREND_DAYS = 90
 DEFAULT_TREND_DAYS = 30
@@ -467,6 +490,192 @@ def daily_diff(store: Store, day: Any = None, *, limit: int = 5) -> Dict[str, An
     }
 
 
+# --- 기동 시 시드 복원(0원 영속화) -------------------------------------------
+def _has_day(store: Store, day: str) -> bool:
+    with store._lock:  # noqa: SLF001 - 스냅샷 테이블 전용 조회
+        row = store.conn.execute(
+            "SELECT 1 AS present FROM compliance_snapshots WHERE day = ? LIMIT 1", (day,)
+        ).fetchone()
+    return bool(row)
+
+
+def seed_snapshots(store: Store, seed_dir: str = "") -> Dict[str, Any]:
+    """저장소에 커밋된 일일 스냅샷 JSON 을 DB 로 복원한다(멱등).
+
+    - 항목(`items`)이 들어 있는 내보내기만 복원한다(요약만 있으면 전일 대비를 계산할 수 없다).
+    - 이미 DB 에 그 날짜 기록이 있으면 덮어쓰지 않는다(오늘 관측분을 과거 파일로 되돌리지 않는다).
+    - 원본 `origin`(observed/backfilled)을 보존하고, 알 수 없으면 `seed` 로 남긴다.
+    """
+    directory = seed_dir or DEFAULT_SEED_DIR
+    result: Dict[str, Any] = {"seed_dir": directory, "days": [], "skipped": [],
+                              "unreadable": [], "rows": 0, "counts": {}}
+    if not os.path.isdir(directory):
+        return result
+    for name in sorted(os.listdir(directory)):
+        if not name.endswith(".json"):
+            continue
+        path = os.path.join(directory, name)
+        try:
+            with open(path, encoding="utf-8") as handle:
+                payload = json.load(handle)
+        except (OSError, ValueError):
+            result["unreadable"].append(name)
+            continue
+        if not isinstance(payload, dict):
+            result["unreadable"].append(name)
+            continue
+        try:
+            day = _day(payload.get("day"))
+        except ValueError:
+            result["unreadable"].append(name)
+            continue
+        items = payload.get("items") or {}
+        if not isinstance(items, dict) or not items:
+            result["unreadable"].append(name)
+            continue
+        if _has_day(store, day):
+            result["skipped"].append(day)
+            continue
+        subset: Dict[str, Dict[str, Dict[str, Any]]] = {}
+        for source, rows in items.items():
+            if source not in SOURCES or not isinstance(rows, list):
+                continue
+            bucket: Dict[str, Dict[str, Any]] = {}
+            for row in rows:
+                if not isinstance(row, dict):
+                    continue
+                key = str(row.get("key") or "").strip()
+                if not key:
+                    continue
+                bucket[key] = {
+                    "label": _label(row.get("label")),
+                    "category": _label(row.get("category")),
+                    "event_date": str(row.get("event_date") or ""),
+                    "fingerprint": str(row.get("fingerprint") or "") or _digest(key),
+                    "payload": {},
+                }
+            if bucket:
+                subset[source] = bucket
+        if not subset:
+            result["unreadable"].append(name)
+            continue
+        origin = str(payload.get("origin") or ORIGIN_SEED)
+        if origin not in ORIGIN_SOURCES:
+            origin = ORIGIN_SEED
+        taken_at = str(payload.get("taken_at") or iso(now_kst()))
+        counts = _upsert(store, day, subset, origin=origin, taken_at=taken_at)
+        diff = payload.get("diff") if isinstance(payload.get("diff"), dict) else {}
+        with store._lock:  # noqa: SLF001 - 실행 이력(내보낸 요약을 그대로 되살린다)
+            store.conn.execute(
+                "INSERT INTO snapshot_runs(day, taken_at, origin, counts_json, diff_json)"
+                " VALUES (?,?,?,?,?) ON CONFLICT(day) DO UPDATE SET taken_at=excluded.taken_at,"
+                " origin=excluded.origin, counts_json=excluded.counts_json,"
+                " diff_json=excluded.diff_json",
+                (day, taken_at, origin, json.dumps(counts, ensure_ascii=False),
+                 json.dumps(diff, ensure_ascii=False)),
+            )
+            store.conn.commit()
+        result["days"].append(day)
+        result["rows"] += sum(counts.values())
+        for source, value in counts.items():
+            result["counts"][source] = result["counts"].get(source, 0) + int(value)
+    return result
+
+
+def seed_snapshot_usage(store: Store, path: str = "") -> Dict[str, Any]:
+    """`/v1/stats` 응답(또는 행 목록)을 `usage_daily` 로 복원한다.
+
+    카운터는 누적값이 아니라 '그날의 총 호출수'이고 새 프로세스는 0에서 +1 씩 더하므로,
+    복원값 위에 새 트래픽이 더해져도 이중 계상되지 않는다. 여러 번 복원해도 `MAX` 로만
+    키우므로 값이 줄거나 부풀지 않는다.
+    """
+    target = path or DEFAULT_USAGE_SEED
+    result: Dict[str, Any] = {"path": target, "rows": 0, "days": 0}
+    if not target or not os.path.isfile(target):
+        return result
+    try:
+        with open(target, encoding="utf-8") as handle:
+            payload = json.load(handle)
+    except (OSError, ValueError):
+        return result
+    rows = usage_rows_from_payload(payload)
+    result["rows"] = store.seed_usage_rows(rows)
+    result["days"] = len({row["day"] for row in rows})
+    return result
+
+
+def usage_rows_from_payload(payload: Any) -> List[Dict[str, Any]]:
+    """`/v1/stats` 응답·행 목록을 (day, kind, key, count) 행으로 평탄화한다."""
+    rows: List[Dict[str, Any]] = []
+    if not isinstance(payload, dict):
+        return rows
+    for row in payload.get("rows") or []:
+        if not isinstance(row, dict):
+            continue
+        rows.append({"day": str(row.get("day") or ""), "kind": str(row.get("kind") or ""),
+                     "key": str(row.get("key") or ""), "count": int(row.get("count") or 0)})
+    mapping = {"paths": "path", "tools": "tool", "verdicts": "verdict", "flags": "flag"}
+    for day_row in payload.get("days") or []:
+        if not isinstance(day_row, dict):
+            continue
+        day = str(day_row.get("date") or day_row.get("day") or "")
+        if not day:
+            continue
+        for field, kind in mapping.items():
+            for key, value in (day_row.get(field) or {}).items():
+                try:
+                    count = int(value)
+                except (TypeError, ValueError):
+                    continue
+                rows.append({"day": day, "kind": kind, "key": str(key), "count": count})
+    return [row for row in rows if row["day"] and row["kind"] and row["key"] and row["count"] > 0]
+
+
+def seed_persistence(store: Store, seed_dir: str = "", usage_path: str = "") -> Dict[str, Any]:
+    """기동 시 시드 복원을 한 번에 수행하고 결과를 기억한다(`/v1/meta` 가 읽는다)."""
+    snap = seed_snapshots(store, seed_dir)
+    usage_info = seed_snapshot_usage(store, usage_path)
+    summary = {
+        "seeded_at": iso(now_kst()),
+        "seed_dir": snap.get("seed_dir"),
+        "seeded_days": list(snap.get("days") or []),
+        "skipped_days": list(snap.get("skipped") or []),
+        "unreadable_files": list(snap.get("unreadable") or []),
+        "seeded_rows": int(snap.get("rows") or 0),
+        "usage": usage_info,
+    }
+    _LAST_SEED.clear()
+    _LAST_SEED.update(summary)
+    return summary
+
+
+def persistence_status() -> Dict[str, Any]:
+    """지금 프로세스에서 확인된 영속화 상태(시드가 없으면 그대로 밝힌다)."""
+    info = dict(_LAST_SEED)
+    info.setdefault("seeded_at", None)
+    info.setdefault("seed_dir", DEFAULT_SEED_DIR)
+    info.setdefault("seeded_days", [])
+    info.setdefault("skipped_days", [])
+    info.setdefault("seeded_rows", 0)
+    knowledge = {
+        "mode": "repo_seed + sqlite",
+        "seed_dir": info.get("seed_dir"),
+        "seed_present": bool(info.get("seeded_days") or info.get("skipped_days")),
+        "seeded_days": info.get("seeded_days") or [],
+        "snapshot_days_skipped": info.get("skipped_days") or [],
+        "seeded_rows": info.get("seeded_rows") or 0,
+        "seeded_at": info.get("seeded_at"),
+        "usage_seed": info.get("usage") or {},
+        "workflow": ".github/workflows/daily-snapshot.yml",
+        "note_ko": (
+            "무료 플랜은 영구 디스크가 없어 재배포 시 작업 DB 가 초기화됩니다. 그래서 저장소에 "
+            "커밋된 일일 스냅샷(data/snapshots)과 익명 사용 통계(data/usage/stats.json)를 기동 시 "
+            "다시 적재합니다. 복원은 DB 에 없는 날짜만 채우고, 카운터는 큰 값만 남깁니다."
+        ),
+    }
+    return knowledge
+
+
 # --- 추이 -------------------------------------------------------------------
 def _event_rows(store: Store, start: str, end: str) -> Dict[str, List[Dict[str, str]]]:
     """기간 내 이벤트(리콜 등록일·처분 확정일)를 소스별로 모은다."""
@@ -712,6 +921,10 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser.add_argument("--diff", nargs="?", const="", default=None,
                         help="지정일(또는 최근) 전일 대비 변화")
     parser.add_argument("--trends", type=int, default=0, help="최근 N일 추이 요약")
+    parser.add_argument("--seed", nargs="?", const=DEFAULT_SEED_DIR, default=None,
+                        help="저장소에 커밋된 스냅샷 JSON 을 DB 로 복원(기본 data/snapshots)")
+    parser.add_argument("--seed-usage", nargs="?", const=DEFAULT_USAGE_SEED, default=None,
+                        help="익명 사용 통계(/v1/stats 응답)를 DB 로 복원(기본 data/usage/stats.json)")
     args = parser.parse_args(argv)
 
     db_path = args.db or os.path.join(
@@ -728,6 +941,8 @@ def main(argv: Optional[List[str]] = None) -> int:
         if args.backfill:
             _print(backfill_from_history(store, args.backfill, end_day=args.end_day or None,
                                          export_dir=args.export))
+        if args.seed is not None or args.seed_usage is not None:
+            _print(seed_persistence(store, args.seed or "", args.seed_usage or ""))
         if args.take:
             _print(take_snapshot(store, args.day or None, export_dir=args.export,
                                  include_items=args.include_items))
@@ -735,7 +950,8 @@ def main(argv: Optional[List[str]] = None) -> int:
             _print(daily_diff(store, args.diff or None))
         if args.trends:
             _print(trends(store, args.trends))
-        if not (args.take or args.backfill or args.trends or args.diff is not None):
+        if not (args.take or args.backfill or args.trends or args.diff is not None
+                or args.seed is not None or args.seed_usage is not None):
             _print(trends(store, DEFAULT_TREND_DAYS))
     finally:
         store.close()

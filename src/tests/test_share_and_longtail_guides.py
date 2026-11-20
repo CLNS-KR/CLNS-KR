@@ -273,11 +273,11 @@ class LongTailGuideCatalogTest(unittest.TestCase):
         cls.index = {item["slug"]: item for item in cls.items}
 
     def test_catalog_reaches_sixty_five_questions(self):
-        self.assertGreaterEqual(len(self.items), 65)
+        self.assertGreaterEqual(len(self.items), 68)
         self.assertEqual(len({item["slug"] for item in self.items}), len(self.items))
         meta = guides.catalog_meta()
         self.assertEqual(meta["count"], len(self.items))
-        self.assertEqual(meta["version"], "1.2.0")
+        self.assertEqual(meta["version"], "1.3.0")
         self.assertEqual(meta["verified_on"], "2026-11-20")
 
     def test_new_slugs_are_present_and_indexable(self):
@@ -582,8 +582,8 @@ class LongTailGuidePageTest(ServerCase):
     def test_service_meta_reports_new_catalog_version(self):
         payload = call_tool("get_service_meta", {}, self.store)["result"]
         self.assertEqual(payload["guides"]["count"], len(guides.items()))
-        self.assertEqual(payload["guides"]["count"], 65)
-        self.assertEqual(payload["guides"]["catalog_version"], "1.2.0")
+        self.assertEqual(payload["guides"]["count"], 68)
+        self.assertEqual(payload["guides"]["catalog_version"], "1.3.0")
 
     def test_share_url_style_pages_still_work(self):
         # 공유 링크가 가리키는 홈은 쿼리 파라미터가 붙어도 같은 화면을 돌려준다.

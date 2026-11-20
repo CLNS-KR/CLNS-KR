@@ -17,6 +17,13 @@ browser/
 snapshots/
 *.snapshot.json
 
+# 0원 영속화 시드는 커밋한다 — 일일 지문 스냅샷과 익명 사용 통계(개인정보 없음).
+# 서버가 기동할 때 이 파일을 DB 로 복원한다(데이터 없으면 재배포 때 시계열이 사라진다).
+!data/snapshots/
+!data/snapshots/*.json
+!data/usage/
+!data/usage/*.json
+
 # 배포에 필요한 리콜 로컬 인덱스는 커밋한다(공공데이터 가공물, 이용허락범위 제한 없음).
 # 이미지에 이 파일이 있어야 Render/Docker 빌드가 실패하지 않는다.
 !data/recalls.sqlite
