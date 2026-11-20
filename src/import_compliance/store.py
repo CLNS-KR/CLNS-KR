@@ -139,6 +139,33 @@ CREATE TABLE IF NOT EXISTS disposition_items (
 );
 CREATE INDEX IF NOT EXISTS idx_disposition_law ON disposition_items(law_reference);
 CREATE INDEX IF NOT EXISTS idx_disposition_confirmed ON disposition_items(confirmed_on DESC);
+
+-- 일일 시계열 스냅샷(해자) — 소스별 항목의 지문을 일자 단위로 보관한다.
+-- 같은 날 다시 적재하면 그날 스냅샷을 덮어쓴다(일자 기준 멱등).
+CREATE TABLE IF NOT EXISTS compliance_snapshots (
+    day           TEXT NOT NULL,            -- YYYY-MM-DD (KST)
+    source        TEXT NOT NULL,            -- recall | disposition | cosmetic_* | drug_schedule
+    item_key      TEXT NOT NULL,
+    fingerprint   TEXT NOT NULL,            -- 항목 내용 해시(변경 판정)
+    label         TEXT,
+    category      TEXT,
+    event_date    TEXT,                     -- 리콜 등록일·처분 확정일(없으면 빈 값)
+    payload_json  TEXT,
+    origin        TEXT NOT NULL DEFAULT 'observed',  -- observed | backfilled
+    taken_at      TEXT NOT NULL,
+    PRIMARY KEY (day, source, item_key)
+);
+CREATE INDEX IF NOT EXISTS idx_compliance_snapshots_source_day
+    ON compliance_snapshots(source, day);
+
+-- 스냅샷 실행 기록(그날 소스별 건수·전일 대비 요약)
+CREATE TABLE IF NOT EXISTS snapshot_runs (
+    day         TEXT PRIMARY KEY,
+    taken_at    TEXT NOT NULL,
+    origin      TEXT NOT NULL,
+    counts_json TEXT NOT NULL,
+    diff_json   TEXT NOT NULL
+);
 """
 
 

@@ -446,14 +446,14 @@ class LicenseAndCiTest(unittest.TestCase):
             self.assertIsNone(pattern.search(text), pattern.pattern)
 
     def test_version_bumped_to_0_2_0(self):
-        # 0.2.0: 과대광고·한글표시 검수 + 식약처 행정처분 연동
+        # 0.3.0: 질문형 가이드(/guides/) + 일일 시계열 스냅샷·추이
         version_text = self.read("src", "import_compliance", "version.py")
-        self.assertIn('__version__ = "0.2.0"', version_text)
+        self.assertIn('__version__ = "0.3.0"', version_text)
         docker = self.read("Dockerfile")
-        self.assertIn('org.opencontainers.image.version="0.2.0"', docker)
+        self.assertIn('org.opencontainers.image.version="0.3.0"', docker)
         from import_compliance import web_ui
 
-        self.assertEqual(web_ui.SERVICE_VERSION, "0.2.0")
+        self.assertEqual(web_ui.SERVICE_VERSION, "0.3.0")
 
     def test_committed_files_have_no_secrets_or_personal_data(self):
         patterns = [

@@ -11,6 +11,7 @@ import urllib.request
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE))
 
+from import_compliance.api import TOOL_DEFS  # noqa: E402
 from import_compliance.server import make_handler  # noqa: E402
 from import_compliance.store import Store  # noqa: E402
 from http.server import ThreadingHTTPServer  # noqa: E402
@@ -46,7 +47,7 @@ class HttpSmokeTest(unittest.TestCase):
             self.assertEqual(json.loads(resp.read())["ok"], True)
         with urllib.request.urlopen(f"http://127.0.0.1:{self.port}/v1/mcp", timeout=5) as resp:
             manifest = json.loads(resp.read().decode("utf-8"))
-        self.assertEqual(len(manifest["tools"]), 11)
+        self.assertEqual(len(manifest["tools"]), len(TOOL_DEFS))
 
     def test_assess_over_http(self):
         out = self._post("assess_import_case", {"query": "중국산 유아용 완구를 수입해 판매"})

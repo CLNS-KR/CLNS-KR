@@ -63,12 +63,16 @@ Sitemap: {root}/sitemap.xml
 
 def llms_txt(base: Optional[str] = None) -> str:
     root = base_url(base)
-    from . import pseo  # 순환 import 방지(지연 로드)
+    from . import guides, pseo  # 순환 import 방지(지연 로드)
 
     try:
         pseo_count = len(pseo.items())
     except Exception:  # noqa: BLE001 - 카탈로그가 없어도 llms.txt 는 나가야 한다
         pseo_count = 0
+    try:
+        guide_count = len(guides.items())
+    except Exception:  # noqa: BLE001
+        guide_count = 0
     return f"""# CLNS — Korea Import Compliance
 
 > 한국 수입 규제(세관장확인 요건·식약처 수입 이력·국내 리콜·근거 법령)를 3단계로 판정하는 무료 사전 점검 서비스.
@@ -79,13 +83,15 @@ def llms_txt(base: Optional[str] = None) -> str:
 ## 사람용
 - [리스크 체크]({root}/): 품목명(+HS 10자리)으로 확인 항목·요건·리콜·근거 조문을 한 화면에서 본다.
 - [품목별 수입 요건]({root}/p/): {pseo_count}개 품목(선풍기·보조배터리·오메가3·선크림·반려동물 사료 등)의 세관장확인 요건·KC·전파·식약처 확인 항목·함정·근거를 정적 HTML로 정리. 개별 페이지는 `{root}/p/<slug>`.
+- [질문형 가이드]({root}/guides/): {guide_count}개 질문(영양제 6병, 면세 한도 150/200달러, KC·전파 인증, 한글표시사항, 과대광고 금지 표현 등)에 한 줄 답변·체크포인트·근거 조문으로 답하는 정적 HTML. `FAQPage` 구조화 데이터 포함, 개별 페이지는 `{root}/guides/<slug>`.
+- [시계열 추이]({root}/v1/trends): 일일 리콜·행정처분 스냅샷 기반 신규/변경 건수와 최근 7·30일 급증 품목·유형 요약(읽기 전용 GET).
 - [서비스 메타]({root}/v1/meta): 코퍼스 버전, 판정 등급, 무료 한도, 이용 범위.
 - [익명 사용 통계]({root}/v1/stats): IP·User-Agent·쿠키를 저장하지 않고 일별 호출 수·툴·판정 분포만 집계한 JSON.
 
 ## 기계용 (MCP · JSON-RPC 2.0)
 - [MCP 엔드포인트]({root}/mcp): POST. `initialize` → `tools/list` → `tools/call` 순서로 쓰는 JSON-RPC 2.0 서버. 인증 불필요, 응답은 `application/json` 한 덩어리(SSE 스트리밍 없음).
-- [MCP 서버 카드]({root}/.well-known/mcp/server-card.json): 서버 정보·인증 방식·툴 11종 스키마.
-- [툴 매니페스트]({root}/v1/mcp): GET. 툴 11종의 이름·설명·inputSchema(사람이 읽는 JSON).
+- [MCP 서버 카드]({root}/.well-known/mcp/server-card.json): 서버 정보·인증 방식·툴 12종 스키마.
+- [툴 매니페스트]({root}/v1/mcp): GET. 툴 12종의 이름·설명·inputSchema(사람이 읽는 JSON).
 
 ## 기계용 (REST JSON)
 - [종합 판정]({root}/v1/tools/assess_import_case): POST. `{{"query": "...", "facts": {{"purpose": "resale", "hs_code": "8414519000", "rf_tx": "no"}}}}`
@@ -97,6 +103,7 @@ def llms_txt(base: Optional[str] = None) -> str:
 - [과대광고·한글표시사항 검수]({root}/v1/tools/check_ad_labeling): POST. `{{"product_type": "general_food", "ad_copy": "먹기만 하면 100% 다이어트, 항암 효과", "label_text": "제품명 … 소비기한 …"}}` — 유형별 금지 표현과 필수 표시항목 누락을 대조
 - [식약처 행정처분 이력]({root}/v1/tools/lookup_mfds_disposition): POST. `{{"industry": "manufacturing", "keyword": "표시"}}` — 식품제조가공업·식품판매업 처분 이력(개인정보 필드는 폐기)
 - [근거 조항]({root}/v1/tools/get_legal_basis): POST. `{{"law": "관세법", "article": "제226조"}}`
+- [리콜·행정처분 시계열 추이]({root}/v1/tools/get_compliance_trends): POST. `{{"days": 30}}` — 일일 스냅샷의 신규/변동 건수와 급증 품목·유형
 
 ## 읽는 법
 - 판정 등급은 `check_likely`(확인 가능성 높음) / `info_needed`(추가 정보 필요) / `low_risk`(현재 정보상 가능성 낮음) 세 가지이며 확정 판단이 아니다.
@@ -111,18 +118,22 @@ def llms_txt(base: Optional[str] = None) -> str:
 
 
 def sitemap_xml(base: Optional[str] = None) -> str:
-    """`/` + `/p/` + 품목별 페이지를 동적으로 반환한다(앱은 페이지 내용에서 빠진다)."""
+    """`/` + `/p/` + 품목별 페이지 + `/guides/` + 질문형 가이드를 동적으로 반환한다."""
     root = base_url(base)
     try:
         lastmod = load_corpus().verified_on or "2026-11-18"
     except (OSError, ValueError):
         lastmod = "2026-11-18"
-    from . import pseo  # 순환 import 방지(지연 로드)
+    from . import guides, pseo  # 순환 import 방지(지연 로드)
 
     try:
         paths = pseo.indexable_paths()
     except Exception:  # noqa: BLE001 - 카탈로그 문제가 사이트맵을 막지 않게
         paths = []
+    try:
+        guide_paths = guides.indexable_paths()
+    except Exception:  # noqa: BLE001
+        guide_paths = []
     entries = [f"""  <url>
     <loc>{root}/</loc>
     <lastmod>{lastmod}</lastmod>
@@ -135,6 +146,19 @@ def sitemap_xml(base: Optional[str] = None) -> str:
         entries.append(f"""  <url>
     <loc>{root}{path}</loc>
     <lastmod>{lastmod}</lastmod>
+    <changefreq>{freq}</changefreq>
+    <priority>{priority}</priority>
+  </url>""")
+    try:
+        guide_lastmod = guides.catalog_meta()["verified_on"] or lastmod
+    except Exception:  # noqa: BLE001
+        guide_lastmod = lastmod
+    for path in guide_paths:
+        priority = "0.9" if path == "/guides/" else "0.8"
+        freq = "weekly" if path == "/guides/" else "monthly"
+        entries.append(f"""  <url>
+    <loc>{root}{path}</loc>
+    <lastmod>{guide_lastmod}</lastmod>
     <changefreq>{freq}</changefreq>
     <priority>{priority}</priority>
   </url>""")

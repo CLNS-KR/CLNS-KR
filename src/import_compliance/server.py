@@ -12,6 +12,8 @@
 ----
 - `GET /` 사람용 웹 UI · `GET /healthz`
 - `GET /p/` 품목별 수입 요건 인덱스 · `GET /p/{slug}` 품목별 무료 체크 페이지(서버 렌더 HTML, JS 없음)
+- `GET /guides/` 질문형 가이드 인덱스 · `GET /guides/{slug}` 질문형·규제별 가이드(서버 렌더 HTML, FAQPage 구조화 데이터)
+- `GET /v1/trends` 일일 스냅샷 기반 리콜·행정처분 시계열 추이(읽기 전용)
 - `GET /v1/stats` 익명 일별 사용 통계(IP·UA·쿠키 미저장)
 - `POST /mcp` · `POST /v1/mcp` MCP JSON-RPC 2.0 (initialize·tools/list·tools/call·ping)
 - `GET /.well-known/mcp/server-card.json` MCP 서버 카드
@@ -37,7 +39,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any, Dict, Optional
 from urllib.parse import urlparse
 
-from . import mcp_http, pseo, site_verification, static_files, usage
+from . import guides, mcp_http, pseo, site_verification, static_files, usage
 from .api import call_tool, mcp_manifest
 from .live_api import from_environment, register_sources
 from .store import Store
@@ -115,15 +117,15 @@ def _client_id(raw: Optional[str]) -> str:
     return value or "anonymous"
 
 
-def _days_param(query: str) -> int:
-    """`?days=7` 같은 질의값을 1~30 사이 정수로 해석한다(불량이면 기본값)."""
+def _days_param(query: str, default: int = usage.DEFAULT_DAYS) -> int:
+    """`?days=7` 같은 질의값을 정수로 해석한다(불량이면 default). 상한은 호출부가 자른다."""
     from urllib.parse import parse_qs
 
     try:
         raw = (parse_qs(query or "").get("days") or [""])[0]
         return int(raw)
     except (TypeError, ValueError):
-        return usage.DEFAULT_DAYS
+        return default
 
 
 def make_handler(store: Store, live=None):
@@ -216,11 +218,11 @@ def make_handler(store: Store, live=None):
                 self._head(200, "application/json; charset=utf-8")
             elif path == "/static/og.png":
                 self._head(200, "image/png")
-            elif path in ("/p", "/p/"):
+            elif path in ("/p", "/p/") or path in ("/guides", "/guides/"):
                 self._head(200, "text/html; charset=utf-8")
-            elif path.startswith("/p/"):
+            elif path.startswith("/p/") or path.startswith("/guides/"):
                 self._head(200, "text/html; charset=utf-8")
-            elif path == "/v1/stats":
+            elif path in ("/v1/stats", "/v1/trends"):
                 self._head(200, "application/json; charset=utf-8")
             elif site_verification.file_body(path) is not None:
                 self._head(200, "text/html; charset=utf-8")
@@ -249,6 +251,16 @@ def make_handler(store: Store, live=None):
                     if page is None:
                         self._send_json(404, {"ok": False, "error": "not_found",
                                               "message": "unknown_item"})
+                    else:
+                        self._send_html(200, page, cache="public, max-age=600")
+                elif path in ("/guides", "/guides/"):
+                    self._send_html(200, guides.render_index())
+                elif path.startswith("/guides/"):
+                    slug = path[len("/guides/"):].strip("/")
+                    page = guides.render_guide(slug)
+                    if page is None:
+                        self._send_json(404, {"ok": False, "error": "not_found",
+                                              "message": "unknown_guide"})
                     else:
                         self._send_html(200, page, cache="public, max-age=600")
                 elif path == "/favicon.ico":
@@ -282,6 +294,13 @@ def make_handler(store: Store, live=None):
                 elif path == "/v1/stats":
                     days = urlparse(self.path).query
                     self._send_json(200, usage.stats_payload(store, _days_param(days)),
+                                    cache="public, max-age=300")
+                elif path == "/v1/trends":
+                    query = urlparse(self.path).query
+                    days = _days_param(query, default=30)
+                    self._send_json(200, call_tool("get_compliance_trends", {"days": days}, store,
+                                                   client_id=self._client(), tier=self._tier(),
+                                                   live=live),
                                     cache="public, max-age=300")
                 elif site_verification.file_body(path) is not None:
                     # 검색엔진 소유확인용 HTML 파일(환경변수 SITE_VERIFICATION_FILES 로만 열린다).
@@ -387,9 +406,13 @@ def make_handler(store: Store, live=None):
 
 
 def serve(host: str = DEFAULT_HOST, port: int = DEFAULT_PORT, db_path: str = "",
-          live=None) -> None:
-    """서버를 기동한다(블로킹). db_path가 비면 작업 DB(data/app.sqlite)를 쓴다."""
-    from . import recall_index
+          live=None, snapshot: bool = False) -> None:
+    """서버를 기동한다(블로킹). db_path가 비면 작업 DB(data/app.sqlite)를 쓴다.
+
+    `snapshot=True`(또는 `IMPORT_COMPLIANCE_SNAPSHOT=1`)면 기동 시 그날 스냅샷을 적재한다.
+    같은 날 여러 번 기동해도 일자 기준으로 덮어쓰므로 중복이 쌓이지 않는다.
+    """
+    from . import recall_index, snapshots
 
     db_path = db_path or default_db_path()
     db_dir = os.path.dirname(os.path.abspath(db_path))
@@ -403,6 +426,13 @@ def serve(host: str = DEFAULT_HOST, port: int = DEFAULT_PORT, db_path: str = "",
         pass
     if live is not None:
         register_sources(store)
+    if snapshot:
+        try:
+            taken = snapshots.take_snapshot(store)
+            print(f"일일 스냅샷 적재: {taken['day']} " +
+                  ", ".join(f"{k}={v}" for k, v in taken["counts"].items()), flush=True)
+        except Exception as exc:  # noqa: BLE001 - 스냅샷 실패가 기동을 막지 않게
+            print(f"경고: 일일 스냅샷 적재 실패({exc})", file=sys.stderr, flush=True)
     httpd = ThreadingHTTPServer((host, port), make_handler(store, live=live))
     # Render 같은 PaaS는 PORT를 주입하고 로그로 기동 확인을 하므로 즉시 출력한다.
     print(f"CLNS listening on http://{host}:{port} "
@@ -426,6 +456,8 @@ def main(argv: Optional[list] = None) -> int:
     parser.add_argument("--db", default=None, help="SQLite 경로 (기본 data/recalls.sqlite)")
     parser.add_argument("--live", action="store_true", help="실API 조회 모드(.env/환경변수 키 사용)")
     parser.add_argument("--no-live", action="store_true", help="IMPORT_COMPLIANCE_LIVE=1 이어도 코퍼스 모드로 기동")
+    parser.add_argument("--snapshot", action="store_true",
+                        help="기동 시 그날 일일 스냅샷을 적재한다(환경변수 IMPORT_COMPLIANCE_SNAPSHOT=1)")
     args = parser.parse_args(argv)
 
     cfg = config_from_env()
@@ -444,7 +476,8 @@ def main(argv: Optional[list] = None) -> int:
         else:
             print(f"실API 모드: {live.capabilities()}", flush=True)
 
-    serve(host=host, port=port, db_path=db_path, live=live)
+    snapshot_on = args.snapshot or _truthy(os.environ.get("IMPORT_COMPLIANCE_SNAPSHOT"))
+    serve(host=host, port=port, db_path=db_path, live=live, snapshot=snapshot_on)
     return 0
 
 

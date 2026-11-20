@@ -132,3 +132,29 @@ CREATE TABLE usage_daily (
     updated_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
     PRIMARY KEY (day, kind, key)
 );
+
+-- 일일 시계열 스냅샷(0.3.0). 소스별 항목의 지문을 일자 단위로 보관한다.
+-- 같은 날 다시 적재하면 그날 스냅샷을 덮어쓴다(일자 기준 멱등).
+CREATE TABLE compliance_snapshots (
+    day           TEXT NOT NULL,            -- YYYY-MM-DD (KST)
+    source        TEXT NOT NULL,            -- recall | disposition | cosmetic_prohibited | cosmetic_restricted | drug_schedule
+    item_key      TEXT NOT NULL,
+    fingerprint   TEXT NOT NULL,            -- 항목 내용 해시(변경 판정)
+    label         TEXT,
+    category      TEXT,
+    event_date    DATE,                     -- 리콜 등록일·처분 확정일(없으면 NULL)
+    payload_json  TEXT,
+    origin        TEXT NOT NULL DEFAULT 'observed',   -- observed | backfilled
+    taken_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (day, source, item_key)
+);
+CREATE INDEX idx_compliance_snapshots_source_day ON compliance_snapshots(source, day);
+
+-- 스냅샷 실행 기록(그날 소스별 건수·전일 대비 요약). GET /v1/trends 가 읽는다.
+CREATE TABLE snapshot_runs (
+    day         TEXT PRIMARY KEY,
+    taken_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+    origin      TEXT NOT NULL,
+    counts_json TEXT NOT NULL,
+    diff_json   TEXT NOT NULL
+);

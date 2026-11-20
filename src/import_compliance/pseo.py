@@ -296,7 +296,7 @@ def _footer(base: str) -> str:
     <p><strong>면책:</strong> 본 페이지는 사전 참고용이며 법적 효력이 없습니다. 최종 법적 판단과 통관·인증 가능 여부는 관세사, 관세청, 국가기술표준원·인증기관, 식품의약품안전처 등 소관 기관의 확인이 필요합니다. 본 서비스는 관세사법상 관세 상담·대리 업무를 수행하지 않습니다.</p>
     <p><strong>데이터:</strong> 세관장확인 요건은 관세청 세관장확인대상물품(15101589) 실조회 결과를 기관별로 정규화한 것이며, 근거 조항은 법제처 국가법령정보센터 기준입니다. 원본 응답을 그대로 중계하지 않고 결합·정규화한 판정만 제공합니다. 조회 실패·개정 지연 시 조회 시점을 밝힙니다.</p>
     <p><strong>개인정보:</strong> 이름·연락처·이메일을 받지 않으며, 접속 IP·User-Agent·쿠키를 저장하지 않습니다. 일별 호출 수만 익명으로 집계합니다.</p>
-    <p>© 2026 CLNS · 익명 운영 무료 베타 · 카탈로그 v{_esc(meta['version'])} · 최종 확인 {_esc(meta['verified_on'])} · <a href="/p/">품목 전체 보기</a> · <a href="/llms.txt">llms.txt</a> · <a href="/sitemap.xml">sitemap</a></p>
+    <p>© 2026 CLNS · 익명 운영 무료 베타 · 카탈로그 v{_esc(meta['version'])} · 최종 확인 {_esc(meta['verified_on'])} · <a href="/p/">품목 전체 보기</a> · <a href="/guides/">질문형 가이드</a> · <a href="/llms.txt">llms.txt</a> · <a href="/sitemap.xml">sitemap</a></p>
   </footer>
 </div>
 </body>
@@ -564,6 +564,30 @@ def _related_block(item: Dict[str, Any]) -> str:
     return f'<h2>같은 분류의 다른 품목</h2><div class="grid">{links}</div>'
 
 
+def _guides_block(item: Dict[str, Any]) -> str:
+    """이 품목의 규제 축과 겹치는 질문형 가이드로 내부 링크를 건다(색인·발견성)."""
+    try:
+        from . import guides
+    except Exception:  # noqa: BLE001 - 가이드 카탈로그 문제가 품목 페이지를 막지 않게
+        return ""
+    tags = set(_item_tags(item))
+    if not tags:
+        return ""
+    try:
+        matches = [guide for guide in guides.items()
+                   if set(guide.get("tags") or []) & tags][:4]
+    except Exception:  # noqa: BLE001
+        return ""
+    if not matches:
+        return ""
+    links = "".join(
+        f'<a href="{_esc("/guides/" + guide["slug"])}">{_esc(guide["question_ko"])}'
+        f'<span>{_esc(guide.get("category") or "")}</span></a>'
+        for guide in matches
+    )
+    return f'<h2>이 품목과 함께 보는 질문</h2><div class="grid">{links}</div>'
+
+
 def _requirement_summary(item: Dict[str, Any]) -> str:
     rows = _requirement_rows(item)
     if not rows:
@@ -691,6 +715,8 @@ def render_item(slug: str, base: Optional[str] = None) -> Optional[str]:
 <p style="font-size:14px; color:var(--ink-soft)">{_esc(keywords)}</p>
 
 {_related_block(item)}
+
+{_guides_block(item)}
 
 {_mcp_block(item, root)}
 

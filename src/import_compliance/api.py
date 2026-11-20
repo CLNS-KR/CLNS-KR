@@ -1,11 +1,11 @@
-"""API / MCP 툴 11종."""
+"""API / MCP 툴 12종."""
 from __future__ import annotations
 
 import json
 import os
 
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from . import usage
 from .corpus import load_corpus, normalize
@@ -566,29 +566,6 @@ def tool_assess_import_case(args: Dict[str, Any], store: Store, client_id: str, 
     return _envelope("assess_import_case", result)
 
 
-def _add_rra_hint(result: Dict[str, Any], store: Any = None) -> None:
-
-    guidance = result.setdefault("answer", {}).setdefault("guidance", [])
-    provenance = result.get("data_provenance")
-    already = False
-    if isinstance(provenance, dict):
-        for entry in provenance.get("sources") or []:
-            if entry.get("source_id") == SOURCE_RRA:
-                already = True
-                entry.setdefault("state", "certificate_number_required")
-                entry["official_url"] = RRA_OFFICIAL_URL
-                entry["lookup_field"] = "rra_cert_no"
-    if not already:
-        _mark_live_provenance(result, SOURCE_RRA, state="certificate_number_required",
-                              fresh=None, official_url=RRA_OFFICIAL_URL,
-                              lookup_field="rra_cert_no")
-    guidance.append(
-        "전파 적합성평가(적합인증·적합등록)는 인증·등록번호가 있어야 실시간 확인됩니다. "
-        "번호를 facts.rra_cert_no 로 알려주면 국립전파연구원 DB에서 바로 조회하고, "
-        f"번호가 없으면 모델명으로 {RRA_OFFICIAL_URL} 에서 확인해야 합니다."
-    )
-
-
 def tool_check_drug_import(args: Dict[str, Any], store: Store, client_id: str, tier: str,
                            live: Any = None) -> Dict[str, Any]:
     """의약품·영양제의 반입 금지성분·제한성분을 확인한다.
@@ -930,6 +907,121 @@ def tool_get_legal_basis(args: Dict[str, Any], store: Store, client_id: str, tie
     return _envelope("get_legal_basis", payload)
 
 
+def tool_get_compliance_trends(args: Dict[str, Any], store: Store, client_id: str, tier: str,
+                               live: Any = None) -> Dict[str, Any]:
+    """일일 스냅샷 기반 리콜·행정처분 시계열 추이(읽기 전용).
+
+    전일 대비 신규/변경/삭제 건수와, 리콜 등록일·처분 확정일 기준 최근 N일 급증
+    품목군·위해유형·위반법령을 함께 돌려준다. 스냅샷이 없으면 0을 꾸며내지 않고
+    '스냅샷 없음'을 그대로 밝힌다.
+    """
+    from . import snapshots
+    from .policy import DISCLAIMER_EN, DISCLAIMER_KO
+
+    try:
+        days = int(args.get("days") or snapshots.DEFAULT_TREND_DAYS)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("days_must_be_integer") from exc
+    days = max(1, min(days, snapshots.MAX_TREND_DAYS))
+    source = str(args.get("source") or "all").strip().lower()
+    if source not in ("all",) + tuple(snapshots.SOURCES):
+        raise ValueError("source_must_be_all_or_known_source")
+    try:
+        limit = int(args.get("limit") or snapshots.TOP_LIMIT)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("limit_must_be_integer") from exc
+    as_of = str(args.get("as_of") or "").strip() or None
+    data = snapshots.trends(store, days=days, today=as_of, source=source, limit=limit)
+
+    window = data["current_window"]
+    series = data["series"]
+    latest = data.get("last_observed_diff")
+    recall_total = int(window.get("recall_total") or 0)
+    disposition_total = int(window.get("disposition_total") or 0)
+    previous_total = (int(window.get("previous_recall_total") or 0)
+                      + int(window.get("previous_disposition_total") or 0))
+    current_total = recall_total + disposition_total
+    if current_total or previous_total:
+        headline = (
+            f"최근 {days}일 이벤트 {current_total}건(리콜 {recall_total}건·처분 {disposition_total}건), "
+            f"직전 같은 기간 {previous_total}건으로 집계되었습니다."
+        )
+    else:
+        reference = data.get("reference") or {}
+        headline = (
+            f"최근 {days}일에는 등록되거나 처분된 리콜·행정처분 이벤트가 조회되지 않았습니다"
+            + (f"(데이터 기준일 {reference.get('as_of')} 기준 참고 창을 함께 제공)."
+               if reference.get("as_of") else ".")
+        )
+
+    guidance: List[str] = [headline]
+    if latest:
+        guidance.append(
+            f"{latest['day']} 스냅샷에서는 전일 대비 신규 {latest['new']}건·변경 "
+            f"{latest['changed']}건·삭제 {latest['removed']}건이 확인되었습니다."
+        )
+    else:
+        guidance.append(
+            "저장된 일일 스냅샷이 없어 전일 대비 값은 제공하지 않습니다. "
+            "스냅샷을 적재한 뒤부터 일별 신규·변경·삭제가 집계됩니다."
+        )
+    for row in (window.get("by_category") or [])[:3]:
+        guidance.append(
+            f"리콜 품목군 '{row['key']}' — 최근 {days}일 {row['count']}건"
+            f"(직전 {row['previous_count']}건, 증감 {row['delta']:+d})."
+        )
+    for row in (window.get("by_law") or [])[:2]:
+        guidance.append(
+            f"행정처분 위반법령 '{row['key']}' — 최근 {days}일 {row['count']}건"
+            f"(직전 {row['previous_count']}건, 증감 {row['delta']:+d})."
+        )
+    reference = data.get("reference") or {}
+    if reference.get("as_of"):
+        guidance.append(
+            f"요청 기간에 이벤트가 0건이라 데이터 기준일 {reference['as_of']} 기준 "
+            f"최근 {days}일을 참고 창으로 함께 계산했습니다. 0건은 '급증 없음'을 뜻하지 않습니다."
+        )
+
+    payload: Dict[str, Any] = {
+        "verdict": {
+            "code": "info_needed",
+            "label_ko": "시계열 추이 참고",
+            "label_en": "Trend reference",
+            "determinative": False,
+            "note_ko": (
+                "추이는 관측된 스냅샷과 공개 데이터의 이벤트 날짜를 센 값이며, "
+                "향후 발생 건수나 위험도를 예측하지 않습니다."
+            ),
+        },
+        "answer": {"headline": headline, "guidance": guidance},
+        "trends": data,
+        "evidence": [],
+        "missing_information": [] if series else ["snapshot"],
+        "next_actions": [
+            "일별 적재를 자동화하려면 `python -m import_compliance.snapshots --take` 를 매일 실행하세요.",
+            "급증 품목군은 리콜 등록일 기준이므로, 실제 시장 상황은 제품안전정보센터·식약처 원문을 확인하세요.",
+            "특정 품목·업소 이력은 `lookup_recall`·`lookup_mfds_disposition` 으로 따로 조회하세요.",
+        ],
+        "data_provenance": {
+            "policy": "원본 API 1:1 재전송 금지 · 로컬 스냅샷 지문 집계 · 개인정보 필드 미포함",
+            "sources": [
+                {"source_id": src, "label_ko": snapshots.SOURCE_LABEL_KO[src],
+                 "state": "local_snapshot" if series else "no_snapshot"}
+                for src in (snapshots.SOURCES if source == "all" else (source,))
+            ],
+            "checked_at": iso(now_kst()),
+            "schema": snapshots.TRENDS_SCHEMA,
+        },
+        "disclaimer": {"ko": DISCLAIMER_KO, "en": DISCLAIMER_EN},
+        "scope_limits_ko": SCOPE_LIMITS_KO,
+        "tier": {"name": tier, "boundaries": TIER_BOUNDARIES["free"],
+                 "paid_notice_ko": PAID_TIER_NOTICE_KO},
+        "client_id": client_id,
+    }
+    apply_status(payload)
+    return _envelope("get_compliance_trends", payload)
+
+
 def _unique(values: List[str]) -> List[str]:
     out: List[str] = []
     for value in values:
@@ -959,6 +1051,33 @@ def tool_explain_trap(args: Dict[str, Any], store: Store, client_id: str, tier: 
         "notes": trap.notes,
         "corpus_version": corpus.version,
     })
+
+
+def _guide_meta() -> Dict[str, Any]:
+    try:
+        from . import guides
+
+        return guides.catalog_meta()
+    except Exception:  # noqa: BLE001 - 카탈로그 문제가 메타 응답을 막지 않게
+        return {}
+
+
+def _snapshot_sources() -> List[str]:
+    try:
+        from . import snapshots
+
+        return list(snapshots.SOURCES)
+    except Exception:  # noqa: BLE001
+        return []
+
+
+def _snapshot_days(store: Store) -> int:
+    try:
+        from . import snapshots
+
+        return len(snapshots.days(store))
+    except Exception:  # noqa: BLE001
+        return 0
 
 
 def tool_get_service_meta(args: Dict[str, Any], store: Store, client_id: str, tier: str,
@@ -1004,6 +1123,21 @@ def tool_get_service_meta(args: Dict[str, Any], store: Store, client_id: str, ti
             "label_items": {code: len(rows) for code, rows in labeling.CHECKLISTS.items()},
             "checked_on": advertising.VERIFIED_ON,
             "ad_content_standard_ko": "식품등의 부당한 표시 또는 광고의 내용 기준(식약처고시 제2025-79호)",
+        },
+        "guides": {
+            "path": "/guides/",
+            "count": _guide_meta().get("count"),
+            "verified_on": _guide_meta().get("verified_on"),
+            "page_pattern": "/guides/{slug}",
+            "structured_data": ["FAQPage", "WebPage", "BreadcrumbList"],
+            "links": ["/", "/mcp", "/v1/tools/{tool}"],
+        },
+        "trends": {
+            "endpoint": "/v1/trends?days=30",
+            "tool": "get_compliance_trends",
+            "snapshot_sources": list(_snapshot_sources()),
+            "snapshot_available_days": _snapshot_days(store),
+            "note_ko": "일일 스냅샷은 리콜·행정처분·금지성분·성분 사전의 항목별 지문을 일자 단위로 쌓은 것으로, 전일 대비 신규/변경/삭제와 최근 N일 급증을 계산합니다.",
         },
         "mfds_dispositions": {
             "datasets": [{"dataset_id": meta["dataset_id"], "name_ko": meta["name_ko"],
@@ -1580,6 +1714,27 @@ TOOL_DEFS: List[Dict[str, Any]] = [    {
             "type": "object",
             "properties": {"case_id": {"type": "string", "pattern": "^TRAP-(0[1-9]|1[0-9]|2[0-2])$"}},
             "required": ["case_id"],
+        },
+    },
+    {
+        "name": "get_compliance_trends",
+        "title_ko": "리콜·행정처분 시계열 추이",
+        "description_ko": "일일 스냅샷 기반으로 전일 대비 리콜·행정처분·금지성분 기준의 신규/변경/삭제 건수와, 최근 N일(기본 30) 급증 폼목군·위해유형·위반법령을 반환합니다. 스냅샷이 없으면 '없음'을 그대로 밝히며 0을 꾸며내지 않습니다.",
+        "handler": tool_get_compliance_trends,
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "days": {"type": "integer", "minimum": 1, "maximum": 90, "default": 30,
+                         "description": "조회 기간(일). 기본 30, 최대 90"},
+                "source": {"type": "string",
+                            "enum": ["all", "recall", "disposition", "cosmetic_prohibited",
+                                     "cosmetic_restricted", "drug_schedule"],
+                            "default": "all"},
+                "as_of": {"type": "string", "description": "기준일 YYYY-MM-DD(기본 오늘)"},
+                "limit": {"type": "integer", "minimum": 1, "maximum": 20, "default": 8,
+                          "description": "급증 표 행 수"},
+            },
+            "required": [],
         },
     },
     {

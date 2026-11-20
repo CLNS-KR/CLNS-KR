@@ -29,6 +29,7 @@ SRC = os.path.dirname(HERE)
 sys.path.insert(0, SRC)
 
 from import_compliance import web_ui  # noqa: E402
+from import_compliance.api import TOOL_DEFS  # noqa: E402
 from import_compliance.live_api import LiveApiClient  # noqa: E402
 from import_compliance.server import (  # noqa: E402
     DEFAULT_PORT,
@@ -256,7 +257,7 @@ class HttpTest(unittest.TestCase):
         self.assertEqual(mcp["serverInfo"],
                          {"name": "clns", "version": "clns/" + __version__,
                           "description": "CLNS — Korea Import Compliance MCP & API · PRODUCT COMPLIANCE INTELLIGENCE · KOREA"})
-        self.assertEqual(len(mcp["tools"]), 11)
+        self.assertEqual(len(mcp["tools"]), len(TOOL_DEFS))
 
     def test_healthz_reports_clns_service(self):
         _, _, body = url_get(self.port, "/healthz")

@@ -473,8 +473,10 @@ footer strong{color:var(--ink)}
               <tr><td>GET</td><td><code>/healthz</code></td><td>헬스체크</td></tr>
               <tr><td>GET</td><td><code>/v1/meta</code></td><td>코퍼스 버전·판정 등급·무료 한도</td></tr>
               <tr><td>POST</td><td><code>/mcp</code> · <code>/v1/mcp</code></td><td>MCP JSON-RPC 2.0 (initialize·tools/list·tools/call·ping)</td></tr>
-              <tr><td>GET</td><td><code>/.well-known/mcp/server-card.json</code></td><td>MCP 서버 카드(인증 없음·툴 11종 스키마)</td></tr>
-              <tr><td>GET</td><td><code>/v1/mcp</code></td><td>MCP 툴 매니페스트(툴 11종, 사람이 읽는 JSON)</td></tr>
+              <tr><td>GET</td><td><code>/.well-known/mcp/server-card.json</code></td><td>MCP 서버 카드(인증 없음·툴 12종 스키마)</td></tr>
+              <tr><td>GET</td><td><code>/v1/mcp</code></td><td>MCP 툴 매니페스트(툴 12종, 사람이 읽는 JSON)</td></tr>
+              <tr><td>GET</td><td><code>/guides/</code> · <code>/guides/{slug}</code></td><td>질문형·규제별 가이드(서버 렌더 HTML)</td></tr>
+              <tr><td>GET</td><td><code>/v1/trends</code></td><td>일일 스냅샷 기반 리콜·행정처분 시계열 추이</td></tr>
               <tr><td>GET</td><td><code>/robots.txt</code> · <code>/llms.txt</code> · <code>/sitemap.xml</code></td><td>검색·AI 크롤러용 공개 파일</td></tr>
               <tr><td>POST</td><td><code>/v1/tools/assess_import_case</code></td><td>종합 판정(웹 UI가 호출)</td></tr>
               <tr><td>POST</td><td><code>/v1/tools/assess_import_risk</code></td><td>종합 판정(동일 툴 별칭)</td></tr>
@@ -486,6 +488,7 @@ footer strong{color:var(--ink)}
               <tr><td>POST</td><td><code>/v1/tools/lookup_mfds_disposition</code></td><td>식약처 행정처분 이력</td></tr>
               <tr><td>POST</td><td><code>/v1/tools/lookup_recall</code></td><td>국내 리콜 이력</td></tr>
               <tr><td>POST</td><td><code>/v1/tools/get_legal_basis</code></td><td>근거 조항</td></tr>
+              <tr><td>POST</td><td><code>/v1/tools/get_compliance_trends</code></td><td>리콜·행정처분 시계열 추이</td></tr>
               <tr><td>POST</td><td><code>/v1/tools/explain_trap</code></td><td>함정 케이스 해설</td></tr>
               <tr><td>POST</td><td><code>/v1/tools/get_service_meta</code></td><td>서비스·티어 정보</td></tr>
             </tbody>
@@ -513,6 +516,7 @@ footer strong{color:var(--ink)}
     <p>Clearance, simplified.</p>
     <p>무료 베타 · 결제 없음 · 회원가입 없음</p>
     <p><strong>품목별 수입 요건:</strong> <a href="/p/">선풍기·보조배터리·오메가3·선크림 등 35개 품목의 요건·인증·함정을 정리한 무료 체크 페이지</a></p>
+    <p><strong>질문형 가이드:</strong> <a href="/guides/">영양제 6병, 면세 한도 150/200달러, KC·전파 인증, 한글표시사항, 과대광고 금지 표현 등 자주 묻는 질문 36개에 근거 법령으로 답한 페이지</a></p>
     <p><strong>면책:</strong> 본 결과는 사전 참고용입니다. 법적 효력이 없으며, 최종 법적 판단과 통관·인증 가능 여부는 관세사, 관세청, 국가기술표준원·인증기관, 식품의약품안전처 등 소관 기관의 확인이 필요합니다. 본 서비스는 관세사법상 관세 상담·대리 업무를 수행하지 않습니다.</p>
     <p><strong>데이터:</strong> 관세청·식품의약품안전처·산업통상부 국가기술표준원·과학기술정보통신부 국립전파연구원·법제처 공공데이터를 활용합니다. 의약품 성분은 마약류 관리에 관한 법률 시행령 별표 1~8을 로컬 사전으로 만들어 대조하며, 식약처 의약품 허가정보·e약은요·DUR API는 활용승인 전이라 실시간 전수 대조를 제공하지 않습니다. 원본을 그대로 중계하지 않고 결합·정규화한 판정만 제공하며, 조회 실패나 개정 지연 시 캐시 시점을 밝히고 판정을 "추가 정보 필요"로 낮춥니다.</p>
     <p><strong>개인정보:</strong> 이름·연락처·이메일·사업자 정보를 받지 않습니다. 입력한 품목 정보(품목명·HS·원산지 등)는 판정 이력에 익명으로 저장될 수 있습니다. 상호·주소 등 식별 정보는 입력하지 마세요.</p>

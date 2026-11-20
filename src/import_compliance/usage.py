@@ -39,9 +39,9 @@ FLAG_ERROR = "errors"
 FLAG_QUOTA = "quota_exceeded"
 
 FIXED_PATHS = (
-    "/", "/p/", "/healthz", "/robots.txt", "/llms.txt", "/sitemap.xml",
+    "/", "/p/", "/guides/", "/healthz", "/robots.txt", "/llms.txt", "/sitemap.xml",
     "/.well-known/mcp/server-card.json", "/static/og.png", "/v1/meta", "/v1/mcp",
-    "/v1/stats", "/v1/tools", "/mcp", "/favicon.ico", "/404",
+    "/v1/stats", "/v1/trends", "/v1/tools", "/mcp", "/favicon.ico", "/404",
 )
 
 KEY_RE = re.compile(r"[^0-9A-Za-z._:/{}-]")
@@ -66,10 +66,12 @@ def safe_key(value: Any) -> str:
 def _known_paths() -> set:
     paths = set(FIXED_PATHS)
     try:
-        from . import pseo  # 지연 import(모듈 순환 방지)
+        from . import guides, pseo  # 지연 import(모듈 순환 방지)
 
         for slug in pseo.slugs():
             paths.add(f"/p/{slug}")
+        for slug in guides.slugs():
+            paths.add(f"/guides/{slug}")
     except Exception:  # noqa: BLE001 - 카탈로그가 없어도 카운터는 동작해야 한다
         pass
     return paths
