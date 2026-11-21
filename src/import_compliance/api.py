@@ -739,7 +739,7 @@ def tool_assess_import_case(args: Dict[str, Any], store: Store, client_id: str, 
                 evidence.append(row)
         result["evidence"] = evidence
         result["next_actions"] = list(result.get("next_actions") or []) + [
-            "판매페이지 문구는 check_ecommerce_compliance 로 가격ㆍ후기ㆍ청약철회 고지까지 따로 확인할 수 있습니다.",
+            "국내 판매페이지 문구는 CLNS Check의 ‘국내 판매페이지 문구 검수’로 가격ㆍ후기ㆍ청약철회 고지까지 따로 확인할 수 있습니다.",
         ]
 
     # 반려동물 사료·간식(선택): 사료관리법ㆍ동물검역 축을 원스톱 결과에 합친다.
@@ -913,7 +913,7 @@ def _add_rra_hint(result: Dict[str, Any], store: Any = None) -> None:
                               lookup_field="rra_cert_no")
     guidance.append(
         "전파 적합성평가(적합인증·적합등록)는 인증·등록번호가 있어야 실시간 확인됩니다. "
-        "번호를 facts.rra_cert_no 로 알려주면 국립전파연구원 DB에서 바로 조회하고, "
+        "‘적합성평가 번호’를 함께 넣어 주면 국립전파연구원 DB에서 바로 조회하고, "
         f"번호가 없으면 모델명으로 {RRA_OFFICIAL_URL} 에서 확인해야 합니다."
     )
 
@@ -1837,7 +1837,7 @@ def tool_check_ad_labeling(args: Dict[str, Any], store: Store, client_id: str, t
     }
     result["next_actions"] = (label_check.get("next_actions") or []) + list(result.get("next_actions") or [])[:2] + [
         "광고 문구는 근거자료(시험성적서ㆍ인증번호)와 함께 보관하세요(식품표시광고법 제9조 실증 의무).",
-        "국내 판매페이지(쿠팡ㆍ스마트스토어ㆍ자사몰)에 올릴 문구라면 check_ecommerce_compliance 로 가격ㆍ후기ㆍ청약철회 고지까지 함께 확인하세요.",
+        "국내 판매페이지(쿠팡ㆍ스마트스토어ㆍ자사몰)에 올릴 문구라면 CLNS Check의 ‘국내 판매페이지 문구 검수’로 가격ㆍ후기ㆍ청약철회 고지까지 함께 확인하세요.",
     ]
     apply_status(result)
     return _envelope("check_ad_labeling", result)

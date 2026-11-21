@@ -15,6 +15,8 @@
 """
 from __future__ import annotations
 
+from html import escape
+
 from . import site_verification
 from .version import __version__
 
@@ -66,7 +68,9 @@ PAGE_HTML = """<!doctype html>
 <style>
 :root{
   --bg:#f4f6fa; --card:#ffffff; --ink:#12161f; --ink-soft:#4c5566; --line:#dde3ec;
-  --brand:#1a4fd6; --brand-soft:#e8eefc;
+  /* --brand 는 글자·테두리용, --brand-fill 은 흰 글씨를 얹는 면(버튼·로고)용이다.
+     다크 모드에서 --brand(#7ea6ff)에 흰 글씨를 얹으면 2.4:1 이라, 면은 더 진한 --brand-fill 로 칠한다. */
+  --brand:#1a4fd6; --brand-soft:#e8eefc; --brand-fill:#1a4fd6; --on-brand:#ffffff;
   --ok:#0f7a4a; --ok-soft:#e4f6ec;
   --warn:#9a5b00; --warn-soft:#fdf1dc;
   --info:#1f5f9e; --info-soft:#e7f1fb;
@@ -76,7 +80,7 @@ PAGE_HTML = """<!doctype html>
 @media (prefers-color-scheme: dark){
   :root{
     --bg:#0e1116; --card:#161b22; --ink:#e8edf5; --ink-soft:#a7b1c2; --line:#2a3240;
-    --brand:#7ea6ff; --brand-soft:#18233c;
+    --brand:#7ea6ff; --brand-soft:#18233c; --brand-fill:#3b64d8; --on-brand:#ffffff;
     --ok:#5fd39a; --ok-soft:#12291f;
     --warn:#f0bb63; --warn-soft:#2a2113;
     --info:#82b6ea; --info-soft:#132436;
@@ -96,7 +100,7 @@ a{color:var(--brand); text-underline-offset:2px}
 header.top{display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:space-between;
   padding:22px 0 14px; border-bottom:1px solid var(--line)}
 .brand{display:flex; gap:12px; align-items:center; min-width:0}
-.mark{width:38px;height:38px;border-radius:11px;background:var(--brand);color:#fff;
+.mark{width:38px;height:38px;border-radius:11px;background:var(--brand-fill);color:var(--on-brand);
   display:flex;align-items:center;justify-content:center;font-weight:800;font-size:19px;flex:0 0 auto}
 .brand h1{margin:0; font-size:20px; letter-spacing:.14em; text-transform:uppercase}
 .brand p{margin:1px 0 0; font-size:12.5px; color:var(--ink-soft)}
@@ -175,7 +179,7 @@ input[type=text]:focus, select:focus, textarea:focus{outline:2px solid var(--bra
 @media (max-width:430px){ .presets button{font-size:12.5px; padding:9px 11px} }
 .actions{display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:18px}
 button.primary{
-  font:inherit; font-size:15px; font-weight:700; color:#fff; background:var(--brand);
+  font:inherit; font-size:15px; font-weight:700; color:var(--on-brand); background:var(--brand-fill);
   border:0; border-radius:11px; padding:13px 22px; cursor:pointer; min-height:46px;
 }
 button.primary:disabled{opacity:.6; cursor:progress}
@@ -191,6 +195,8 @@ button.ghost{font:inherit; font-size:13.5px; font-weight:600; color:var(--ink-so
 .statusrow{margin-top:9px; display:flex; flex-wrap:wrap; gap:6px; align-items:center; font-size:12.5px; color:var(--ink-soft)}
 .statusrow code{font-size:11.5px; font-weight:700; background:var(--info-soft); color:var(--info); padding:2px 6px; border-radius:6px}
 .missrow{margin-top:6px; display:flex; flex-wrap:wrap; gap:6px; align-items:center; font-size:12px; color:var(--ink-soft)}
+.missrow code{font-family:inherit; font-size:11.5px; font-weight:700; color:var(--ink);
+  background:var(--card); border:1px solid var(--line); padding:2px 8px; border-radius:999px}
 .v-check_likely{background:var(--warn-soft); border-color:var(--warn)}
 .v-check_likely .lab{color:var(--warn)}
 .v-info_needed{background:var(--info-soft); border-color:var(--info)}
@@ -579,6 +585,11 @@ footer strong{color:var(--ink)}
         </form>
       </div>
       <div id="label-result" aria-live="polite"></div>
+      <div class="sharebar" id="label-share" hidden>
+        <button type="button" id="label-copy-summary">결과 요약 복사</button>
+        <button type="button" id="label-copy-link">공유 링크 복사</button>
+        <span class="copied" id="label-share-note" role="status" aria-live="polite"></span>
+      </div>
     </section>
 
     <!-- ================= HS 조회 ================= -->
@@ -638,6 +649,7 @@ footer strong{color:var(--ink)}
               <tr><td>POST</td><td><code>/v1/tools/check_drug_import</code></td><td>의약품·영양제 금지성분·반입 제한</td></tr>
               <tr><td>POST</td><td><code>/v1/tools/check_ad_labeling</code></td><td>과대광고·한글표시사항 검수</td></tr>
               <tr><td>POST</td><td><code>/v1/tools/check_korean_labeling</code></td><td>품목군별 한글표시사항(라벨) 1초 체크</td></tr>
+              <tr><td>POST</td><td><code>/v1/tools/check_feed_import</code></td><td>반려동물 사료·간식 수입 요건</td></tr>
               <tr><td>POST</td><td><code>/v1/tools/check_ecommerce_compliance</code></td><td>국내 판매페이지 공정위·전자상거래법 검수</td></tr>
               <tr><td>POST</td><td><code>/v1/tools/lookup_mfds_disposition</code></td><td>식약처 행정처분 이력</td></tr>
               <tr><td>POST</td><td><code>/v1/tools/lookup_recall</code></td><td>국내 리콜 이력</td></tr>
@@ -717,7 +729,7 @@ footer strong{color:var(--ink)}
     <p>Clearance, simplified.</p>
     <p>무료 베타 · 결제 없음 · 회원가입 없음</p>
     <p><strong>품목별 수입 요건:</strong> <a href="/p/">선풍기·보조배터리·오메가3·선크림 등 35개 품목의 요건·인증·함정을 정리한 무료 체크 페이지</a></p>
-    <p><strong>질문형 가이드:</strong> <a href="/guides/">영양제 6병, 면세 한도 150/200달러, KC·전파 인증, 한글표시사항, 과대광고 금지 표현, 단순변심 환불 불가 문구, 체험단 대가성 표시, 스마트스토어 상표권, 어린이제품 KC, 직구 전자제품 1인 1대 전파 예생, 화장품 미백·주름 문구, 목록통관 배제 품목, 향수 60mL·와인 직구, 콘택트렌즈·유모차 KC, 원두·차 수입신고, 구매대행 청약철회 등 자주 묻는 질문 __GUIDE_COUNT__개에 근거 법령으로 답한 페이지</a></p>
+    <p><strong>질문형 가이드:</strong> <a href="/guides/">영양제 6병, 면세 한도 150/200달러, KC·전파 인증, 한글표시사항, 과대광고 금지 표현, 단순변심 환불 불가 문구, 체험단 대가성 표시, 스마트스토어 상표권, 어린이제품 KC, 직구 전자제품 1인 1대 전파인증 예외, 화장품 미백·주름 문구, 목록통관 배제 품목, 향수 60mL·와인 직구, 콘택트렌즈·유모차 KC, 원두·차 수입신고, 구매대행 청약철회 등 자주 묻는 질문 __GUIDE_COUNT__개에 근거 법령으로 답한 페이지</a></p>
     <p><strong>면책:</strong> 본 결과는 사전 참고용입니다. 법적 효력이 없으며, 최종 법적 판단과 통관·인증 가능 여부는 관세사, 관세청, 국가기술표준원·인증기관, 식품의약품안전처 등 소관 기관의 확인이 필요합니다. 본 서비스는 관세사법상 관세 상담·대리 업무를 수행하지 않습니다.</p>
     <p><strong>데이터:</strong> 관세청·식품의약품안전처·산업통상부 국가기술표준원·과학기술정보통신부 국립전파연구원·법제처 공공데이터를 활용합니다. 의약품 성분은 마약류 관리에 관한 법률 시행령 별표 1~8을 로컬 사전으로 만들어 대조하고, 식약처 의약품 제품 허가정보·DUR·e약은요·마약류 오남용 정보 API는 2026-11-21 활용승인 후 실시간으로 함께 조회합니다. 원본을 그대로 중계하지 않고 결합·정규화한 판정만 제공하며, 조회 실패나 개정 지연 시 캐시 시점을 밝히고 판정을 "추가 정보 필요"로 낮춥니다.</p>
     <p><strong>같이 쓰는 서비스:</strong> <a href="https://grnt-kr.onrender.com/" target="_blank" rel="noopener noreferrer">GRNT 지원금 판정기</a> · <a href="https://frnc.onrender.com/" target="_blank" rel="noopener noreferrer">FRNC 프랜차이즈 창업 리스크 체크</a></p>
@@ -749,6 +761,34 @@ footer strong{color:var(--ink)}
   }
   var CID = clientId();
 
+  // 서버가 돌려주는 기계용 오류 코드(err.message)를 한국어 안내로 바꾼다.
+  // 사전에 없는 코드는 그대로 노출하지 않고 일반 안내로 돌려준다.
+  var ERROR_MESSAGES_KO = {
+    product_name_required: "제품명을 입력해 주세요.",
+    product_type_or_label_text_required: "품목군을 고르거나 라벨 문구를 넣어 주세요.",
+    label_text_too_short: "라벨 문구가 너무 짧습니다. 항목이 드러나게 조금 더 적어 주세요.",
+    label_text_too_long: "라벨 문구가 너무 깁니다. 필요한 항목만 남겨 주세요.",
+    label_items_must_be_object: "체크 항목 형식이 올바르지 않습니다.",
+    query_too_short: "품목명을 조금 더 구체적으로 적어 주세요.",
+    hs_code_must_be_numeric: "HS 코드는 숫자 10자리로 입력해 주세요.",
+    ad_copy_too_short: "검수할 문구가 너무 짧습니다.",
+    ad_copy_too_long: "문구가 너무 깁니다. 나눠서 검수해 주세요.",
+    ad_copy_or_label_text_required: "광고 문구나 라벨 문구 중 하나는 넣어 주세요.",
+    detail_copy_required: "상세페이지 문구를 넣어 주세요.",
+    detail_copy_too_long: "상세페이지 문구가 너무 깁니다. 나눠서 검수해 주세요.",
+    channel_must_be_carry_or_online: "반입 경로를 다시 골라 주세요.",
+    invalid_argument: "입력한 내용을 다시 확인해 주세요.",
+    unknown_tool: "요청한 기능을 찾지 못했습니다."
+  };
+  function humanError(data){
+    data = data || {};
+    var raw = text(data.message || data.error);
+    if (ERROR_MESSAGES_KO[raw]) return ERROR_MESSAGES_KO[raw];
+    // 영문·밑줄로 된 내부 코드는 사용자에게 그대로 보여 주지 않는다(한국어 안내문은 그대로 둔다).
+    if (/^[A-Za-z0-9_.:-]+$/.test(raw)) return "입력한 내용을 다시 확인해 주세요.";
+    return raw || "요청이 처리되지 않았습니다";
+  }
+
   function request(method, path, payload){
     var opts = { method: method, headers: { "X-Client-Id": CID, "X-Tier": "free" } };
     if (payload !== undefined){
@@ -766,7 +806,7 @@ footer strong{color:var(--ink)}
           if (data.error === "quota_exceeded"){
             throw new Error("이번 달 무료 점검 한도를 넘었습니다. 다음 달에 다시 이용할 수 있습니다.");
           }
-          throw new Error(data.message || data.error || "요청이 처리되지 않았습니다");
+          throw new Error(humanError(data));
         }
         return data.result !== undefined ? data.result : data;
       });
@@ -777,22 +817,121 @@ footer strong{color:var(--ink)}
     return promise.then(function(v){ return v; }, function(err){ return { __error: err && err.message ? err.message : "조회 실패" }; });
   }
 
+  // 결과 화면의 '추가 확인 항목'은 내부 스펙명(snake_case)을 그대로 보여 주지 않고 한국어 라벨로 바꿔 쓴다.
+  // 키는 standards.MISSING_FIELD_ALIAS 의 표준 스펙명을 기준으로 한다.
   var FIELD_LABELS_KO = {
+    ac_plug: "전원 플러그 모양",
+    ad_copy: "광고·상세페이지 문구",
+    additive_names: "첨가물·원료명",
+    animal: "급여·대상 동물",
+    animal_origin: "동물성 원료 포함 여부",
+    animal_origin_ingredient: "동물성 원료 포함 여부",
+    battery_type: "배터리 종류(내장형/분리형)",
+    business_type: "사업자 유형",
+    channel: "수입·반입 경로",
     claim_type: "표시·광고 문구 유형",
-    ingredient: "주요 원료·성분명",
-    import_channel: "수입 경로(판매/자가소비)",
-    label_text: "라벨·한글표시사항 문구",
+    detail_copy: "상세페이지 문구",
+    direction: "수출입 구분",
+    trade_direction: "수출입 구분",
+    domestic_sales: "국내 판매 여부",
+    domestic_sales_status: "국내 판매 여부",
+    drug_class: "의약품 분류",
+    drug_ingredient: "의약품 성분명",
+    drug_name: "의약품명",
+    energy_density: "에너지밀도·충전전압",
+    food_contact: "식품 접촉 여부",
+    food_contact_use: "식품 접촉 여부",
+    food_type: "식품 유형",
+    functional: "기능성 표방 여부",
+    functional_cosmetic: "기능성화장품 표방 여부",
+    has_cert: "안전확인 신고·인증 보유 여부",
+    has_pccc: "개인통관고유부호 보유 여부",
     hs_code: "HS 10자리 코드",
+    hs_10_code: "HS 10자리 코드",
+    industry: "업종",
+    ingredient: "주요 원료·성분명",
+    item: "품목명",
+    item_name: "품목명",
+    import_channel: "수입 경로(판매/자가소비)",
+    import_purpose: "수입 목적",
+    intended_age: "어린이 대상 여부",
+    label_items: "라벨 표시항목",
+    label_text: "라벨·한글표시사항 문구",
+    manufacture: "국내 제조·재포장 여부",
+    manufacture_or_repacking: "국내 제조·재포장 여부",
+    manufacturing_process: "제조 공정",
+    material: "재질",
+    material_origin: "원재료 원산지",
+    nicotine_content: "니코틴 함량",
     origin: "원산지",
-    rf_tx: "무선·블루투스 여부",
-    target_age: "어린이 대상 여부",
+    personal_customs_id: "개인통관고유부호",
+    prescription: "처방전 유무",
+    prescription_status: "처방전 유무",
+    price_usd: "물품 가격(USD)",
+    declared_value_usd: "신고 물품 가격(USD)",
+    product_name: "제품명",
+    product_type: "품목 유형",
     purpose: "수입 목적",
     quantity: "수량",
-    prescription: "처방전 유무",
-    product_name: "제품명",
-    rra_cert_no: "적합성평가 번호"
+    quantity_unit: "수량 단위",
+    rated_power: "정격 전력",
+    rf_tx: "무선·블루투스 여부",
+    wireless_function: "무선·블루투스 여부",
+    rra_cert_no: "적합성평가 번호",
+    safety_confirmation_certificate: "안전확인 신고·인증 보유 여부",
+    snapshot: "기준 스냅샷",
+    target_age: "어린이 대상 여부",
+    target_animal: "급여·대상 동물",
+    trademark_owner: "상표권자 여부",
+    fta_agreement: "적용 협정(FTA)",
+    agreement: "적용 협정(FTA)"
   };
-  function fieldKo(key){ return FIELD_LABELS_KO[key] || key; }
+  // ISO 국가 코드·반입 경로 같은 열거값도 화면에는 한국어로만 보여 준다.
+  var COUNTRY_KO = {
+    KR: "대한민국", CN: "중국", US: "미국", JP: "일본", VN: "베트남", TW: "대만",
+    TH: "태국", ID: "인도네시아", IN: "인도", DE: "독일", MX: "멕시코",
+    FR: "프랑스", IT: "이탈리아", GB: "영국", AU: "호주", CA: "캐나다",
+    SG: "싱가포르", MY: "말레이시아", PH: "필리핀", NZ: "뉴질랜드",
+    BR: "브라질", ES: "스페인", NL: "네덜란드", BE: "벨기에", PL: "폴란드",
+    CZ: "체코", SE: "스웨덴", DK: "덴마크", HK: "홍콩"
+  };
+  function codeKo(value){
+    var v = text(value).trim().toUpperCase();
+    return COUNTRY_KO[v] || text(value);
+  }
+  var CHANNEL_KO = {carry: "휴대 반입", online: "해외직구", direct: "직접 수입",
+                    agency: "구매대행", parallel_import: "병행수입", unknown: "미확인"};
+  function channelKo(value){
+    return CHANNEL_KO[text(value).trim()] || "미확인";
+  }
+
+  function fieldKo(key){
+    var k = text(key);
+    if (FIELD_LABELS_KO[k]) return FIELD_LABELS_KO[k];
+    // 사전에 없는 내부 키(영문·밑줄)는 화면에 그대로 노출하지 않는다.
+    if (/^[A-Za-z0-9_.:-]+$/.test(k)) return "추가 확인 항목";
+    return k;
+  }
+
+  // 실시간 조회 상태 문자열(영문 코드)도 화면에는 한국어로만 내보낸다.
+  var LIVE_STATE_KO = {
+    network: "네트워크 연결 실패",
+    timeout: "응답 시간 초과",
+    http_error: "기관 서버 응답 오류",
+    parse_error: "응답 형식 확인 실패",
+    invalid_response: "응답 형식 확인 실패",
+    source_unavailable: "데이터 연결 없음",
+    not_configured: "연결 설정 없음",
+    no_key: "연결 설정 없음",
+    quota: "호출 한도 초과",
+    error: "일시 오류"
+  };
+  function liveStateKo(value){
+    var v = text(value);
+    if (LIVE_STATE_KO[v]) return LIVE_STATE_KO[v];
+    if (/^[A-Za-z0-9_.:-]+$/.test(v)) return "일시 오류";
+    return v;
+  }
 
   // ---------- 조각 렌더 ----------
   function verdictBlock(v, result){
@@ -800,9 +939,9 @@ footer strong{color:var(--ink)}
     var extra = "";
     result = result || {};
     var geo = [];
-    if (result.destination) geo.push("목적지 " + result.destination);
-    if (result.jurisdiction) geo.push("법령 " + result.jurisdiction);
-    if (result.origin) geo.push("원산지 " + result.origin);
+    if (result.destination) geo.push("목적지 " + codeKo(result.destination));
+    if (result.jurisdiction) geo.push("관할 " + codeKo(result.jurisdiction));
+    if (result.origin) geo.push("원산지 " + codeKo(result.origin));
     if (result.assessment_status){
       extra += '<div class="statusrow"><span class="tag">상태</span>' +
         esc(result.assessment_status_label_ko || result.assessment_status) +
@@ -902,7 +1041,7 @@ footer strong{color:var(--ink)}
       return emptyBox("실시간 세관장확인 조회는 이 배포에서 꺼져 있거나 HS 10자리가 없어 실행되지 않았습니다. 판정은 코퍼스·법령 근거로만 이루어졌습니다.");
     }
     if (block.state !== "live"){
-      return emptyBox("관세청 실시간 조회에 실패했습니다(코드 " + esc(text(block.code) || "n/a") + "). " + esc(block.note_ko || "") + " 판정을 요건 없음으로 해석하지 마세요.");
+      return emptyBox("관세청 실시간 조회에 실패했습니다. " + esc(block.note_ko || "") + " 판정을 요건 없음으로 해석하지 마세요.");
     }
     var grouped = {};
     var order = [];
@@ -942,7 +1081,7 @@ footer strong{color:var(--ink)}
         '<p class="note-inline" style="margin-top:8px"><a href="' + esc(block.official_url || "") + '" target="_blank" rel="noopener noreferrer">국립전파연구원에서 직접 확인</a></p>';
     }
     if (block.state !== "live") {
-      return emptyBox("적합성평가 조회가 정상 처리되지 않았습니다(코드 " + esc(text(block.code) || text(block.result_code) || "n/a") + "). " + esc(block.note_ko || ""));
+      return emptyBox("적합성평가 조회가 정상 처리되지 않았습니다. " + esc(block.note_ko || "") + " 잠시 후 다시 조회하거나 국립전파연구원에서 직접 확인하세요.");
     }
     var rows = (block.matches || []).map(function(m){
       return { equip: m.equipment_name, model: m.base_model, cert: m.cert_no, date: m.certified_on, country: m.manufacture_country };
@@ -1057,7 +1196,7 @@ footer strong{color:var(--ink)}
     var rule = screen.self_use_rule || check.self_use_rule || {};
     var qty = screen.quantity || check.quantity;
     if (Object.keys(rule).length){
-      inner += '<p class="note-inline" style="margin-top:10px">자가사용 인정기준: 총 ' + esc(text(rule.limit_bottles)) + '병(초과 시 용법상 ' + esc(text(rule.limit_months)) + '개월 복용량) · 반입 경로 ' + esc(text(screen.channel || check.channel || "unknown")) + ' · 수량 ' + esc(qty && qty.value ? qty.value + (qty.unit || "") : "미입력") + '</p>';
+      inner += '<p class="note-inline" style="margin-top:10px">자가사용 인정기준: 총 ' + esc(text(rule.limit_bottles)) + '병(초과 시 용법상 ' + esc(text(rule.limit_months)) + '개월 복용량) · 반입 경로 ' + esc(channelKo(screen.channel || check.channel)) + ' · 수량 ' + esc(qty && qty.value ? qty.value + (qty.unit || "") : "미입력") + '</p>';
       if (rule.scope_note_ko) inner += '<p class="note-inline">' + esc(rule.scope_note_ko) + '</p>';
     }
     if (screen.coverage_ko || check.coverage_ko) inner += '<p class="note-inline">' + esc(screen.coverage_ko || check.coverage_ko) + '</p>';
@@ -1082,7 +1221,7 @@ footer strong{color:var(--ink)}
           ? '<p class="note-inline">' + esc(label) + ': 일치 항목 0건. 0건은 미등록·미허가 확정이 아닙니다.</p>'
           : "";
       }
-      return '<p class="note-inline">' + esc(label) + ' 조회 실패: ' + esc(part.error || part.state) + '</p>';
+      return '<p class="note-inline">' + esc(label) + ' 조회 실패: ' + esc(liveStateKo(part.error || part.state)) + '</p>';
     }
 
     var permit = dl.permit || {};
@@ -1251,7 +1390,7 @@ footer strong{color:var(--ink)}
   // 출처 링크만 담고, 원문 상세 문구나 입력한 긴 텍스트는 넣지 않는다.
   var SOURCE_URL = "https://clns-kr.onrender.com";
   var NL = String.fromCharCode(10);
-  var shareState = { check: null, ec: null };
+  var shareState = { check: null, ec: null, label: null };
 
   function flashNote(el, message){
     if (!el) return;
@@ -1343,15 +1482,39 @@ footer strong{color:var(--ink)}
     lines.push("사전 참고용이며 확정 판정이 아닙니다. " + SOURCE_URL);
     return lines.join(NL);
   }
+  function labelSummaryText(data){
+    data = data || {};
+    var verdict = data.verdict || {};
+    var lines = ["[CLNS 한글표시사항 체크] " + (data.product_type_label_ko || "품목군 미지정")];
+    lines.push("결과: " + (verdict.label_ko || "-"));
+    lines.push("필수 " + text(data.required_count) + "개 중 확인 " + text(data.present_count) + "개 · 누락 " +
+      text(data.missing_count) + "개");
+    var missing = uniqueLabels(data.missing, 8);
+    if (missing.length) lines.push("확인 안 된 필수 항목: " + missing.join(", "));
+    var cond = uniqueLabels(data.conditional_missing, 5);
+    if (cond.length) lines.push("조건부 확인 항목: " + cond.join(", "));
+    var next = uniqueLabels(data.next_actions, 3);
+    if (next.length) lines.push("다음에 할 일: " + next.join(" / "));
+    var basis = basisLabels(data.evidence, 5);
+    if (basis.length) lines.push("근거 법령: " + basis.join(" / "));
+    lines.push("사전 참고용이며 적법 확정이 아닙니다. " + SOURCE_URL);
+    return lines.join(NL);
+  }
   function shareUrl(kind){
     var parts = [];
+    var hash = "#check";
     if (kind === "check" && shareState.check){
       if (shareState.check.product) parts.push("item=" + encodeURIComponent(shareState.check.product));
       if (shareState.check.cat) parts.push("cat=" + encodeURIComponent(shareState.check.cat));
       if (shareState.check.origin) parts.push("origin=" + encodeURIComponent(shareState.check.origin));
     }
     if (kind === "ec") parts.push("cat=ec");
-    return SOURCE_URL + "/" + (parts.length ? "?" + parts.join("&") : "") + "#check";
+    if (kind === "label"){
+      // 라벨 문구는 개인정보일 수 있으므로 링크에 담지 않고 품목군만 넘긴다.
+      if (shareState.label && shareState.label.group) parts.push("lg=" + encodeURIComponent(shareState.label.group));
+      hash = "#label";
+    }
+    return SOURCE_URL + "/" + (parts.length ? "?" + parts.join("&") : "") + hash;
   }
   function setShareBar(barId, visible){
     var bar = document.getElementById(barId);
@@ -1379,6 +1542,7 @@ footer strong{color:var(--ink)}
   }
   bindShare("result-share", "result-share-note", "result-copy-summary", "result-copy-link", "check");
   bindShare("ec-share", "ec-share-note", "ec-copy-summary", "ec-copy-link", "ec");
+  bindShare("label-share", "label-share-note", "label-copy-summary", "label-copy-link", "label");
 
   // ---------- 리스크 체크 ----------
   var form = document.getElementById("check-form");
@@ -1618,7 +1782,7 @@ footer strong{color:var(--ink)}
               ecommerceFindingsBlock(ecRev),
               "가격(허위 정가·마감임박), 후기(뒷광고), 청약철회·환불 제한, 배송·품절 책임 회피, 인증·수상, 최저가·1위, " +
               "구독·자동결제, 가격·해지 다크패턴, 위약금, 보장 문구를 공정위 기준으로 대조합니다. " +
-              "판매자 정보·거래조건 고지 항목까지 보려면 상세페이지 전체를 check_ecommerce_compliance 로 넣으세요.");
+              "판매자 정보·거래조건 고지 항목까지 보려면 ‘국내 판매페이지 문구만 빠르게 검수’에 상세페이지 전체를 넣으세요.");
             if (ecRev.disclosure_check) {
               html += sectionCollapsible("판매자 정보·거래조건 고지 체크",
                 ecommerceDisclosureBlock(ecRev.disclosure_check), "상세페이지 하단 고지 항목 펼쳐 보기");
@@ -1902,12 +2066,16 @@ footer strong{color:var(--ink)}
 
   // ---------- 탭 전환 ----------
   var buttons = Array.prototype.slice.call(document.querySelectorAll("nav.tabs button[data-tab]"));
-  var panels = { check: "tab-check", hs: "tab-hs", api: "tab-api" };
+  // 탭 4개 전부를 매핑한다. 하나라도 빠지면 showTab 의 DOM 접근이 null 이 되어
+  // 클릭 핸들러가 그 자리에서 끊기고 나머지 탭까지 먹통이 된다(0.5.2).
+  var panels = { check: "tab-check", label: "tab-label", hs: "tab-hs", api: "tab-api" };
   function showTab(key){
     buttons.forEach(function(btn){
-      var on = btn.getAttribute("data-tab") === key;
+      var btnKey = btn.getAttribute("data-tab");
+      var on = btnKey === key;
       btn.setAttribute("aria-selected", on ? "true" : "false");
-      document.getElementById(panels[btn.getAttribute("data-tab")]).hidden = !on;
+      var panel = panels[btnKey] ? document.getElementById(panels[btnKey]) : null;
+      if (panel) panel.hidden = !on;
     });
     if (location.hash !== "#" + key){
       try { history.replaceState(null, "", "#" + key); } catch(e){}
@@ -2127,9 +2295,13 @@ footer strong{color:var(--ink)}
       postTool("check_korean_labeling", payload).then(function(data){
         labelResult.innerHTML = renderLabel(data);
         labelNote.textContent = "항목 대조를 마쳤습니다. 결과는 확인 목록이며 적법 확정이 아닙니다.";
+        shareState.label = { summary: labelSummaryText(data), group: payload.product_type || "" };
+        setShareBar("label-share", true);
       }).catch(function(err){
         labelResult.innerHTML = "";
         labelNote.textContent = (err && err.message) ? err.message : "체크하지 못했습니다. 잠시 후 다시 시도해 주세요.";
+        shareState.label = null;
+        setShareBar("label-share", false);
       }).then(function(){
         labelSubmit.disabled = false;
         labelSubmit.textContent = "한글라벨 체크";
@@ -2160,8 +2332,27 @@ footer strong{color:var(--ink)}
         labelForm.reset();
         labelResult.innerHTML = "";
         labelNote.textContent = "입력을 지웠습니다.";
+        shareState.label = null;
+        setShareBar("label-share", false);
       });
     }
+    // 공유 링크로 들어오면(/?lg=cosmetics#label) 품목군만 미리 골라 둔다.
+    try {
+      var sharedGroup = (new URLSearchParams(location.search).get("lg") || "");
+      if (sharedGroup){
+        var groupSelect = document.getElementById("label-group");
+        var groupOk = false;
+        if (groupSelect){
+          Array.prototype.forEach.call(groupSelect.options, function(opt){
+            if (opt.value === sharedGroup) groupOk = true;
+          });
+        }
+        if (groupOk){
+          groupSelect.value = sharedGroup;
+          labelNote.textContent = "공유 링크의 품목군을 골랐습니다. 라벨 문구를 넣고 '한글라벨 체크'를 눌러 주세요.";
+        }
+      }
+    } catch (e) {}
     labelForm.addEventListener("submit", function(ev){ ev.preventDefault(); runLabelCheck(); });
   }
 
@@ -2201,3 +2392,78 @@ def render_page(service_name: str = SERVICE_NAME, version: str = SERVICE_VERSION
     if verification:
         page = page.replace("</head>", verification + "</head>", 1)
     return page
+
+NOT_FOUND_HTML = """<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="robots" content="noindex">
+<title>404 · 페이지를 찾을 수 없습니다 · CLNS</title>
+<style>
+:root{
+  --bg:#f4f6fa; --card:#ffffff; --ink:#12161f; --ink-soft:#4c5566; --line:#dde3ec;
+  --brand:#1a4fd6; --brand-soft:#e8eefc; --brand-fill:#1a4fd6; --on-brand:#ffffff;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0e1116; --card:#161b22; --ink:#e8edf5; --ink-soft:#a7b1c2; --line:#2a3240;
+    --brand:#7ea6ff; --brand-soft:#18233c; --brand-fill:#3b64d8; --on-brand:#ffffff;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--bg); color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;
+  line-height:1.6; font-size:16px}
+a{color:var(--brand); text-underline-offset:2px}
+.wrap{max-width:640px; margin:0 auto; padding:56px 20px 64px}
+.brand{display:flex; gap:12px; align-items:center; margin-bottom:26px}
+.mark{width:38px;height:38px;border-radius:11px;background:var(--brand-fill);color:var(--on-brand);
+  display:flex;align-items:center;justify-content:center;font-weight:800;font-size:19px}
+.brand strong{font-size:20px; letter-spacing:.14em}
+.code{font-size:13px; font-weight:800; letter-spacing:.08em; color:var(--brand)}
+h1{font-size:22px; margin:6px 0 8px; letter-spacing:-.3px}
+p{margin:0 0 12px; color:var(--ink-soft); font-size:14px}
+.path{display:inline-block; max-width:100%; word-break:break-all; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:12.5px; color:var(--ink); background:var(--card); border:1px solid var(--line);
+  border-radius:8px; padding:3px 8px}
+.card{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:22px}
+.links{display:flex; flex-wrap:wrap; gap:10px; margin-top:16px}
+.links a{display:inline-block; padding:11px 15px; border:1px solid var(--line); border-radius:10px;
+  color:var(--ink); text-decoration:none; font-size:14px; font-weight:600}
+.links a.primary{background:var(--brand-fill); color:var(--on-brand); border-color:transparent}
+.links a:hover{border-color:var(--brand)}
+footer{margin-top:24px; font-size:12px; color:var(--ink-soft)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand"><div class="mark" aria-hidden="true">C</div><strong>CLNS</strong></div>
+  <div class="card">
+    <div class="code">404</div>
+    <h1>페이지를 찾을 수 없습니다</h1>
+    <p>요청하신 주소 <span class="path">__PATH__</span> 는 없거나 주소가 바뀌었습니다.</p>
+    <p>주소를 직접 입력하셨다면 오타가 없는지 확인해 주세요. 아래에서 다시 시작할 수 있습니다.</p>
+    <div class="links">
+      <a class="primary" href="/">홈 · 수입 리스크 체크</a>
+      <a href="/p/">품목별 수입 요건</a>
+      <a href="/guides/">질문형 가이드</a>
+      <a href="/v1/mcp">API · MCP 툴 목록</a>
+    </div>
+  </div>
+  <footer>이 화면은 사전 점검용 참고 자료이며 법적 효력이 없습니다. © 2026 CLNS</footer>
+</div>
+</body>
+</html>
+"""
+
+
+def render_not_found(path: str = "", max_path: int = 200) -> str:
+    """사람이 브라우저로 열었을 때 보여 줄 404 안내 HTML.
+
+    API 경로(`/v1/...`)는 종전처럼 JSON 404를 돌려주고, 그 밖의 페이지 요청에만 이 화면을
+    쓴다. 요청 경로는 길이를 잘라 이스케이프한 뒤에 넣어, 태그·스크립트가 섞여도 문자로만 보이게 한다.
+    """
+    shown = escape(str(path or "")[:max_path])
+    return NOT_FOUND_HTML.replace("__PATH__", shown or "/")

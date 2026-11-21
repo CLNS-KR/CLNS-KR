@@ -45,7 +45,7 @@ from .api import call_tool, mcp_manifest, submit_inquiry
 from .live_api import from_environment, register_sources
 from .store import Store
 from .version import __version__
-from .web_ui import render_page
+from .web_ui import render_not_found, render_page
 
 MAX_BODY = 64 * 1024
 DEFAULT_HOST = "0.0.0.0"
@@ -79,6 +79,17 @@ CORS_HEADERS = {
 }
 
 MCP_PATHS = ("/mcp", "/v1/mcp")
+
+# 사람이 여는 페이지 주소와 기계가 부르는 API 주소를 404 응답에서 구분한다.
+# API·MCP·크롤러 파일 주소는 종전처럼 JSON 404 를, 그 밖의 페이지 주소는 안내 HTML 을 돌려준다.
+API_PATH_PREFIXES = ("/v1/", "/.well-known/")
+
+
+def is_api_path(path: str) -> bool:
+    """JSON 404 대상(API·MCP·크롤러 파일)인지 판별한다."""
+    value = path or "/"
+    return (value == "/v1" or value.startswith(API_PATH_PREFIXES)
+            or value.rstrip("/") == "/mcp")
 
 
 def project_root() -> str:
@@ -233,6 +244,13 @@ def make_handler(store: Store, live=None):
             self.end_headers()
             self.wfile.write(body)
 
+        def _send_not_found(self, path: str) -> None:
+            """404 응답: 페이지 주소는 안내 HTML, API·MCP 주소는 JSON."""
+            if is_api_path(path):
+                self._send_json(404, {"ok": False, "error": "not_found"})
+                return
+            self._send_html(404, render_not_found(path))
+
         def _head(self, status: int, content_type: str) -> None:
             self.send_response(status)
             self.send_header("Content-Type", content_type)
@@ -268,8 +286,10 @@ def make_handler(store: Store, live=None):
                 self._head(200, "application/json; charset=utf-8")
             elif site_verification.file_body(path) is not None:
                 self._head(200, "text/html; charset=utf-8")
-            else:
+            elif is_api_path(path):
                 self._head(404, "application/json; charset=utf-8")
+            else:
+                self._head(404, "text/html; charset=utf-8")
 
         def do_OPTIONS(self) -> None:  # noqa: N802
             """CORS preflight. 브라우저 기반 MCP·API 클라이언트가 본문 없이 호출할 수 있다."""
@@ -291,8 +311,7 @@ def make_handler(store: Store, live=None):
                     slug = path[len("/p/"):].strip("/")
                     page = pseo.render_item(slug)
                     if page is None:
-                        self._send_json(404, {"ok": False, "error": "not_found",
-                                              "message": "unknown_item"})
+                        self._send_not_found(path)
                     else:
                         self._send_html(200, page, cache="public, max-age=600")
                 elif path in ("/guides", "/guides/"):
@@ -301,8 +320,7 @@ def make_handler(store: Store, live=None):
                     slug = path[len("/guides/"):].strip("/")
                     page = guides.render_guide(slug)
                     if page is None:
-                        self._send_json(404, {"ok": False, "error": "not_found",
-                                              "message": "unknown_guide"})
+                        self._send_not_found(path)
                     else:
                         self._send_html(200, page, cache="public, max-age=600")
                 elif path == "/favicon.ico":
@@ -356,7 +374,8 @@ def make_handler(store: Store, live=None):
                     self._common_headers()
                     self.end_headers()
                 else:
-                    self._send_json(404, {"ok": False, "error": "not_found"})
+                    # 사람이 여는 페이지면 안내 HTML(/nope-xyz 등), API 경로면 종전 JSON 404.
+                    self._send_not_found(path)
             except Exception:  # noqa: BLE001 - 공개 배포에서 내부 정보를 노출하지 않는다
                 self._send_json(500, {"ok": False, "error": "internal_error"})
 

@@ -350,14 +350,14 @@ class HttpEndpointTest(unittest.TestCase):
 
 class VersionAndAnonymityTest(unittest.TestCase):
     def test_version_sync(self):
-        self.assertEqual(__version__, "0.5.1")
+        self.assertEqual(__version__, "0.5.2")
         self.assertEqual(web_ui.SERVICE_VERSION, __version__)
         with open(os.path.join(ROOT, "server.json"), encoding="utf-8") as handle:
             manifest = json.load(handle)
         self.assertEqual(manifest["version"], __version__)
         with open(os.path.join(ROOT, "Dockerfile"), encoding="utf-8") as handle:
             docker = handle.read()
-        self.assertIn('org.opencontainers.image.version="0.5.1"', docker)
+        self.assertIn('org.opencontainers.image.version="0.5.2"', docker)
         self.assertEqual(TOOL_INDEX["check_korean_labeling"]["name"], "check_korean_labeling")
 
     def test_new_files_have_no_personal_data_or_secrets(self):

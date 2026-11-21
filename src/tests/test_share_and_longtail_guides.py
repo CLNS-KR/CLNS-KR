@@ -71,6 +71,7 @@ NEW_SLUGS = (
 SHARE_PAIRS = (
     ("result-share", "result-share-note", "result-copy-summary", "result-copy-link"),
     ("ec-share", "ec-share-note", "ec-copy-summary", "ec-copy-link"),
+    ("label-share", "label-share-note", "label-copy-summary", "label-copy-link"),
 )
 
 # 개인정보·시크릿은 값이 아니라 모양으로 잡는다(테스트 파일이 개인정보를 담지 않게).
@@ -187,8 +188,8 @@ class ShareUiContractTest(unittest.TestCase):
         cls.script = inline_script(cls.page)
 
     def test_both_result_areas_have_two_buttons(self):
-        self.assertEqual(self.page.count("결과 요약 복사"), 2)
-        self.assertEqual(self.page.count("공유 링크 복사"), 2)
+        self.assertEqual(self.page.count("결과 요약 복사"), len(SHARE_PAIRS))
+        self.assertEqual(self.page.count("공유 링크 복사"), len(SHARE_PAIRS))
         for bar_id, note_id, copy_id, link_id in SHARE_PAIRS:
             with self.subTest(bar=bar_id):
                 self.assertIn(f'id="{bar_id}"', self.page)

@@ -333,7 +333,7 @@ class WebUiTest(unittest.TestCase):
 
 class ManifestAndAuditTest(unittest.TestCase):
     def test_version_and_manifest_agree(self):
-        self.assertEqual(__version__, "0.5.1")
+        self.assertEqual(__version__, "0.5.2")
         with open(os.path.join(ROOT, "server.json"), encoding="utf-8") as handle:
             manifest = json.load(handle)
         self.assertEqual(manifest["version"], __version__)

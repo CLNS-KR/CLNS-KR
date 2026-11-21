@@ -1002,10 +1002,10 @@ def check(product_type: str, *, label_text: str = "", provided: Optional[Dict[st
     elif ptype in ("cosmetics", "functional_cosmetics"):
         next_actions.append("1차 포장 기재와 한글 표시는 「화장품법 시행규칙」 및 식약처 안내서로 확인하세요.")
     elif ptype == "kc_electronics":
-        next_actions.append("KC 유형(안전인증/안전확인/공급자적합성확인/안전기준준수)은 check_kc_certification으로 먼저 확인하세요.")
+        next_actions.append("KC 유형(안전인증/안전확인/공급자적합성확인/안전기준준수)은 CLNS Check의 ‘적합성평가 번호’ 항목으로 먼저 확인하세요.")
         next_actions.append("세부표시사항은 국가기술표준원 고시를 확인하세요(별표 9 제1호나목 6).")
     elif ptype == "pet_food":
-        next_actions.append("사료 성분등록ㆍ수입신고ㆍ동물검역은 check_feed_import로 함께 확인하세요.")
+        next_actions.append("사료 성분등록ㆍ수입신고ㆍ동물검역은 CLNS Check의 ‘반려동물 사료·간식’ 점검으로 함께 확인하세요.")
     else:
         next_actions.append("품목별 개별법(식품ㆍ화장품ㆍ사료ㆍ전기용품ㆍ어린이제품ㆍ의료기기) 대상인지 먼저 확인하세요.")
 

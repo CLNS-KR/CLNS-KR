@@ -7,7 +7,7 @@ FROM python:3.12-slim
 
 LABEL org.opencontainers.image.title="CLNS" \
       org.opencontainers.image.description="PRODUCT COMPLIANCE INTELLIGENCE · KOREA · Korea Import Compliance MCP & API (웹 UI + JSON API)" \
-      org.opencontainers.image.version="0.5.1"
+      org.opencontainers.image.version="0.5.2"
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
