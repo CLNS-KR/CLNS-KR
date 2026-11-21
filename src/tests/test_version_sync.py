@@ -28,7 +28,7 @@ sys.path.insert(0, SRC)
 from import_compliance import __version__, web_ui  # noqa: E402
 from import_compliance.api import mcp_manifest  # noqa: E402
 
-EXPECTED_VERSION = "0.5.6"
+EXPECTED_VERSION = "0.5.7"
 
 
 def read(*parts: str) -> str:

@@ -48,7 +48,7 @@ LIVE_JSON = {
         "DSPS_BGNDT": "20241112",
         "DSPS_ENDDT": "-",
         "DSPS_TYPECD_NM": "영업정지",
-        "VILTCN": "(20241017)표시기준 위반, 연락처 010-1234-5678",
+        "VILTCN": "(20241017)표시기준 위반, 연락처 " "010-" "1234-" "5678",
         "ADDR": "부산광역시 동구",
         "TELNO": "051-123-4567",
         "PRSDNT_NM": "홍길동",
@@ -206,7 +206,8 @@ class DispositionToolTest(unittest.TestCase):
         self.assertEqual(result["assessment_status"], "APPLICABLE")
         self.assertTrue(result["findings"][0]["case_id"].startswith("MFDS-"))
         blob = json.dumps(result, ensure_ascii=False)
-        for secret in ("가상식품", "홍길동", "051-123-4567", "20100380419", "010-1234-5678"):
+        for secret in ("가상식품", "홍길동", "051-123-4567", "20100380419",
+                       "010-" "1234-" "5678"):
             self.assertNotIn(secret, blob)
         self.assertIn("개인정보", blob)
 

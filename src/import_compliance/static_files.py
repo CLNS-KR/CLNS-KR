@@ -43,21 +43,43 @@ Allow: /
 User-agent: Googlebot
 Allow: /
 
+User-agent: Bingbot
+Allow: /
+
 # AI 크롤러 — 인용·요약은 허용하고 학습 전용 수집만 막는 절충안.
 # 전부 허용하려면 아래 블록을 지우고 "User-agent: * / Allow: /" 만 남긴다.
 User-agent: GPTBot
 Allow: /
 
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
 User-agent: ClaudeBot
+Allow: /
+
+User-agent: Claude-SearchBot
 Allow: /
 
 User-agent: PerplexityBot
 Allow: /
 
+User-agent: Perplexity-User
+Allow: /
+
 User-agent: Google-Extended
 Allow: /
 
+User-agent: Applebot-Extended
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
 Sitemap: {root}/sitemap.xml
+# AI·개발자용 안내: {root}/llms.txt
 """
 
 
@@ -119,6 +141,13 @@ def llms_txt(base: Optional[str] = None) -> str:
 - 과대광고·표시 검수는 문구 패턴 대조이며, 근거는 식품등의 표시·광고에 관한 법률 제8조·시행령 제3조·화장품법 제13조와 식약처 고시(식품등의 부당한 표시 또는 광고의 내용 기준)다. 같은 단어도 문맥에 따라 판단이 달라진다.
 - 국내 판매페이지 검수는 공정위 표시·광고의 공정화에 관한 법률 제3조·제5조·시행령 제3조, 전자상거래 등에서의 소비자보호에 관한 법률 제13조·제17조·제18조·제21조·제21조의2·시행령 제20조의2와 공정위 고시(부당한 표시·광고행위의 유형 및 기준, 상품 등의 정보제공, 소비자보호 지침)ㆍ예규(추천·보증 심사지침)를 근거로 쓴다. 실제 판매 이력·화면 구성은 반영하지 않으므로 확정 판정이 아니다.
 - 행정처분 이력은 과거 처분 사실이며 현재 영업 상태를 뜻하지 않는다. 원본의 업소명·연락처·주소·인허가번호는 읽지 않고 버린다. 데이터셋 승인 전파 전이면 내장 대표 적발 패턴으로 안내한다.
+
+## 구조화 데이터(JSON-LD)
+- `/` — `WebApplication`(무료, `@id` `#app`) + `Organization`(`#org`) + `WebSite`(`#website`, SearchAction `?q=`). `isPartOf`·`publisher` 로 서로를 `@id` 로 가리킨다.
+- `/p/` — `CollectionPage` + `ItemList`(품목 {pseo_count}개, 각 품목 URL).  
+- `/p/{{slug}}` — `Article` + `FAQPage` + `BreadcrumbList`.
+- `/guides/{{slug}}` — `FAQPage` + `BreadcrumbList` + `WebPage`(`Organization`·`WebSite` 참조).
+- 인용할 때: 확정 판정으로 쓰지 말고 `verdict`·`checkpoints`·`basis`(조문·시행일·원문 URL)·`disclaimer` 를 함께 옮긴다. 0건 조회는 '요건 없음'으로 쓰지 않는다.
 """
 
 

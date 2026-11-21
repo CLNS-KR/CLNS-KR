@@ -54,6 +54,7 @@ PAGE_HTML = """<!doctype html>
 {
   "@context": "https://schema.org",
   "@type": "WebApplication",
+  "@id": "https://clns-kr.onrender.com/#app",
   "name": "CLNS",
   "alternateName": "Korea Import Compliance MCP & API",
   "url": "https://clns-kr.onrender.com/",
@@ -62,7 +63,44 @@ PAGE_HTML = """<!doctype html>
   "inLanguage": "ko-KR",
   "description": "한국 수입 규제(세관장확인 요건·식약처 수입 이력·국내 리콜·근거 법령)를 3단계로 판정하는 무료 사전 점검 서비스. 관세사·법률 자문이 아닌 참고용.",
   "offers": { "@type": "Offer", "price": "0", "priceCurrency": "KRW" },
-  "isAccessibleForFree": true
+  "isAccessibleForFree": true,
+  "isPartOf": { "@id": "https://clns-kr.onrender.com/#website" },
+  "publisher": { "@id": "https://clns-kr.onrender.com/#org" },
+  "featureList": [
+    "세관장확인 요건 조회(HS 10자리)",
+    "KC·전파 적합성평가 확인",
+    "식약처 수입 이력·행정처분 이력",
+    "국내 리콜 이력·시계열 추이",
+    "한글표시사항·과대광고·전자상거래 문구 검수",
+    "MCP(JSON-RPC 2.0) 툴 15종과 REST JSON 동시 제공"
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://clns-kr.onrender.com/#org",
+      "name": "CLNS",
+      "url": "https://clns-kr.onrender.com/"
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://clns-kr.onrender.com/#website",
+      "name": "CLNS — Korea Import Compliance",
+      "url": "https://clns-kr.onrender.com/",
+      "inLanguage": "ko-KR",
+      "publisher": { "@id": "https://clns-kr.onrender.com/#org" },
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": { "@type": "EntryPoint",
+                    "urlTemplate": "https://clns-kr.onrender.com/?q={search_term_string}" },
+        "query-input": "required name=search_term_string"
+      }
+    }
+  ]
 }
 </script>
 <style>

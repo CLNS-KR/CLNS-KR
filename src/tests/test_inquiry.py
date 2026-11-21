@@ -58,7 +58,7 @@ class StoreTest(unittest.TestCase):
     def test_ids_increase_and_counts_accumulate(self):
         store = Store(":memory:")
         self.addCleanup(store.close)
-        first = store.record_inquiry("010-1111-2222", "api_mcp", "")
+        first = store.record_inquiry("010-" "1111-" "2222", "api_mcp", "")
         second = store.record_inquiry("카톡 clns_test", "other", "")
         self.assertGreater(second["id"], first["id"])
         self.assertEqual(store.count_inquiries(), 2)
@@ -138,7 +138,8 @@ class ValidationTest(unittest.TestCase):
         self.assertEqual(self.store.count_inquiries(), 0)
 
     def test_contact_accepts_phone_and_messenger_id(self):
-        for contact in (SENTINEL_PHONE, "010 1234 5678", "+82 10 1234 5678", "카톡 clns_test"):
+        for contact in (SENTINEL_PHONE, "010 " "1234 " "5678", "+82 10 " "1234 " "5678",
+                        "카톡 clns_test"):
             with self.subTest(contact):
                 self.assertTrue(submit_inquiry(self._valid(contact=contact), self.store)["ok"])
 

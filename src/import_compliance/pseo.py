@@ -696,6 +696,15 @@ def render_item(slug: str, base: Optional[str] = None) -> Optional[str]:
                     },
                 ],
             },
+            {
+                "@type": "BreadcrumbList",
+                "itemListElement": [
+                    {"@type": "ListItem", "position": 1, "name": "CLNS", "item": root + "/"},
+                    {"@type": "ListItem", "position": 2, "name": "품목별 수입 요건",
+                     "item": root + "/p/"},
+                    {"@type": "ListItem", "position": 3, "name": name, "item": canonical},
+                ],
+            },
         ],
     }
 
@@ -806,6 +815,17 @@ def render_index(base: Optional[str] = None) -> str:
         "inLanguage": "ko-KR",
         "isPartOf": {"@type": "WebSite", "name": "CLNS", "url": root},
         "dateModified": meta["verified_on"],
+        "mainEntity": {
+            "@type": "ItemList",
+            "numberOfItems": meta["count"],
+            "itemListOrder": "https://schema.org/ItemListUnordered",
+            "itemListElement": [
+                {"@type": "ListItem", "position": index,
+                 "name": item["name_ko"],
+                 "url": f"{root}{page_path(item['slug'])}"}
+                for index, item in enumerate(items(), start=1)
+            ],
+        },
     }
 
     return "".join([
