@@ -656,7 +656,7 @@ footer strong{color:var(--ink)}
               <tr><td>POST</td><td><code>/v1/tools/get_legal_basis</code></td><td>근거 조항</td></tr>
               <tr><td>POST</td><td><code>/v1/tools/get_compliance_trends</code></td><td>리콜·행정처분 시계열 추이</td></tr>
               <tr><td>POST</td><td><code>/v1/tools/explain_trap</code></td><td>함정 케이스 해설</td></tr>
-              <tr><td>POST</td><td><code>/v1/inquiry</code></td><td>CLNS Pro 사전 신청·도입 문의(비쿼터, 회신용 연락처만 보관)</td></tr>
+              <tr><td>POST</td><td><code>/v1/inquiry</code></td><td>CLNS Pro 사전 신청·도입 문의(비쿼터, 회신용 연락처만 보관). 선택 필드 <code>cohort</code>(별칭 <code>source</code>)로 무료 베타·소개 유입 태그(<code>beta_pilot</code>, <code>citechart</code> 등 40자)를 함께 보낼 수 있습니다</td></tr>
               <tr><td>POST</td><td><code>/v1/tools/get_service_meta</code></td><td>서비스·티어 정보</td></tr>
             </tbody>
           </table>
@@ -760,6 +760,15 @@ footer strong{color:var(--ink)}
     return id;
   }
   var CID = clientId();
+
+  // 무료 베타·소개 글 유입 태그(0.5.4) — ?cohort=beta_pilot 로 들어온 링크만 문의에 붙인다.
+  // 서버와 같은 규칙(영문 소문자·숫자와 . _ : -, 40자)을 먼저 확인해 잘못된 값이면 보내지 않는다.
+  function cohortTag(){
+    try {
+      var value = String(new URLSearchParams(location.search).get("cohort") || "").trim().toLowerCase();
+      return /^[a-z0-9][a-z0-9._:-]{0,39}$/.test(value) ? value : "";
+    } catch (e) { return ""; }
+  }
 
   // 서버가 돌려주는 기계용 오류 코드(err.message)를 한국어 안내로 바꾼다.
   // 사전에 없는 코드는 그대로 노출하지 않고 일반 안내로 돌려준다.
@@ -2171,7 +2180,8 @@ footer strong{color:var(--ink)}
       request("POST", "/v1/inquiry", {
         contact: contact,
         topic: topicEl ? topicEl.value : "other",
-        message: messageEl ? (messageEl.value || "").trim() : ""
+        message: messageEl ? (messageEl.value || "").trim() : "",
+        cohort: cohortTag()
       }).then(function(res){
         inquiryForm.reset();
         inquiryNote.textContent = "접수되었습니다 (접수번호 " + text(res && res.id) +

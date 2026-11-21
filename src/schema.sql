@@ -168,7 +168,10 @@ CREATE TABLE inquiries (
     message     TEXT NOT NULL DEFAULT '',
     received_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     -- 0.5.3: 접수 저널(data/inquiries.jsonl) → DB 복원 시 중복을 막는 멱등 키
-    fingerprint TEXT
+    fingerprint TEXT,
+    -- 0.5.4: 무료 베타·소개 유입 구분 태그(beta_pilot, citechart …). 선택 입력.
+    cohort      TEXT NOT NULL DEFAULT ''
 );
 CREATE INDEX idx_inquiries_received ON inquiries(received_at DESC);
 CREATE UNIQUE INDEX idx_inquiries_fingerprint ON inquiries(fingerprint);
+CREATE INDEX idx_inquiries_cohort ON inquiries(cohort);

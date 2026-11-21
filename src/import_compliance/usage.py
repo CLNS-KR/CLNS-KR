@@ -182,11 +182,16 @@ def inquiry_summary(store: Any, days: int = DEFAULT_DAYS,
     end = today or today_kst()
     start = _day_shift(end, -(window - 1))
     rows: list = []
+    cohort_rows: list = []
     if store is not None:
         try:
             rows = store.inquiry_topic_counts(start)
         except Exception:  # noqa: BLE001 - 요약 실패가 서버를 막지 않는다
             rows = []
+        try:
+            cohort_rows = store.inquiry_cohort_counts(start)
+        except Exception:  # noqa: BLE001 - 0.5.4 이전 DB 도 요약은 뜨게 한다
+            cohort_rows = []
     by_day = {_day_shift(start, offset): {} for offset in range(window)}
     by_topic: Dict[str, int] = {}
     total = 0
@@ -198,6 +203,10 @@ def inquiry_summary(store: Any, days: int = DEFAULT_DAYS,
             by_day[day][topic] = by_day[day].get(topic, 0) + count
         by_topic[topic] = by_topic.get(topic, 0) + count
         total += count
+    by_cohort: Dict[str, int] = {}
+    for row in cohort_rows:
+        tag = str(row.get("cohort") or "").strip()[:40] or "(태그 없음)"
+        by_cohort[tag] = by_cohort.get(tag, 0) + int(row.get("count") or 0)
     return {
         "ok": True,
         "generated_at": datetime.now(KST).isoformat(timespec="seconds"),
@@ -207,11 +216,12 @@ def inquiry_summary(store: Any, days: int = DEFAULT_DAYS,
         "to": end,
         "total": total,
         "by_topic": by_topic,
+        "by_cohort": by_cohort,
         "days": [{"date": day, "count": sum(v.values()), "by_topic": v}
                  for day, v in by_day.items()],
         "privacy": {
             "stores_contact_in_summary": False,
-            "fields": "건수ㆍ관심 항목ㆍ접수일만(연락처ㆍ메모 본문 제외)",
+            "fields": "건수ㆍ관심 항목ㆍ유입 태그(cohort)ㆍ접수일만(연락처ㆍ메모 본문 제외)",
             "note_ko": (
                 "요약은 건수만 세고 연락처ㆍ문의 본문은 읽지 않습니다. 회신이 필요한 원문은 "
                 "서버 DB(inquiries)와 접수 저널(data/inquiries.jsonl)에서만 확인합니다."

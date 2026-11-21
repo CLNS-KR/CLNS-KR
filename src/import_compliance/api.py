@@ -2808,10 +2808,50 @@ INQUIRY_TOPIC_LABELS_KO = {
 INQUIRY_CONTACT_MIN = 3
 INQUIRY_CONTACT_MAX = 120
 INQUIRY_MESSAGE_MAX = 500
+# 무료 베타 파일럿 구분 태그(0.5.4). 바깥에서 들어온 유입 경로를 문의 1건에 붙여
+# 나중에 "어느 파일럿·어느 소개 글에서 왔는가"를 셀 수 있게 한다. 선택 입력이며
+# 없으면 종전과 똑같이 동작한다(하위 호환). `cohort` 를 먼저 읽고, 없으면 `source` 를 쓴다.
+INQUIRY_COHORT_MAX = 40
+INQUIRY_COHORT_FIELDS = ("cohort", "source")
+INQUIRY_COHORT_PATTERN_KO = "영문 소문자·숫자와 . _ : -"
 
 _CONTACT_EMAIL_RE = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]{2,}$")
 _CONTACT_CHARS_RE = re.compile(r"^[^\x00-\x1f\x7f<>]+$")
 _MESSAGE_CHARS_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
+_COHORT_RE = re.compile(r"^[a-z0-9][a-z0-9._:-]{0,%d}$" % (INQUIRY_COHORT_MAX - 1))
+
+
+def _clean_inquiry_cohort(payload: Dict[str, Any]) -> Any:
+    """선택 필드 `cohort`(별칭 `source`) → 정리된 태그 또는 오류.
+
+    값이 없거나 빈 문자열이면 `""`(종전 요청과 동일하게 취급). 40자를 넘거나 정해진
+    문자(영문 소문자·숫자·`.`·`_`·`:`·`-`) 밖의 글자가 있으면 오류를 돌려준다.
+    """
+    raw: Any = None
+    for field in INQUIRY_COHORT_FIELDS:
+        if field in payload and payload.get(field) is not None:
+            raw = payload.get(field)
+            break
+    if raw is None:
+        return ""
+    if not isinstance(raw, str):
+        return _inquiry_error(
+            "cohort",
+            "베타 구분 태그는 문자열로 적어 주세요(예: beta_pilot, citechart).",
+        )
+    tag = raw.strip().lower()
+    if not tag:
+        return ""
+    if len(tag) > INQUIRY_COHORT_MAX:
+        return _inquiry_error(
+            "cohort", f"베타 구분 태그는 {INQUIRY_COHORT_MAX}자까지 쓸 수 있습니다.",
+        )
+    if not _COHORT_RE.match(tag):
+        return _inquiry_error(
+            "cohort",
+            f"베타 구분 태그에는 {INQUIRY_COHORT_PATTERN_KO}만 쓸 수 있습니다.",
+        )
+    return tag
 
 
 def _inquiry_error(field: str, message: str) -> Dict[str, Any]:
@@ -2821,8 +2861,9 @@ def _inquiry_error(field: str, message: str) -> Dict[str, Any]:
 def submit_inquiry(payload: Any, store: Store, alerter: Any = None) -> Dict[str, Any]:
     """`POST /v1/inquiry` — CLNS Pro 사전 신청·도입 문의 1건 접수.
 
-    입력: `{contact, topic, message}`
+    입력: `{contact, topic, message, cohort}`
     - `contact` 이메일 또는 연락처 3~120자(필수)
+    - `cohort`(별칭 `source`) 무료 베타·소개 유입 구분 태그, 선택 0~40자(`beta_pilot`, `citechart`)
     - `topic` `clns_pro_batch` | `api_mcp` | `other` (필수)
     - `message` 선택 0~500자
 
@@ -2859,6 +2900,11 @@ def submit_inquiry(payload: Any, store: Store, alerter: Any = None) -> Dict[str,
             "topic", "관심 항목은 " + " | ".join(INQUIRY_TOPICS) + " 중 하나여야 합니다.",
         )
 
+    raw_cohort = _clean_inquiry_cohort(payload)
+    if isinstance(raw_cohort, dict):
+        return raw_cohort
+    cohort = raw_cohort
+
     raw_message = payload.get("message")
     if raw_message is None:
         message = ""
@@ -2870,13 +2916,14 @@ def submit_inquiry(payload: Any, store: Store, alerter: Any = None) -> Dict[str,
         return _inquiry_error("message", f"메모는 {INQUIRY_MESSAGE_MAX}자까지 쓸 수 있습니다.")
     message = _MESSAGE_CHARS_RE.sub("", message)
 
-    record = store.record_inquiry(contact, topic, message)
+    record = store.record_inquiry(contact, topic, message, cohort=cohort)
     delivery: Dict[str, Any] = {}
     try:
         from . import inquiry_alert
 
         notify = alerter or inquiry_alert.alert
-        delivery = notify(record=record, topic=topic, contact=contact, message=message) or {}
+        delivery = notify(record=record, topic=topic, contact=contact, message=message,
+                          cohort=cohort) or {}
     except Exception:  # noqa: BLE001 - 알림 실패가 접수를 막지 않는다
         delivery = {"journal": record.get("journal") or "unknown",
                     "webhook": {"state": "failed"}}
@@ -2885,6 +2932,7 @@ def submit_inquiry(payload: Any, store: Store, alerter: Any = None) -> Dict[str,
         "id": record["id"],
         "received_at": record["received_at"],
         "topic": topic,
+        "cohort": cohort,
         "delivery": {
             "journal": str(delivery.get("journal") or record.get("journal") or "unknown"),
             "webhook": str((delivery.get("webhook") or {}).get("state") or "unknown")

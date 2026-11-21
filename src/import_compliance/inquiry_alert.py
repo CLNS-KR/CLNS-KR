@@ -49,8 +49,12 @@ def mask_contact(contact: str) -> str:
 
 
 def webhook_payload(record: Dict[str, Any], topic: str, contact: str, message: str,
-                    *, include_contact: bool = True) -> Dict[str, Any]:
-    """웹훅 본문. 회신에 필요한 최소 항목만 담는다(문의 전문은 담지 않는다)."""
+                    *, include_contact: bool = True,
+                    cohort: str = "") -> Dict[str, Any]:
+    """웹훅 본문. 회신에 필요한 최소 항목만 담는다(문의 전문은 담지 않는다).
+
+    `cohort`(0.5.4)는 무료 베타·소개 유입 구분 태그로, 값이 있을 때만 넣는다.
+    """
     payload: Dict[str, Any] = {
         "event": INQUIRY_EVENT,
         "id": record.get("id"),
@@ -59,6 +63,9 @@ def webhook_payload(record: Dict[str, Any], topic: str, contact: str, message: s
         "contact_masked": mask_contact(contact),
         "message_chars": len(message or ""),
     }
+    tag = str(cohort or record.get("cohort") or "").strip()
+    if tag:
+        payload["cohort"] = tag
     if include_contact:
         payload["contact"] = contact
         if message:
@@ -98,6 +105,7 @@ def post_webhook(url: str, payload: Dict[str, Any], *,
 
 
 def alert(record: Dict[str, Any], topic: str, contact: str, message: str, *,
+          cohort: str = "",
           webhook_url: Optional[str] = None,
           sender: Optional[Callable[[str, bytes, float], int]] = None,
           stream: Any = None) -> Dict[str, Any]:
@@ -107,15 +115,19 @@ def alert(record: Dict[str, Any], topic: str, contact: str, message: str, *,
         url = os.environ.get("CLNS_INQUIRY_WEBHOOK_URL") or ""
     exclude = str(os.environ.get("CLNS_INQUIRY_WEBHOOK_EXCLUDE_CONTACT") or "").strip().lower()
     include_contact = exclude not in ("1", "true", "yes", "on")
-    payload = webhook_payload(record, topic, contact, message, include_contact=include_contact)
+    payload = webhook_payload(record, topic, contact, message, include_contact=include_contact,
+                              cohort=cohort)
     result: Dict[str, Any] = {
         "journal": str(record.get("journal") or "unknown"),
         "webhook": post_webhook(url, payload, sender=sender),
     }
+    tag = str(payload.get("cohort") or "")
     line = (f"[inquiry] id={record.get('id')} topic={topic} "
             f"contact={payload['contact_masked']} received_at={record.get('received_at')} "
             f"message_chars={payload['message_chars']} journal={result['journal']} "
             f"webhook={result['webhook'].get('state')}")
+    if tag:
+        line += f" cohort={tag}"
     try:
         out = stream or None
         if out is not None:

@@ -181,7 +181,8 @@ CREATE TABLE IF NOT EXISTS inquiries (
     topic       TEXT NOT NULL,              -- clns_pro_batch | api_mcp | other
     message     TEXT NOT NULL DEFAULT '',
     received_at TEXT NOT NULL,
-    fingerprint TEXT                        -- 저널 복원용 멱등 키(0.5.3)
+    fingerprint TEXT,                       -- 저널 복원용 멱등 키(0.5.3)
+    cohort      TEXT NOT NULL DEFAULT ''    -- 무료 베타·소개 유입 구분 태그(0.5.4, 선택)
 );
 CREATE INDEX IF NOT EXISTS idx_inquiries_received ON inquiries(received_at DESC);
 """
@@ -251,11 +252,13 @@ class Store:
         self._journal_lock = threading.Lock()
 
     def _migrate(self) -> None:
-        """이미 있는 파일 DB 에 0.5.3 컬럼을 더한다(없을 때만)."""
+        """이미 있는 파생 DB에 0.5.3·0.5.4 컬럼을 더한다(없을 때만)."""
         with self._lock:
             columns = {row["name"] for row in self.conn.execute("PRAGMA table_info(inquiries)")}
             if "fingerprint" not in columns:
                 self.conn.execute("ALTER TABLE inquiries ADD COLUMN fingerprint TEXT")
+            if "cohort" not in columns:
+                self.conn.execute("ALTER TABLE inquiries ADD COLUMN cohort TEXT NOT NULL DEFAULT ''")
             try:
                 self.conn.execute(
                     "CREATE UNIQUE INDEX IF NOT EXISTS idx_inquiries_fingerprint "
@@ -525,23 +528,27 @@ class Store:
         return written
 
     # --- 도입 문의(사전 신청) ------------------------------------------------
-    def record_inquiry(self, contact: str, topic: str, message: str = "") -> Dict[str, Any]:
+    def record_inquiry(self, contact: str, topic: str, message: str = "",
+                       cohort: str = "") -> Dict[str, Any]:
         """CLNS Pro 사전 신청·도입 문의 1건을 저장한다.
 
         연락처(`contact`)는 회신 목적으로만 보관한다. 공개 집계(usage_daily·/v1/stats)와
         공개 응답에는 연락처·문의 본문을 넘기지 않는다. DB 저장 뒤 접수 저널(0.5.3)에
         한 줄을 남기고, 그 상태를 `record["journal"]`(ok/off/failed)로 돌려준다.
+        `cohort`(0.5.4)는 무료 베타·소개 유입 구분 태그이며 비어 있어도 된다.
         """
         stamp = iso(now_kst())
+        tag = str(cohort or "").strip().lower()
         fingerprint = inquiry_fingerprint(contact, topic, message, stamp, nonce=str(time.time_ns()))
         with self._lock:
             cur = self.conn.execute(
-                "INSERT INTO inquiries(contact, topic, message, received_at, fingerprint) VALUES (?,?,?,?,?)",
-                (contact, topic, message, stamp, fingerprint),
+                "INSERT INTO inquiries(contact, topic, message, received_at, fingerprint, cohort) "
+                "VALUES (?,?,?,?,?,?)",
+                (contact, topic, message, stamp, fingerprint, tag),
             )
             self.conn.commit()
             record: Dict[str, Any] = {"id": int(cur.lastrowid or 0), "received_at": stamp,
-                                      "fingerprint": fingerprint}
+                                      "fingerprint": fingerprint, "cohort": tag}
         record["journal"] = self._append_inquiry_journal(record, contact, topic, message)
         return record
 
@@ -557,7 +564,8 @@ class Store:
             return "off"
         line = json.dumps({"id": record.get("id"), "contact": contact, "topic": topic,
                            "message": message, "received_at": record.get("received_at"),
-                           "fingerprint": record.get("fingerprint")}, ensure_ascii=False)
+                           "fingerprint": record.get("fingerprint"),
+                           "cohort": record.get("cohort") or ""}, ensure_ascii=False)
         try:
             with self._journal_lock:
                 directory = os.path.dirname(os.path.abspath(path))
@@ -611,6 +619,7 @@ class Store:
                 if not contact or not topic or not stamp:
                     continue
                 message = str(row.get("message") or "")
+                cohort = str(row.get("cohort") or "").strip().lower()[:40]
                 fingerprint = (str(row.get("fingerprint") or "").strip()
                                or inquiry_fingerprint(contact, topic, message, stamp))
                 exists = self.conn.execute(
@@ -618,9 +627,9 @@ class Store:
                 if exists:
                     continue
                 cur = self.conn.execute(
-                    "INSERT OR IGNORE INTO inquiries(contact, topic, message, received_at, fingerprint) "
-                    "VALUES (?,?,?,?,?)",
-                    (contact, topic, message, stamp, fingerprint),
+                    "INSERT OR IGNORE INTO inquiries(contact, topic, message, received_at, "
+                    "fingerprint, cohort) VALUES (?,?,?,?,?,?)",
+                    (contact, topic, message, stamp, fingerprint, cohort),
                 )
                 written += 1 if cur.rowcount > 0 else 0
             self.conn.commit()
@@ -652,6 +661,23 @@ class Store:
         with self._lock:
             rows = self.conn.execute(sql, params).fetchall()
         return [{"day": str(row["day"] or ""), "topic": str(row["topic"] or ""),
+                 "count": int(row["count"] or 0)} for row in rows]
+
+    def inquiry_cohort_counts(self, since_day: Optional[str] = None) -> List[Dict[str, Any]]:
+        """무료 베타·소개 유입 구분 태그별 문의 건수(0.5.4, 관리자 요약용).
+
+        태그가 빈 문자열인 건은 `""` 로 묶는다. 연락처ㆍ메모는 SELECT 하지 않는다.
+        """
+        sql = ("SELECT substr(received_at, 1, 10) AS day, cohort, COUNT(*) AS count "
+               "FROM inquiries")
+        params: Tuple[Any, ...] = ()
+        if since_day:
+            sql += " WHERE received_at >= ?"
+            params = (f"{str(since_day)[:10]}T00:00:00",)
+        sql += " GROUP BY day, cohort ORDER BY day, cohort"
+        with self._lock:
+            rows = self.conn.execute(sql, params).fetchall()
+        return [{"day": str(row["day"] or ""), "cohort": str(row["cohort"] or ""),
                  "count": int(row["count"] or 0)} for row in rows]
 
 
