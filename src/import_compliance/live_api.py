@@ -560,6 +560,15 @@ def normalize_drug_permit_item(item: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
+def _tidy_ingredient_list(value: str) -> str:
+    """DUR 의 `MATERIAL_NAME`은 "성분명,,,밀리그램,별규,"처럼 빈 칸과 끝 쉼표가 붙어 온다.
+
+    빈 칸을 빼고 쉼표 뒤에 한 칸을 넣어 화면에서 읽히게 만든다(값은 버리지 않는다).
+    """
+    parts = [part.strip() for part in str(value or "").split(",")]
+    return ", ".join(part for part in parts if part)
+
+
 def normalize_drug_dur_item(item: Dict[str, Any]) -> Dict[str, Any]:
     """식약처 DUR 품목정보(15059486) 정규화."""
     return {
@@ -568,7 +577,7 @@ def normalize_drug_dur_item(item: Dict[str, Any]) -> Dict[str, Any]:
         "company": _clean(item.get("ENTP_NAME")),
         "classification": _clean(item.get("ETC_OTC_CODE")),      # 전문의약품 / 일반의약품
         "class_name": _clean(item.get("CLASS_NO")),               # 효능군 분류
-        "material": _clean(item.get("MATERIAL_NAME")),
+        "material": _tidy_ingredient_list(_clean(item.get("MATERIAL_NAME"))),
         "permit_date": _clean(item.get("ITEM_PERMIT_DATE")),
     }
 

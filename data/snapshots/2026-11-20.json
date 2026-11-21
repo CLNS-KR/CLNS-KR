@@ -58,7 +58,8 @@
       }
     ],
     "changed_samples": [],
-    "removed_samples": []
+    "removed_samples": [],
+    "baseline": true
   },
   "first_observation": true,
   "items": {

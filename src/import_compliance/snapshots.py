@@ -414,6 +414,9 @@ def take_snapshot(store: Store, day: Any = None, *, origin: str = ORIGIN_OBSERVE
             "new_samples": _sample(current, diff_keys["new"]),
             "changed_samples": _sample(current, diff_keys["changed"]),
             "removed_samples": _sample(previous, diff_keys["removed"]),
+            # 첫 관측(비교할 전일이 없음)이면 위 신규 건수는 "하루 사이 늘어난 양"이 아니라
+            # 기준선 전체다. 추이 응답이 이 값을 신규로 읽지 않도록 함께 남긴다.
+            "baseline": previous_day is None,
         },
         "first_observation": previous_day is None,
     }
@@ -476,6 +479,7 @@ def daily_diff(store: Store, day: Any = None, *, limit: int = 5) -> Dict[str, An
         "day": target,
         "state": "ok",
         "previous_day": previous_day,
+        "baseline": previous_day is None,
         "counts": by_source_current,
         "previous_counts": by_source_previous,
         "new": len(keys["new"]),
@@ -793,6 +797,8 @@ def trends(store: Store, days: int = DEFAULT_TREND_DAYS, today: Any = None, *,
             "new": int(diff.get("new") or 0),
             "changed": int(diff.get("changed") or 0),
             "removed": int(diff.get("removed") or 0),
+            # 기준선(baseline)인 날의 new 는 그날 늘어난 양이 아니라 적재된 전체 건수다.
+            "baseline": bool(diff.get("baseline")),
         })
     observed_days = [row for row in series if row["origin"] == ORIGIN_OBSERVED]
 
@@ -829,7 +835,9 @@ def trends(store: Store, days: int = DEFAULT_TREND_DAYS, today: Any = None, *,
         "source": source,
         "series": series,
         "last_observed_diff": ({"day": series[-1]["day"], "new": series[-1]["new"],
-                                "changed": series[-1]["changed"], "removed": series[-1]["removed"]}
+                                "changed": series[-1]["changed"], "removed": series[-1]["removed"],
+                                "baseline": series[-1].get("baseline", False),
+                                "loaded": series[-1]["total"]}
                                if series else None),
         "current_window": current_window,
         "reference": reference,

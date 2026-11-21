@@ -55,8 +55,12 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p data/snapshots data/usage
+          # 먼저 저장소에 커밋된 스냅샷을 DB 로 복원한다. 매 실행마다 새 DB(data/ci.sqlite)를
+          # 쓰므로, 복원 없이 --take 하면 전일이 없어 every day 가 '첫 관측(1,415건 신규)'
+          # 이 된다(2026-11-21 파일이 그랬다). --seed 는 DB 에 없는 날짜만 채우고 멱등이다.
           python -m import_compliance.snapshots \
             --db data/ci.sqlite \
+            --seed data/snapshots \
             --take \
             --export data/snapshots \
             --include-items

@@ -247,7 +247,7 @@ class HttpTest(unittest.TestCase):
         self.assertEqual(meta_json["service_subtitle_en"], "PRODUCT COMPLIANCE INTELLIGENCE · KOREA")
         self.assertEqual(meta_json["service_slogan"], "Clearance, simplified.")
         self.assertEqual(meta_json["service_axes"],
-                         ["CLNS Check", "CLNS Intelligence", "CLNS API & MCP"])
+                         ["CLNS Check", "CLNS Label", "CLNS Intelligence", "CLNS API & MCP"])
 
         _, _, manifest = url_get(self.port, "/v1/mcp")
         mcp = json.loads(manifest.decode("utf-8"))

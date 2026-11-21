@@ -28,7 +28,18 @@ def base_url(value: Optional[str] = None) -> str:
 
 
 def robots_txt(base: Optional[str] = None) -> str:
+    """robots.txt — 화면·가이드는 열고 API(/v1/)는 닫는다.
+
+    주의: robots.txt 에서 특정 User-agent 그룹이 있으면 그 봇은 `*` 그룹을 쓰지 않는다.
+    (Google 문서: “한 크롤러에는 가장 구체적으로 일치하는 그룹 하나만 적용된다”)
+    그래서 봇별 그룹에도 `Disallow: /v1/` 을 같이 적는다 — 종전에는 봇별 그룹에
+    `Allow: /` 만 있어서 Googlebot·Bingbot·AI 크롤러에게는 /v1/ 차단이 사라졌다.
+    """
     root = base_url(base)
+    others = ("Yeti", "Googlebot", "Bingbot", "GPTBot", "OAI-SearchBot", "ChatGPT-User",
+              "ClaudeBot", "Claude-SearchBot", "PerplexityBot", "Perplexity-User",
+              "Google-Extended", "Applebot-Extended", "CCBot")
+    groups = "\n".join(f"User-agent: {agent}\nAllow: /\nDisallow: /v1/\n" for agent in others)
     return f"""# CLNS — robots.txt
 # 검색 로봇·AI 크롤러 공개 범위. API 경로(/v1/)는 색인 대상이 아니다.
 
@@ -36,56 +47,25 @@ User-agent: *
 Allow: /
 Disallow: /v1/
 
-# 검색 로봇
-User-agent: Yeti
-Allow: /
-
-User-agent: Googlebot
-Allow: /
-
-User-agent: Bingbot
-Allow: /
-
-# AI 크롤러 — 인용·요약은 허용하고 학습 전용 수집만 막는 절충안.
-# 전부 허용하려면 아래 블록을 지우고 "User-agent: * / Allow: /" 만 남긴다.
-User-agent: GPTBot
-Allow: /
-
-User-agent: OAI-SearchBot
-Allow: /
-
-User-agent: ChatGPT-User
-Allow: /
-
-User-agent: ClaudeBot
-Allow: /
-
-User-agent: Claude-SearchBot
-Allow: /
-
-User-agent: PerplexityBot
-Allow: /
-
-User-agent: Perplexity-User
-Allow: /
-
-User-agent: Google-Extended
-Allow: /
-
-User-agent: Applebot-Extended
-Allow: /
-
-User-agent: CCBot
-Allow: /
-
+# 검색·AI 크롤러 — 인용·요약은 허용하고 API 경로는 막는다.
+# (봇별 그룹에는 `*` 그룹 규칙이 상속되지 않으므로 Disallow 를 함께 적는다)
+{groups}
 Sitemap: {root}/sitemap.xml
 # AI·개발자용 안내: {root}/llms.txt
+# 툴 매니페스트(사람이 읽는 JSON): {root}/v1/mcp
 """
 
 
 def llms_txt(base: Optional[str] = None) -> str:
     root = base_url(base)
     from . import guides, pseo  # 순환 import 방지(지연 로드)
+    from .api import mcp_tools
+
+    try:
+        tool_count = len(mcp_tools())
+    except Exception:  # noqa: BLE001 - 툴 정의를 읽지 못해도 llms.txt 는 나가야 한다
+        tool_count = 0
+    tool_label = f"툴 {tool_count}종" if tool_count else "툴 목록"
 
     try:
         pseo_count = len(pseo.items())
@@ -109,11 +89,12 @@ def llms_txt(base: Optional[str] = None) -> str:
 - [시계열 추이]({root}/v1/trends): 일일 리콜·행정처분 스냅샷 기반 신규/변경 건수와 최근 7·30일 급증 품목·유형 요약(읽기 전용 GET).
 - [서비스 메타]({root}/v1/meta): 코퍼스 버전, 판정 등급, 무료 한도, 이용 범위.
 - [익명 사용 통계]({root}/v1/stats): IP·User-Agent·쿠키를 저장하지 않고 일별 호출 수·툴·판정 분포만 집계한 JSON.
+- [개인정보 처리방침]({root}/privacy) · [이용약관]({root}/terms) · [서비스 소개]({root}/about): 운영 주체·받지 않는 정보·보관 기간(문의 연락처 180일)·책임 범위를 밝힌 정적 HTML.
 
 ## 기계용 (MCP · JSON-RPC 2.0)
 - [MCP 엔드포인트]({root}/mcp): POST. `initialize` → `tools/list` → `tools/call` 순서로 쓰는 JSON-RPC 2.0 서버. 인증 불필요, 응답은 `application/json` 한 덩어리(SSE 스트리밍 없음).
-- [MCP 서버 카드]({root}/.well-known/mcp/server-card.json): 서버 정보·인증 방식·툴 15종 스키마.
-- [툴 매니페스트]({root}/v1/mcp): GET. 툴 15종의 이름·설명·inputSchema(사람이 읽는 JSON).
+- [MCP 서버 카드]({root}/.well-known/mcp/server-card.json): 서버 정보·인증 방식·{tool_label} 스키마.
+- [툴 매니페스트]({root}/v1/mcp): GET. {tool_label}의 이름·설명·inputSchema(사람이 읽는 JSON).
 
 ## 기계용 (REST JSON)
 - [종합 판정]({root}/v1/tools/assess_import_case): POST. `{{"query": "...", "facts": {{"purpose": "resale", "hs_code": "8414519000", "rf_tx": "no"}}}}`
@@ -128,7 +109,9 @@ def llms_txt(base: Optional[str] = None) -> str:
 - [국내 판매페이지 공정위·전자상거래법 검수]({root}/v1/tools/check_ecommerce_compliance): POST. `{{"detail_copy": "정가 39,000원 → 오늘만 19,900원! 단순변심 환불 불가", "channel": "smartstore"}}` — 허위 정가·마감임박·체험단 대가성 미표기·청약철회 제한·배송 회피·최저가/1위·구독 자동결제·가격/해지 다크패턴과 판매자 정보 고지 누락을 근거 조문(시행일·원문 URL)·수정 전→후 문구와 함께 반환
 - [식약처 행정처분 이력]({root}/v1/tools/lookup_mfds_disposition): POST. `{{"industry": "manufacturing", "keyword": "표시"}}` — 식품제조가공업·식품판매업 처분 이력(개인정보 필드는 폐기)
 - [근거 조항]({root}/v1/tools/get_legal_basis): POST. `{{"law": "관세법", "article": "제226조"}}`
-- [리콜·행정처분 시계열 추이]({root}/v1/tools/get_compliance_trends): POST. `{{"days": 30}}` — 일일 스냅샷의 신규/변동 건수와 급증 품목·유형
+- [함정 케이스 해설]({root}/v1/tools/explain_trap): POST. `{{"case_id": "TRAP-01"}}` — 흔한 오해 25건의 시나리오·정답·근거 조문·다음 단계
+- [리콜·행정처분 시계열 추이]({root}/v1/tools/get_compliance_trends): POST. `{{"days": 30}}` — 일일 스냅샷의 신규/변동 건수와 급증 품목·유형(첫 관측일은 `baseline: true` 로 신규와 구분)
+- [서비스 메타]({root}/v1/tools/get_service_meta): POST. `{{}}` — 코퍼스 버전·판정 등급·이용 범위
 
 ## 읽는 법
 - 판정 등급은 `check_likely`(확인 가능성 높음) / `info_needed`(추가 정보 필요) / `low_risk`(현재 정보상 가능성 낮음) 세 가지이며 확정 판단이 아니다.
@@ -136,7 +119,7 @@ def llms_txt(base: Optional[str] = None) -> str:
 - 전파 적합성평가는 인증·등록번호로만 실시간 조회되며(`rra_conformity`), 번호가 없으면 국립전파연구원 조회 화면에서 모델명으로 확인해야 한다.
 - 리콜 데이터는 2023-08-09 배포본(등록일 2019-10~2022-07) 정적 스냅샷이라 최신 리콜은 반영되지 않는다.
 - 실시간 조회 결과가 7일 TTL 캐시에서 나온 경우 `state: "cached_fallback"` 과 `age_hours` 로 캐시 시점을 밝힌다.
-- 의약품 성분은 마약류 관리에 관한 법률 시행령 별표 1~8에서 생성한 로컬 사전으로 대조한다. 시행령 별표에 없다고 마약류가 아니라고 단정할 수 없으며(임시마약류 지정·개정 시차), 2026-11-21 활용승인된 식약처 의약품 허가정보·e약은요·DUR·마약류 오남용 정보 API 결과를 함께 보여 준다(조회 실패은 상태로 밝힌다).
+- 의약품 성분은 마약류 관리에 관한 법률 시행령 별표 1~8에서 생성한 로컬 사전으로 대조한다. 시행령 별표에 없다고 마약류가 아니라고 단정할 수 없으며(임시마약류 지정·개정 시차), 2026-11-21 활용승인된 식약처 의약품 허가정보·e약은요·DUR·마약류 오남용 정보 API 결과를 함께 보여 준다(조회 실패는 상태로 밝힌다).
 - 한글표시사항 체크는 입력한 라벨 문구에서 항목의 존재만 대조한다. 항목을 찾지 못한 것은 입력에 없다는 뜻이며, 전항목 확인이 라벨의 적법성을 확정하지 않는다(라벨 사진 인식은 하지 않는다).
 - 과대광고·표시 검수는 문구 패턴 대조이며, 근거는 식품등의 표시·광고에 관한 법률 제8조·시행령 제3조·화장품법 제13조와 식약처 고시(식품등의 부당한 표시 또는 광고의 내용 기준)다. 같은 단어도 문맥에 따라 판단이 달라진다.
 - 국내 판매페이지 검수는 공정위 표시·광고의 공정화에 관한 법률 제3조·제5조·시행령 제3조, 전자상거래 등에서의 소비자보호에 관한 법률 제13조·제17조·제18조·제21조·제21조의2·시행령 제20조의2와 공정위 고시(부당한 표시·광고행위의 유형 및 기준, 상품 등의 정보제공, 소비자보호 지침)ㆍ예규(추천·보증 심사지침)를 근거로 쓴다. 실제 판매 이력·화면 구성은 반영하지 않으므로 확정 판정이 아니다.

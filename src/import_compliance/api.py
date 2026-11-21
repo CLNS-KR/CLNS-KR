@@ -1247,7 +1247,13 @@ def tool_get_compliance_trends(args: Dict[str, Any], store: Store, client_id: st
         )
 
     guidance: List[str] = [headline]
-    if latest:
+    if latest and latest.get("baseline"):
+        guidance.append(
+            f"{latest['day']} 스냅샷은 첫 관측(기준선)입니다. 비교할 전일 스냅샷이 없어 "
+            f"적재된 {latest.get('loaded', latest.get('new', 0))}건을 '신규'로 세지 않습니다. "
+            "다음 스냅샷부터 전일 대비 신규·변경·삭제가 집계됩니다."
+        )
+    elif latest:
         guidance.append(
             f"{latest['day']} 스냅샷에서는 전일 대비 신규 {latest['new']}건·변경 "
             f"{latest['changed']}건·삭제 {latest['removed']}건이 확인되었습니다."
@@ -1395,7 +1401,7 @@ def tool_get_service_meta(args: Dict[str, Any], store: Store, client_id: str, ti
         "service_subtitle_en": "PRODUCT COMPLIANCE INTELLIGENCE · KOREA",
         "service_subtitle_ko": "복잡한 한국 수입 규제를 10초 만에 확인",
         "service_slogan": "Clearance, simplified.",
-        "service_axes": ["CLNS Check", "CLNS Intelligence", "CLNS API & MCP"],
+        "service_axes": ["CLNS Check", "CLNS Label", "CLNS Intelligence", "CLNS API & MCP"],
         "stage": "무료 베타 · 결제창 없음",
         "corpus": {"version": corpus.version, "verified_on": corpus.verified_on, "cases": len(corpus.traps)},
         "verdict_levels": ["check_likely", "info_needed", "low_risk"],

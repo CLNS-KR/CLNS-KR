@@ -352,8 +352,14 @@ def make_handler(store: Store, live=None, *, rate_limit: Optional[int] = None,
             return client_key(limiters["salt"], host)
 
         def _enforce_rate_limit(self, path: str) -> bool:
-            """허용이면 True. 넘으면 429 를 보내고 False."""
+            """허용이면 True. 넘으면 429 를 보내고 False.
+
+            `/healthz` 는 제한하지 않는다 — 헬스체크(배포 플랫폼·업타임 모니터)가 429 를
+            받으면 서비스가 정상인데도 장애로 읽힌다. 응답 본문은 가벼운 JSON 한 줄이다.
+            """
             trimmed = path.rstrip("/")
+            if trimmed == "/healthz":
+                return True
             billable = (path.startswith("/v1/tools/") or trimmed in MCP_PATHS
                         or trimmed == "/v1/inquiry")
             key = self._rate_identity()
@@ -393,9 +399,16 @@ def make_handler(store: Store, live=None, *, rate_limit: Optional[int] = None,
                 self._head(200, "text/html; charset=utf-8")
             elif legal.is_page(path):
                 self._head(200, "text/html; charset=utf-8")
-            elif path.startswith("/p/") or path.startswith("/guides/"):
-                self._head(200, "text/html; charset=utf-8")
-            elif path in ("/v1/stats", "/v1/trends"):
+            elif path.startswith("/p/"):
+                # HEAD 도 GET 과 같은 상태를 알린다 — 없는 품목은 404.
+                slug = path[len("/p/"):].strip("/")
+                status = 200 if pseo.render_item(slug) is not None else 404
+                self._head(status, "text/html; charset=utf-8")
+            elif path.startswith("/guides/"):
+                slug = path[len("/guides/"):].strip("/")
+                status = 200 if guides.render_guide(slug) is not None else 404
+                self._head(status, "text/html; charset=utf-8")
+            elif path in ("/v1/stats", "/v1/trends", "/v1/meta", "/v1/mcp"):
                 self._head(200, "application/json; charset=utf-8")
             elif site_verification.file_body(path) is not None:
                 self._head(200, "text/html; charset=utf-8")
@@ -490,12 +503,22 @@ def make_handler(store: Store, live=None, *, rate_limit: Optional[int] = None,
                     self._send_text(200, site_verification.file_body(path) or "",
                                     "text/html; charset=utf-8")
                 elif path.rstrip("/") == "/mcp":
-                    # 스트리밍(SSE) GET 은 제공하지 않는다. MCP 스펙이 허용하는 405 로 알린다.
+                    # 스트리밍(SSE) GET 은 제공하지 않는다. MCP 스펙이 허용하는 405 로 알리고,
+                    # 브라우저로 주소를 열었을 때 빈 화면이 뜨지 않도록 쓰는 법을 한 줄 적는다.
+                    body = json.dumps({
+                        "ok": False, "error": "method_not_allowed",
+                        "allow": "POST, OPTIONS",
+                        "note_ko": ("이 주소는 MCP JSON-RPC 2.0 엔드포인트입니다. POST 로만 받습니다"
+                                    "(initialize → tools/list → tools/call). 툴 목록만 보려면 "
+                                    "GET /v1/mcp 를 쓰세요."),
+                    }, ensure_ascii=False).encode("utf-8")
                     self.send_response(405)
                     self.send_header("Allow", "POST, OPTIONS")
-                    self.send_header("Content-Length", "0")
+                    self.send_header("Content-Type", "application/json; charset=utf-8")
+                    self.send_header("Content-Length", str(len(body)))
                     self._common_headers()
                     self.end_headers()
+                    self.wfile.write(body)
                 else:
                     # 사람이 여는 페이지면 안내 HTML(/nope-xyz 등), API 경로면 종전 JSON 404.
                     self._send_not_found(path)

@@ -1107,7 +1107,12 @@ footer strong{color:var(--ink)}
       var g = grouped[k];
       return { law: g.law, agency: g.agencies.join(", "), doc: g.doc, from: g.from, timing: g.timing };
     });
-    var inner = '<p class="sub">' + esc(block.hs_code) + " · 조회 " + esc(block.checked_at) + " · 요건 " + esc(String(block.requirement_count)) + "건</p>";
+    var inner = '<p class="sub">' + esc(block.hs_code) + " · 조회 " + esc(block.checked_at) + " · 요건 " + esc(String(rows.length)) + "종";
+    var rawCount = Number(block.requirement_count || 0);
+    if (rawCount && rawCount !== rows.length){
+      inner += "(기관별 응답 " + esc(String(rawCount)) + "건)";
+    }
+    inner += "</p>";
     inner += table([["요건 법령", "law"], ["확인 기관", "agency"], ["확인 서류", "doc"], ["적용 시작", "from"], ["시점", "timing"]], rows);
     if (!rows.length) inner += emptyBox(block.zero_note_ko || "0건은 요건 없음을 뜻하지 않습니다.");
     return inner + '<p class="note-inline" style="margin-top:8px">' + esc(block.note_ko || "") + "</p>";

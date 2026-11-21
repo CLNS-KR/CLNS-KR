@@ -317,8 +317,12 @@ class RateLimitTest(unittest.TestCase):
                 return error.code, error.headers, json.loads(error.read() or b"{}")
 
         self.assertEqual(get("/healthz")[0], 200)
-        self.assertEqual(get("/healthz")[0], 200)
-        status, headers, body = get("/healthz")
+        # /healthz 는 요청 제한에서 빠진다 — 헬스체크가 429 를 받으면 정상 서비스가 장애로 읽힌다.
+        for _ in range(5):
+            self.assertEqual(get("/healthz")[0], 200)
+        self.assertEqual(get("/v1/meta")[0], 200)
+        self.assertEqual(get("/v1/meta")[0], 200)
+        status, headers, body = get("/v1/meta")
         self.assertEqual(status, 429)
         self.assertEqual(body["error"], "rate_limited")
         self.assertGreaterEqual(int(headers.get("Retry-After")), 1)
