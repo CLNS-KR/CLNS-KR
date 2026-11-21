@@ -559,13 +559,13 @@ class PersistenceTest(unittest.TestCase):
 
 class VersionAndAnonymityTest(unittest.TestCase):
     def test_version_is_0_5_1(self):
-        self.assertEqual(__version__, "0.5.5")
+        self.assertEqual(__version__, "0.5.6")
         with open(os.path.join(ROOT, "server.json"), encoding="utf-8") as handle:
             manifest = json.load(handle)
         self.assertEqual(manifest["version"], __version__)
         self.assertEqual(web_ui.SERVICE_VERSION, __version__)
         with open(os.path.join(ROOT, "Dockerfile"), encoding="utf-8") as handle:
-            self.assertIn('org.opencontainers.image.version="0.5.5"', handle.read())
+            self.assertIn('org.opencontainers.image.version="0.5.6"', handle.read())
 
     def test_trap_25_entry_has_no_personal_data(self):
         from import_compliance.corpus import load_corpus

@@ -47,7 +47,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import urlparse
 
-from . import guides, mcp_http, pseo, site_verification, static_files, usage
+from . import guides, legal, mcp_http, pseo, site_verification, static_files, usage
 from .api import call_tool, mcp_manifest, submit_inquiry
 from .live_api import from_environment, register_sources
 from .policy import TIER_BOUNDARIES
@@ -391,6 +391,8 @@ def make_handler(store: Store, live=None, *, rate_limit: Optional[int] = None,
                 self._head(200, "image/png")
             elif path in ("/p", "/p/") or path in ("/guides", "/guides/"):
                 self._head(200, "text/html; charset=utf-8")
+            elif legal.is_page(path):
+                self._head(200, "text/html; charset=utf-8")
             elif path.startswith("/p/") or path.startswith("/guides/"):
                 self._head(200, "text/html; charset=utf-8")
             elif path in ("/v1/stats", "/v1/trends"):
@@ -412,7 +414,8 @@ def make_handler(store: Store, live=None, *, rate_limit: Optional[int] = None,
 
         def do_GET(self) -> None:  # noqa: N802
             path = urlparse(self.path).path
-            usage.record_request(store, "GET", path)
+            usage.record_request(store, "GET", path,
+                                 client=usage.client_class(self.headers.get("User-Agent")))
             if not self._enforce_rate_limit(path):
                 return
             try:
@@ -441,7 +444,9 @@ def make_handler(store: Store, live=None, *, rate_limit: Optional[int] = None,
                     self._common_headers()
                     self.end_headers()
                 elif path == "/healthz":
-                    self._send_json(200, {"ok": True, "service": "clns-kr", "live": live is not None})
+                    self._send_json(200, {"ok": True, "service": "clns-kr",
+                                          "version": __version__,
+                                          "live": live is not None})
                 elif path == "/robots.txt":
                     self._send_text(200, static_files.robots_txt(), "text/plain; charset=utf-8")
                 elif path == "/llms.txt":
@@ -477,6 +482,9 @@ def make_handler(store: Store, live=None, *, rate_limit: Optional[int] = None,
                                                    client_id=self._client(), tier=self._tier(),
                                                    live=live),
                                     cache="public, max-age=300")
+                elif legal.is_page(path):
+                    # /privacy · /terms · /about — 서버 렌더 정적 HTML(JS·외부 CDN 없음).
+                    self._send_html(200, legal.render(path) or "", cache="public, max-age=3600")
                 elif site_verification.file_body(path) is not None:
                     # 검색엔진 소유확인용 HTML 파일(환경변수 SITE_VERIFICATION_FILES 로만 열린다).
                     self._send_text(200, site_verification.file_body(path) or "",
@@ -496,7 +504,8 @@ def make_handler(store: Store, live=None, *, rate_limit: Optional[int] = None,
 
         def do_POST(self) -> None:  # noqa: N802
             path = urlparse(self.path).path
-            usage.record_request(store, "POST", path)
+            usage.record_request(store, "POST", path,
+                                 client=usage.client_class(self.headers.get("User-Agent")))
             if not self._enforce_rate_limit(path):
                 return
             if path.rstrip("/") in MCP_PATHS:

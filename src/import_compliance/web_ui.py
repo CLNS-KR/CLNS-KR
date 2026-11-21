@@ -735,6 +735,7 @@ footer strong{color:var(--ink)}
     <p><strong>같이 쓰는 서비스:</strong> <a href="https://grnt-kr.onrender.com/" target="_blank" rel="noopener noreferrer">GRNT 지원금 판정기</a> · <a href="https://frnc.onrender.com/" target="_blank" rel="noopener noreferrer">FRNC 프랜차이즈 창업 리스크 체크</a></p>
     <p><strong>개인정보:</strong> 품목 조회에는 이름·연락처·이메일·사업자 정보를 받지 않습니다. 위 'CLNS Pro 사전 신청·도입 문의'에 남긴 연락처는 회신하는 용도로만 저장하고, 통계·공개 화면에는 쓰지 않습니다. 입력한 품목 정보(품목명·HS·원산지 등)는 판정 이력에 익명으로 저장될 수 있습니다. 상호·주소 등 식별 정보는 입력하지 마세요.</p>
     <p>© 2026 CLNS · 익명 운영 무료 베타 · <span id="version">v__VERSION__</span></p>
+    <p><strong>고지:</strong> <a href="/privacy">개인정보 처리방침</a> · <a href="/terms">이용약관</a> · <a href="/about">서비스 소개</a></p>
   </footer>
 </div>
 

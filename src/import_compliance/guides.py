@@ -297,7 +297,7 @@ def _footer(base: str) -> str:
     <p><strong>면책:</strong> 본 페이지는 사전 참고용이며 법적 효력이 없습니다. 최종 법적 판단과 통관·인증 가능 여부는 관세사, 관세청, 국가기술표준원·인증기관, 식품의약품안전처 등 소관 기관의 확인이 필요합니다. 본 서비스는 관세사법상 관세 상담·대리 업무를 수행하지 않습니다.</p>
     <p><strong>데이터:</strong> 인용한 법령 조문은 법제처 국가법령정보센터 현행본으로 확인한 문안이며, 시행일과 원문 링크를 함께 표시합니다. 개정으로 내용이 바뀔 수 있으니 통관·판매 전 다시 확인해야 합니다. 원본 API 응답을 그대로 중계하지 않고 결합·정규화한 판정만 제공합니다.</p>
     <p><strong>개인정보:</strong> 이름·연락처·이메일을 받지 않으며, 접속 IP·User-Agent·쿠키를 저장하지 않습니다. 일별 호출 수만 익명으로 집계합니다.</p>
-    <p>© 2026 CLNS · 익명 운영 무료 베타 · 가이드 v{_esc(meta['version'])} · 근거 확인 {_esc(meta['verified_on'])} · <a href="/p/">품목별 요건</a> · <a href="{_esc(base)}/llms.txt">llms.txt</a> · <a href="{_esc(base)}/sitemap.xml">sitemap</a></p>
+    <p>© 2026 CLNS · 익명 운영 무료 베타 · 가이드 v{_esc(meta['version'])} · 근거 확인 {_esc(meta['verified_on'])} · <a href="/p/">품목별 요건</a> · <a href="/privacy">개인정보</a> · <a href="/terms">약관</a> · <a href="/about">소개</a> · <a href="{_esc(base)}/llms.txt">llms.txt</a> · <a href="{_esc(base)}/sitemap.xml">sitemap</a></p>
   </footer>
 </div>
 </body>

@@ -185,8 +185,10 @@ class GuideRender160Test(unittest.TestCase):
         locs = [node.text for node in root.iter(ns + "loc")]
         for slug in NEW_SLUGS:
             self.assertIn(f"{BASE}/guides/{slug}", locs)
-        self.assertEqual(len(locs), 1 + len(pseo.indexable_paths()) + len(guides.indexable_paths()))
-        self.assertEqual(len(locs), 138)
+        # +3: /about·/privacy·/terms 고지 페이지(0.5.6)
+        self.assertEqual(len(locs), 1 + len(pseo.indexable_paths())
+                         + len(guides.indexable_paths()) + 3)
+        self.assertEqual(len(locs), 138 + 3)   # 고지 3장(/about·/privacy·/terms) 추가
         status, body = self.get("/llms.txt")
         self.assertEqual(status, 200)
         self.assertIn(f"{len(guides.items())}개 질문", body)
