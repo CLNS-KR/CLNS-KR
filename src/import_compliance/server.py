@@ -19,7 +19,9 @@
 - `POST /mcp` · `POST /v1/mcp` MCP JSON-RPC 2.0 (initialize·tools/list·tools/call·ping)
 - `GET /.well-known/mcp/server-card.json` MCP 서버 카드
 - `GET /v1/mcp` 툴 매니페스트(사람이 읽는 JSON) · `GET /v1/meta`
-- `POST /v1/inquiry` CLNS Pro 사전 신청·도입 문의(비쿼터·연락처는 회신용으로만 보관)
+- `POST /v1/inquiry` CLNS Pro 사전 신청·도입 문의(비쿼터·연락처는 회신용으로만 보관,
+  접수 저널ㆍ웹훅 알림ㆍstdout 로그로 유실 대비)
+- `GET /v1/inquiry/summary` 관리자용 문의 건수 요약(`CLNS_ADMIN_TOKEN` 이 있을 때만)
 - `GET /robots.txt` · `GET /llms.txt` · `GET /sitemap.xml` · `GET /static/og.png`
 - `OPTIONS *` CORS preflight(204) — 모든 응답에 `Access-Control-Allow-Origin: *`
 
@@ -28,21 +30,28 @@
 - 키는 응답·페이지·로그 어디에도 쓰지 않는다(키가 있으면 capabilities 불리언만 노출).
 - 페이지는 외부 CDN 없이 인라인 CSS/JS만 쓰고, CSP로 외부 로드를 막는다.
 - 처리되지 않은 예외는 스택트레이스 없이 `internal_error`로 응답한다.
+- 티어는 서버가 발급한 키(`CLNS_PRO_API_KEYS`)를 `X-Api-Key`/Bearer 로 제시할 때만
+  인정한다 — `X-Tier` 헤더만으로는 무료 월 한도가 풀리지 않는다(0.5.3).
+- HTTP 요청 제한(클라이언트별 슬라이딩 윈도)을 두고, 제한 키는 프로세스 salt + 주소의
+  일시 해시로만 메모리에 둔다(주소 원문 미저장). 초과 시 429 + `Retry-After`.
 """
 from __future__ import annotations
 
 import argparse
+import hmac
 import json
 import os
 import re
 import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import urlparse
 
 from . import guides, mcp_http, pseo, site_verification, static_files, usage
 from .api import call_tool, mcp_manifest, submit_inquiry
 from .live_api import from_environment, register_sources
+from .policy import TIER_BOUNDARIES
+from .ratelimit import SlidingWindowLimiter, client_key
 from .store import Store
 from .version import __version__
 from .web_ui import render_not_found, render_page
@@ -50,6 +59,14 @@ from .web_ui import render_not_found, render_page
 MAX_BODY = 64 * 1024
 DEFAULT_HOST = "0.0.0.0"
 DEFAULT_PORT = 8787
+
+# HTTP 요청 제한(0.5.3). 한도는 환경변수로 올리고 내릴 수 있다.
+# - 일반 페이지ㆍ조회: 분당 120회
+# - 툴 호출ㆍMCPㆍ문의 접수: 분당 60회(공공 API 키가 걸린 경로를 보호)
+# - 위 설정과 무관하게 툴 경로 전체에 분당 600회 상한을 둔다(키 위조 대비)
+DEFAULT_RATE_LIMIT_PER_MINUTE = 120
+DEFAULT_TOOL_RATE_LIMIT_PER_MINUTE = 60
+GLOBAL_TOOL_CEILING_FACTOR = 10
 
 # 웹 UI가 부르는 이름과 실제 툴 이름이 다른 경우를 흡수한다(매니페스트에는 정식 이름만 노출).
 TOOL_ALIASES: Dict[str, str] = {"assess_import_risk": "assess_import_case"}
@@ -72,7 +89,8 @@ CORS_HEADERS = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "GET, POST, HEAD, OPTIONS",
     "Access-Control-Allow-Headers": (
-        "Content-Type, Accept, X-Client-Id, X-Tier, MCP-Protocol-Version, Last-Event-ID"
+        "Content-Type, Accept, X-Client-Id, X-Tier, X-Api-Key, Authorization, X-Admin-Token, "
+        "MCP-Protocol-Version, Last-Event-ID"
     ),
     "Access-Control-Expose-Headers": "Content-Type",
     "Access-Control-Max-Age": "86400",
@@ -137,6 +155,34 @@ def resolve_db_path(env: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
     return {"db_path": default_db_path(), "db_source": "default", "notes": notes}
 
 
+def _api_key_tier(headers: Any, env: Optional[Dict[str, str]] = None) -> str:
+    """서버가 발급한 키로만 `free` 아닌 티어를 인정한다(0.5.3).
+
+    클라이언트가 보내는 `X-Tier` 헤더는 **키가 검증될 때만** 의미가 있다. 키가 없거나
+    틀리면 헤더 값과 무관하게 `free` 로 처리한다. 종전에는 헤더만
+    `pro_waitlist` 로 바꿔도 무료 월 250회 한도를 우회할 수 있었다(외부 코드 검수 제보).
+    """
+    env = os.environ if env is None else env
+    requested = str(headers.get("X-Tier") or "free").strip().lower()
+    if requested not in TIER_BOUNDARIES or requested == "free":
+        return "free"
+    configured = [key.strip() for key in str(env.get("CLNS_PRO_API_KEYS") or "").split(",")
+                  if key.strip()]
+    if not configured:
+        return "free"
+    presented = str(headers.get("X-Api-Key") or "").strip()
+    if not presented:
+        auth = str(headers.get("Authorization") or "").strip()
+        if auth.lower().startswith("bearer "):
+            presented = auth[7:].strip()
+    if not presented:
+        return "free"
+    for key in configured:
+        if hmac.compare_digest(presented, key):
+            return requested
+    return "free"
+
+
 def _int_env(value: Optional[str], fallback: int) -> int:
     try:
         parsed = int(str(value).strip())
@@ -161,7 +207,15 @@ def config_from_env(env: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
         "persistence_notes": db["notes"],
         "seed_dir": (env.get("CLNS_SEED_DIR") or "").strip(),
         "usage_seed": (env.get("CLNS_USAGE_SEED") or "").strip(),
+        "inquiry_journal": (env.get("CLNS_INQUIRY_JOURNAL") or "").strip(),
         "live_mode": _truthy(env.get("IMPORT_COMPLIANCE_LIVE")),
+        "rate_limit_per_minute": _int_env(env.get("CLNS_RATE_LIMIT_PER_MIN"),
+                                          DEFAULT_RATE_LIMIT_PER_MINUTE),
+        "tool_rate_limit_per_minute": _int_env(env.get("CLNS_TOOL_RATE_LIMIT_PER_MIN"),
+                                               DEFAULT_TOOL_RATE_LIMIT_PER_MINUTE),
+        # 아래 둘은 “설정됐는지”만 알려 준다(값 자동 자체는 응답에 쓰지 않는다).
+        "inquiry_webhook_ready": bool(str(env.get("CLNS_INQUIRY_WEBHOOK_URL") or "").strip()),
+        "admin_summary_ready": bool(str(env.get("CLNS_ADMIN_TOKEN") or "").strip()),
     }
 
 
@@ -181,7 +235,26 @@ def _days_param(query: str, default: int = usage.DEFAULT_DAYS) -> int:
         return default
 
 
-def make_handler(store: Store, live=None):
+def make_handler(store: Store, live=None, *, rate_limit: Optional[int] = None,
+                 tool_rate_limit: Optional[int] = None):
+    """HTTP 핸들러 클래스를 만든다.
+
+    `rate_limit`ㆍ`tool_rate_limit` 을 주지 않으면 환경변수(CLNS_RATE_LIMIT_PER_MIN,
+    CLNS_TOOL_RATE_LIMIT_PER_MIN) 또는 기본값을 쓴다. 테스트는 작은 한도를 넣어
+    429 경로를 바로 확인할 수 있다. 요청 제한 키는 프로세스 salt 를 쓴 일시 해시이며
+    주소 원문은 저장하지 않는다(`ratelimit.py`).
+    """
+    general_cap = max(1, int(rate_limit if rate_limit is not None else _int_env(
+        os.environ.get("CLNS_RATE_LIMIT_PER_MIN"), DEFAULT_RATE_LIMIT_PER_MINUTE)))
+    tool_cap = max(1, int(tool_rate_limit if tool_rate_limit is not None else _int_env(
+        os.environ.get("CLNS_TOOL_RATE_LIMIT_PER_MIN"), DEFAULT_TOOL_RATE_LIMIT_PER_MINUTE)))
+    limiters = {
+        "salt": os.urandom(16),
+        "general": SlidingWindowLimiter(limit=general_cap),
+        "tool": SlidingWindowLimiter(limit=tool_cap),
+        "tool_global": SlidingWindowLimiter(limit=max(tool_cap * GLOBAL_TOOL_CEILING_FACTOR, 100)),
+    }
+
     class Handler(BaseHTTPRequestHandler):
         server_version = "clns/" + __version__
         sys_version = ""
@@ -196,13 +269,16 @@ def make_handler(store: Store, live=None):
             for key, value in CORS_HEADERS.items():
                 self.send_header(key, value)
 
-        def _send_json(self, status: int, payload: Any, cache: str = "no-store") -> None:
+        def _send_json(self, status: int, payload: Any, cache: str = "no-store",
+                       extra_headers: Optional[Dict[str, str]] = None) -> None:
             body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
             self.send_response(status)
             self.send_header("Content-Type", "application/json; charset=utf-8")
             self.send_header("Content-Length", str(len(body)))
             self.send_header("Cache-Control", cache)
             self._common_headers()
+            for key, value in (extra_headers or {}).items():
+                self.send_header(key, value)
             self.end_headers()
             self.wfile.write(body)
 
@@ -262,6 +338,41 @@ def make_handler(store: Store, live=None):
             return
 
         # --- 라우팅 ---------------------------------------------------------
+        # --- 요청 제한 -----------------------------------------------------
+        def _rate_identity(self) -> str:
+            """제한 키 — 프록시 첫 홉 주소(없으면 접속 주소)의 일시 해시.
+
+            Render 같은 프록시 뒤에서는 접속 주소가 모두 프록시가 되므로
+            `X-Forwarded-For` 첫 홉을 쓴다. 이 값은 클라이언트가 위조할 수 있어
+            제한은 "속도 제한"이고, 실제 상한은 월 쿼터(`FREE_MONTHLY_CALLS`)가 맡는다.
+            주소 원문은 어디에도 남기지 않고 salt 섞은 16자 해시만 메모리에 둔다.
+            """
+            forwarded = str(self.headers.get("X-Forwarded-For") or "").split(",")[0].strip()
+            host = forwarded or (self.client_address[0] if self.client_address else "")
+            return client_key(limiters["salt"], host)
+
+        def _enforce_rate_limit(self, path: str) -> bool:
+            """허용이면 True. 넘으면 429 를 보내고 False."""
+            trimmed = path.rstrip("/")
+            billable = (path.startswith("/v1/tools/") or trimmed in MCP_PATHS
+                        or trimmed == "/v1/inquiry")
+            key = self._rate_identity()
+            state = limiters["tool" if billable else "general"].check(key)
+            if state["allowed"] and billable:
+                state = limiters["tool_global"].check("global")
+            if state["allowed"]:
+                return True
+            usage.record_rate_limited(store)
+            self._send_json(
+                429,
+                {"ok": False, "error": "rate_limited",
+                 "retry_after_seconds": state["retry_after"],
+                 "limit_per_minute": state["limit"],
+                 "note_ko": "요청이 너무 많습니다. 잠시 후 다시 시도해 주세요."},
+                extra_headers={"Retry-After": str(state["retry_after"])},
+            )
+            return False
+
         def do_HEAD(self) -> None:  # noqa: N802
             path = urlparse(self.path).path
             if path in ("/", "/index.html"):
@@ -302,6 +413,8 @@ def make_handler(store: Store, live=None):
         def do_GET(self) -> None:  # noqa: N802
             path = urlparse(self.path).path
             usage.record_request(store, "GET", path)
+            if not self._enforce_rate_limit(path):
+                return
             try:
                 if path in ("/", "/index.html"):
                     self._send_html(200, render_page())
@@ -355,6 +468,8 @@ def make_handler(store: Store, live=None):
                     days = urlparse(self.path).query
                     self._send_json(200, usage.stats_payload(store, _days_param(days)),
                                     cache="public, max-age=300")
+                elif path.rstrip("/") == "/v1/inquiry/summary":
+                    self._send_inquiry_summary()
                 elif path == "/v1/trends":
                     query = urlparse(self.path).query
                     days = _days_param(query, default=30)
@@ -382,6 +497,8 @@ def make_handler(store: Store, live=None):
         def do_POST(self) -> None:  # noqa: N802
             path = urlparse(self.path).path
             usage.record_request(store, "POST", path)
+            if not self._enforce_rate_limit(path):
+                return
             if path.rstrip("/") in MCP_PATHS:
                 self._handle_mcp()
                 return
@@ -420,6 +537,24 @@ def make_handler(store: Store, live=None):
             self._send_json(200, result)
 
         # --- 사전 신청·도입 문의 --------------------------------------------
+        def _send_inquiry_summary(self) -> None:
+            """`GET /v1/inquiry/summary` — 관리자용 문의 건수 요약.
+
+            `CLNS_ADMIN_TOKEN` 이 없으면 경로 자체를 공개하지 않는다(404).
+            토큰이 있으면 `X-Admin-Token` 헤더가 일치할 때만 건수ㆍ관심 항목을 돌려준다.
+            연락처ㆍ문의 본문은 이 응답에 담지 않는다.
+            """
+            token = str(os.environ.get("CLNS_ADMIN_TOKEN") or "").strip()
+            if not token:
+                self._send_json(404, {"ok": False, "error": "not_found"})
+                return
+            presented = str(self.headers.get("X-Admin-Token") or "").strip()
+            if not presented or not hmac.compare_digest(presented, token):
+                self._send_json(401, {"ok": False, "error": "unauthorized"})
+                return
+            days = _days_param(urlparse(self.path).query, default=usage.DEFAULT_DAYS)
+            self._send_json(200, usage.inquiry_summary(store, days))
+
         def _handle_inquiry(self) -> None:
             """`POST /v1/inquiry` — CLNS Pro 사전 신청·도입 문의 접수.
 
@@ -491,14 +626,15 @@ def make_handler(store: Store, live=None):
             return _client_id(self.headers.get("X-Client-Id"))
 
         def _tier(self) -> str:
-            tier = str(self.headers.get("X-Tier", "free") or "free").strip().lower()
-            return tier if tier in ("free", "pro_waitlist") else "free"
+            """서버가 발급한 키가 있을 때만 free 아닌 티어를 인정한다(0.5.3)."""
+            return _api_key_tier(self.headers)
 
     return Handler
 
 
 def serve(host: str = DEFAULT_HOST, port: int = DEFAULT_PORT, db_path: str = "",
-          live=None, snapshot: bool = False, seed_dir: str = "", usage_seed: str = "") -> None:
+          live=None, snapshot: bool = False, seed_dir: str = "", usage_seed: str = "",
+          inquiry_journal: str = "") -> None:
     """서버를 기동한다(블로킹). db_path가 비면 작업 DB(data/app.sqlite)를 쓴다.
 
     `snapshot=True`(또는 `IMPORT_COMPLIANCE_SNAPSHOT=1`)면 기동 시 그날 스냅샷을 적재한다.
@@ -514,7 +650,7 @@ def serve(host: str = DEFAULT_HOST, port: int = DEFAULT_PORT, db_path: str = "",
     db_dir = os.path.dirname(os.path.abspath(db_path))
     if db_dir:
         os.makedirs(db_dir, exist_ok=True)
-    store = Store(db_path)
+    store = Store(db_path, inquiry_journal=inquiry_journal or None)
     # 리콜 로컬 인덱스(이미지 포함)를 작업 DB로 복사한다 — 원본 파일은 쓰지 않는다.
     try:
         recall_index.load_from_index(store)
@@ -530,6 +666,19 @@ def serve(host: str = DEFAULT_HOST, port: int = DEFAULT_PORT, db_path: str = "",
         print(f"경고: 영속 시드 복원 실패({exc})", file=sys.stderr, flush=True)
     if live is not None:
         register_sources(store)
+    # 문의 저널 복원(0.5.3) — 영구 디스크가 없어 DB 가 비어도 접수 기록을 되살린다.
+    try:
+        journal_rows = store.read_inquiry_journal()
+        if journal_rows:
+            restored = store.seed_inquiries(journal_rows)
+            print(f"문의 저널 복원: {restored}건(저널 {store.inquiry_journal or 'off'})", flush=True)
+    except Exception as exc:  # noqa: BLE001 - 복원 실패가 기동을 막지 않게
+        print(f"경고: 문의 저널 복원 실패({exc})", file=sys.stderr, flush=True)
+    if str(os.environ.get("CLNS_INQUIRY_WEBHOOK_URL") or "").strip():
+        print("문의 알림: 웹훅 설정됨(접수 시 POST)", flush=True)
+    else:
+        print("문의 알림: 웹훅 미설정 — 저널과 stdout 로그로만 남습니다(CLNS_INQUIRY_WEBHOOK_URL).",
+              flush=True)
     if snapshot:
         try:
             taken = snapshots.take_snapshot(store)
@@ -584,7 +733,8 @@ def main(argv: Optional[list] = None) -> int:
     for note in cfg.get("persistence_notes") or []:
         print(f"참고: {note}", file=sys.stderr, flush=True)
     serve(host=host, port=port, db_path=db_path, live=live, snapshot=snapshot_on,
-          seed_dir=cfg.get("seed_dir") or "", usage_seed=cfg.get("usage_seed") or "")
+          seed_dir=cfg.get("seed_dir") or "", usage_seed=cfg.get("usage_seed") or "",
+          inquiry_journal=cfg.get("inquiry_journal") or "")
     return 0
 
 

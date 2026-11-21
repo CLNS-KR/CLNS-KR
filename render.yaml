@@ -33,3 +33,9 @@ services:
         sync: false
       - key: LAW_GO_KR_OC
         sync: false
+      # 0.5.3: 문의 접수 유실 대비 — Render 무료 플랜은 영구 디스크가 없어 DB 가 비므로
+      # 접수 즉시 운영자 채널로 알린다(값은 대시보드에서만 넣는다).
+      - key: CLNS_INQUIRY_WEBHOOK_URL
+        sync: false
+      - key: CLNS_ADMIN_TOKEN
+        sync: false

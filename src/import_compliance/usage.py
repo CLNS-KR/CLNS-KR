@@ -37,11 +37,13 @@ VERDICT_CODES = ("check_likely", "info_needed", "low_risk")
 FLAG_ZERO = "zero_results"
 FLAG_ERROR = "errors"
 FLAG_QUOTA = "quota_exceeded"
+FLAG_RATE_LIMITED = "rate_limited"
 
 FIXED_PATHS = (
     "/", "/p/", "/guides/", "/healthz", "/robots.txt", "/llms.txt", "/sitemap.xml",
     "/.well-known/mcp/server-card.json", "/static/og.png", "/v1/meta", "/v1/mcp",
-    "/v1/stats", "/v1/trends", "/v1/tools", "/v1/inquiry", "/mcp", "/favicon.ico", "/404",
+    "/v1/stats", "/v1/trends", "/v1/tools", "/v1/inquiry", "/v1/inquiry/summary",
+    "/mcp", "/favicon.ico", "/404",
 )
 
 KEY_RE = re.compile(r"[^0-9A-Za-z._:/{}-]")
@@ -153,6 +155,69 @@ def record_tool(store: Any, name: str, result: Any, day: Optional[str] = None) -
             store.bump_usage(stamp, KIND_FLAG, FLAG_ZERO)
     except Exception:  # noqa: BLE001
         pass
+
+
+def record_rate_limited(store: Any, day: Optional[str] = None) -> None:
+    """429 로 된 요청을 플래그로만 센다(경로·주소는 남기지 않는다)."""
+    if store is None:
+        return
+    try:
+        store.bump_usage(day or today_kst(), KIND_FLAG, FLAG_RATE_LIMITED)
+    except Exception:  # noqa: BLE001 - 계측 실패가 응답을 막지 않는다
+        pass
+
+
+def inquiry_summary(store: Any, days: int = DEFAULT_DAYS,
+                   today: Optional[str] = None) -> Dict[str, Any]:
+    """CLNS Pro 사전 신청·도입 문의 요약(관리자용).
+
+    건수와 관심 항목만 센다. 연락처ㆍ메모 본문은 읽지도, 돌려주지도 않는다.
+    리드 수는 운영 정보이므로 공개 `/v1/stats` 에는 넣지 않고, 관리자 토큰이
+    걸린 `/v1/inquiry/summary` 에서만 본다.
+    """
+    try:
+        window = max(1, min(MAX_DAYS, int(days)))
+    except (TypeError, ValueError):
+        window = DEFAULT_DAYS
+    end = today or today_kst()
+    start = _day_shift(end, -(window - 1))
+    rows: list = []
+    if store is not None:
+        try:
+            rows = store.inquiry_topic_counts(start)
+        except Exception:  # noqa: BLE001 - 요약 실패가 서버를 막지 않는다
+            rows = []
+    by_day = {_day_shift(start, offset): {} for offset in range(window)}
+    by_topic: Dict[str, int] = {}
+    total = 0
+    for row in rows:
+        day = str(row.get("day") or "")
+        topic = safe_key(row.get("topic")) or "unknown"
+        count = int(row.get("count") or 0)
+        if day in by_day:
+            by_day[day][topic] = by_day[day].get(topic, 0) + count
+        by_topic[topic] = by_topic.get(topic, 0) + count
+        total += count
+    return {
+        "ok": True,
+        "generated_at": datetime.now(KST).isoformat(timespec="seconds"),
+        "timezone": "Asia/Seoul",
+        "window_days": window,
+        "from": start,
+        "to": end,
+        "total": total,
+        "by_topic": by_topic,
+        "days": [{"date": day, "count": sum(v.values()), "by_topic": v}
+                 for day, v in by_day.items()],
+        "privacy": {
+            "stores_contact_in_summary": False,
+            "fields": "건수ㆍ관심 항목ㆍ접수일만(연락처ㆍ메모 본문 제외)",
+            "note_ko": (
+                "요약은 건수만 세고 연락처ㆍ문의 본문은 읽지 않습니다. 회신이 필요한 원문은 "
+                "서버 DB(inquiries)와 접수 저널(data/inquiries.jsonl)에서만 확인합니다."
+            ),
+        },
+    }
 
 
 def _empty_day(day: str) -> Dict[str, Any]:

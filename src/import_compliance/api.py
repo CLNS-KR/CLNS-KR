@@ -554,6 +554,7 @@ def _law_live(live: Any, law_names: List[str], limit: int = 3,
 
     out: List[Dict[str, Any]] = []
     errors: List[Dict[str, Any]] = []
+    name_mismatch: List[Dict[str, Any]] = []
     for name in law_names[:limit]:
         try:
             fetch = live.law_search(name, display=10)
@@ -566,15 +567,42 @@ def _law_live(live: Any, law_names: List[str], limit: int = 3,
             continue
         rows = [normalize_law_item(item) for item in fetch.items]
         exact = [row for row in rows if row["law_name"].replace(" ", "") == name.replace(" ", "")]
-        chosen = exact[0] if exact else rows[0]
-        chosen["exact_match"] = bool(exact)
-        out.append(chosen)
+        if exact:
+            chosen = dict(exact[0])
+            chosen["exact_match"] = True
+            out.append(chosen)
+            continue
+        # 법령명이 정확히 일치하는 것이 없으면 그 법령의 조문을 인용하지 않는다(0.5.3).
+        # 종전에는 검색 1위(예: '관세법 시행규칙')를 confirmed 에 담고 그 법령의 조문
+        # 본문까지 붙여, 요청한 법령과 다른 조문이 근거처럼 보였다(외부 코드 검수 제보).
+        similar = dict(rows[0])
+        similar["exact_match"] = False
+        similar["requested_law"] = name
+        similar["note_ko"] = (
+            "법령명이 정확히 일치하지 않아 이 후보의 조문은 인용하지 않습니다. "
+            "요청한 법령이 맞는지 법령명을 확인해 다시 조회하세요."
+        )
+        name_mismatch.append(similar)
 
     article_block: Optional[Dict[str, Any]] = None
-    if article and out:
+    if article:
         wanted = str(article).lstrip("제").replace("조", "").strip()
-        target = out[0]
-        if target.get("mst"):
+        target = next((row for row in out if row.get("exact_match")), None)
+        if target is None:
+            # 정확 일치 법령이 없을 때는 조문 본문을 비우고 후보 이름만 알려 준다.
+            article_block = {
+                "state": "law_name_mismatch",
+                "requested_law": law_names[0],
+                "article": f"제{wanted}조",
+                "text": "",
+                "paragraphs": [],
+                "candidates": [row["law_name"] for row in name_mismatch][:5],
+                "note_ko": (
+                    "법령명이 정확히 일치하는 법령을 찾지 못해 조문 본문을 인용하지 않았습니다. "
+                    "후보 법령명을 확인해 정확한 이름으로 다시 조회하세요."
+                ),
+            }
+        elif target.get("mst"):
             try:
                 body = live.law_articles(target["mst"], article=wanted)
                 if body.items:
@@ -596,10 +624,10 @@ def _law_live(live: Any, law_names: List[str], limit: int = 3,
             except LiveApiError as exc:
                 article_block = {"law_name": target["law_name"], **_live_error(exc)}
 
-    if not out and not errors:
+    if not out and not name_mismatch and not errors:
         return None
     result = {
-        "state": "live" if out else "error",
+        "state": "live" if out else ("name_mismatch" if name_mismatch else "error"),
         "confirmed": out,
         "errors": errors,
         "attribution_ko": "출처: 법제처 국가법령정보센터",
@@ -610,6 +638,13 @@ def _law_live(live: Any, law_names: List[str], limit: int = 3,
     }
     if article_block is not None:
         result["article_text"] = article_block
+    if name_mismatch:
+        result["name_mismatch"] = name_mismatch
+        result["note_ko"] = (
+            result["note_ko"]
+            + " 법령명이 정확히 일치하지 않은 검색 결과는 name_mismatch 에 후보로만 담았고, "
+            "그 법령의 조문 본문은 인용하지 않았습니다."
+        )
     if result["state"] == "live":
         _store_block(store, SOURCE_LAW, key, result)
     return result
@@ -1155,6 +1190,12 @@ def tool_get_legal_basis(args: Dict[str, Any], store: Store, client_id: str, tie
     live_block = _law_live(live, names or ([law] if law else []), article=article, store=store)
     if live_block is not None:
         payload["law_live"] = live_block
+        if live_block.get("name_mismatch"):
+            payload["law_name_mismatch_ko"] = (
+                "요청한 법령명과 정확히 일치하는 법령이 없어 조문 본문을 인용하지 않았습니다. "
+                "후보 법령명: " + ", ".join(str(row.get("law_name") or "")
+                                           for row in live_block["name_mismatch"][:3])
+            )
     return _envelope("get_legal_basis", payload)
 
 
@@ -1694,6 +1735,40 @@ def tool_check_ecommerce_compliance(args: Dict[str, Any], store: Store, client_i
     return _envelope("check_ecommerce_compliance", result)
 
 
+def _blank_ad_labeling_base(product_type: str, client_id: str, tier: str,
+                            disclaimer_ko: str, disclaimer_en: str) -> Dict[str, Any]:
+    """수입 절차 축을 돌리지 않을 때 쓰는 응답 뼈대(빈 판정을 꾸며내지 않는다).
+
+    품목명이 없으면 assess 를 부를 근거가 없으므로, 광고ㆍ표시 축만 담는 최소 payload 를
+    만든다. 지리ㆍ스키마 공통 필드는 `_envelope` 가 채운다.
+    """
+    corpus = load_corpus()
+    return {
+        "assessment_id": "",
+        "engine": {"name": "import-compliance", "version": corpus.version,
+                   "corpus_verified_on": corpus.verified_on},
+        "verdict": {"code": "info_needed", "label_ko": VERDICT_LABEL_KO["info_needed"],
+                    "label_en": VERDICT_LABEL_EN["info_needed"], "determinative": False},
+        "answer": {"headline": "", "guidance": []},
+        "findings": [],
+        "evidence": [],
+        "regulation_tags": [],
+        "missing_information": [],
+        "missing_information_detail": [],
+        "data_provenance": {
+            "policy": "코퍼스ㆍ법령 근거만 사용(실시간 소스 호출 없음)",
+            "sources": [{"state": "corpus_only",
+                         "note": "품목명이 없어 수입 절차 축은 실행하지 않았습니다."}],
+            "checked_at": iso(now_kst()),
+        },
+        "disclaimer": {"ko": disclaimer_ko, "en": disclaimer_en},
+        "scope_limits_ko": SCOPE_LIMITS_KO,
+        "tier": {"name": tier, "boundaries": TIER_BOUNDARIES["free"]},
+        "client_id": client_id,
+        "next_actions": [],
+    }
+
+
 def tool_check_ad_labeling(args: Dict[str, Any], store: Store, client_id: str, tier: str,
                            live: Any = None) -> Dict[str, Any]:
     """과대광고 문구 검수 + 한글표시사항 필수항목 점검을 한 번에 수행한다.
@@ -1702,8 +1777,18 @@ def tool_check_ad_labeling(args: Dict[str, Any], store: Store, client_id: str, t
     적용하고, 같은 문구가 유형별로 어떻게 달라지는지(`category_comparison`)도 함께 보여준다.
     `ad_copy` 가 있으면 같은 문구를 공정위 표시광고법·전자상거래법 축(`ecommerce.review`)으로도
     대조해 findings 에 합친다(가격ㆍ후기ㆍ청약철회ㆍ배송ㆍ구독ㆍ다크패턴).
+
+    판정 축 분리(0.5.3)
+    ------------------
+    이 도구는 네 축을 본다 — ① 광고 문구(식약처) ② 국내 판매페이지(공정위) ③ 한글표시사항
+    ④ 수입 절차(`TRAP-*`: 수입신고ㆍ영업등록ㆍ심의). 종전에는 ④를 만들 때 이 도구가 쓴
+    문장('수입 판매 표시 광고 한글표시')까지 질의로 넣어, 준수 문구만 넣어도 절차 트랩이
+    붙어 top verdict 가 늘 `check_likely` 로 고정됐다. 이제 ④는 **사용자가 준 품목명으로만**
+    대조하고, `verdict` 는 ①~③ 중 실제로 요청한 축만 합산한다. ④의 판정은
+    `import_procedure` 블록에 따로 담고 합산하지 않는다.
     """
     from . import advertising, ecommerce, labeling
+    from .policy import DISCLAIMER_EN, DISCLAIMER_KO as DISCLAIMER_KO_LOCAL  # noqa: N811 - 기존 상수를 가리지 않는다
 
     product_name = str(args.get("product_name") or "").strip()
     ad_copy = str(args.get("ad_copy") or args.get("ad_text") or "").strip()
@@ -1730,71 +1815,150 @@ def tool_check_ad_labeling(args: Dict[str, Any], store: Store, client_id: str, t
     label_check = labeling.check(product_type, label_text=label_text, provided=label_items,
                                  imported=args.get("imported"))
 
-    kind_ko = PRODUCT_KIND_KO.get(product_type, "식품")
-    if product_type in ("cosmetics", "functional_cosmetics"):
-        query = " ".join(part for part in (
-            product_name or "화장품", "화장품", "수입 판매 기재사항 광고",
-        ) if part)
-    else:
-        query = " ".join(part for part in (
-            product_name or kind_ko, kind_ko, "수입 판매 표시 광고 한글표시",
-        ) if part)
-    facts: Dict[str, Any] = {"purpose": str(args.get("purpose") or "resale")}
-    if args.get("functional") is not None:
-        facts["functional"] = str(args["functional"])
-    if args.get("imported") is not None:
-        facts["imported"] = str(args["imported"])
-    result = assess(query, facts, store=store, client_id=client_id, tier=tier, limit=3, live=live)
-
-    findings = list(result.get("findings") or [])
+    # ---- 축 ①: 광고 문구(식약처 표시ㆍ광고) --------------------------------
     ad_findings = [_ad_finding(entry) for entry in ad_review.get("findings") or []]
     for finding in ad_findings:
+        finding["axis"] = "ad_copy"
         finding["regulation_tags"] = [advertising.tag_for_rule(
             str(finding.get("case_id") or ""), product_type)]
-    findings.extend(ad_findings)
-    # 공정위ㆍ전자상거래법 축 — 같은 상세페이지 문구를 판매 방식(가격ㆍ후기ㆍ청약철회)으로 한 번 더 본다.
+
+    # ---- 축 ②: 국내 판매페이지(공정위ㆍ전자상거래법) --------------------------
     commerce_block: Optional[Dict[str, Any]] = None
     commerce_findings: List[Dict[str, Any]] = []
     if ad_copy:
         commerce_block = ecommerce.review(ad_copy, limit=limit)
         commerce_findings = [_commerce_finding(entry) for entry in commerce_block.get("findings") or []]
-        findings.extend(commerce_findings)
+        for finding in commerce_findings:
+            finding["axis"] = "ecommerce"
+
+    # ---- 축 ③: 한글표시사항 -------------------------------------------------
     label_finding = _label_finding(label_check)
     if label_finding is not None:
-        findings.append(label_finding)
+        label_finding["axis"] = "labeling"
 
-    codes = [str((result.get("verdict") or {}).get("code") or "info_needed")]
-    if ad_copy:
-        codes.append(str(ad_review.get("verdict") or "info_needed"))
-        if commerce_block is not None:
-            codes.append(str(commerce_block.get("verdict") or "info_needed"))
-    if label_text or label_items:
-        codes.append(str(label_check.get("verdict") or "info_needed"))
-    overall = max(codes, key=lambda code: VERDICT_SEVERITY.get(code, 1))
-    result["verdict"] = {"code": overall, "label_ko": VERDICT_LABEL_KO[overall],
-                         "label_en": VERDICT_LABEL_EN[overall], "determinative": False,
-                         "note_ko": "광고·표시 검수는 문구·라벨 패턴 대조 결과이며, 최종 판단은 식약처 기준과 전문가 검토를 따릅니다."}
+    # ---- 축 ④: 수입 절차 — 사용자가 준 품목명으로만 대조(합산하지 않음) --------
+    facts: Dict[str, Any] = {"purpose": str(args.get("purpose") or "resale"),
+                             "product_type": product_type}
+    if args.get("functional") is not None:
+        facts["functional"] = str(args["functional"])
+    if args.get("imported") is not None:
+        facts["imported"] = str(args["imported"])
+    import_result: Optional[Dict[str, Any]] = None
+    import_findings: List[Dict[str, Any]] = []
+    if len(product_name) >= 2:
+        import_result = assess(product_name, facts, store=store, client_id=client_id,
+                               tier=tier, limit=3, live=live)
+        import_findings = list(import_result.get("findings") or [])
+        for finding in import_findings:
+            finding["axis"] = "import_procedure"
+        import_block: Dict[str, Any] = {
+            "state": "run",
+            "axis_label_ko": "수입 절차(신고ㆍ영업등록ㆍ심의)",
+            "verdict": str((import_result.get("verdict") or {}).get("code") or "info_needed"),
+            "finding_count": len(import_findings),
+            "findings": import_findings,
+            "missing_information": list(import_result.get("missing_information") or []),
+            "note_ko": (
+                "품목명으로 수입 절차 쟁점(수입신고ㆍ영업등록ㆍ심의)만 따로 대조한 축입니다. "
+                "광고 문구 판정에는 합산하지 않습니다. 절차 요건은 HS 10자리ㆍ수입 목적을 넣어 "
+                "assess_import_case 로 더 좁힐 수 있습니다."
+            ),
+        }
+    else:
+        import_block = {
+            "state": "not_run",
+            "axis_label_ko": "수입 절차(신고ㆍ영업등록ㆍ심의)",
+            "verdict": None,
+            "finding_count": 0,
+            "findings": [],
+            "missing_information": [],
+            "note_ko": (
+                "product_name 이 없어 수입 절차 축은 대조하지 않았습니다(빈 판정을 만들지 않습니다). "
+                "광고 문구 판정과 섞지 않습니다."
+            ),
+        }
+
+    findings: List[Dict[str, Any]] = list(ad_findings) + list(commerce_findings)
+    if label_finding is not None:
+        findings.append(label_finding)
+    findings.extend(import_findings)
+
+    # ---- 축별 판정 → 합산은 실제로 요청한 축(①~③)만 -------------------------
+    axis_verdicts: Dict[str, Optional[str]] = {
+        "ad_copy": str(ad_review.get("verdict") or "info_needed") if ad_copy else None,
+        "ecommerce": (str((commerce_block or {}).get("verdict") or "info_needed")
+                      if commerce_block is not None else None),
+        "labeling": (str(label_check.get("verdict") or "info_needed")
+                     if (label_text or label_items) else None),
+        "import_procedure": import_block.get("verdict"),
+    }
+    combined_axes = [axis for axis in ("ad_copy", "ecommerce", "labeling")
+                     if axis_verdicts[axis] is not None]
+    if not combined_axes and axis_verdicts["import_procedure"]:
+        combined_axes = ["import_procedure"]
+    overall = max((axis_verdicts[axis] for axis in combined_axes),
+                  key=lambda code: VERDICT_SEVERITY.get(str(code), 1))
+    if overall is None:  # pragma: no cover - 입력 검증을 통과하면 항상 한 축은 있다
+        overall = "info_needed"
+
+    if import_result is not None:
+        result: Dict[str, Any] = import_result
+    else:
+        result = _blank_ad_labeling_base(product_type, client_id, tier, DISCLAIMER_KO_LOCAL, DISCLAIMER_EN)
+
+    result["verdict"] = {
+        "code": overall,
+        "label_ko": VERDICT_LABEL_KO[overall],
+        "label_en": VERDICT_LABEL_EN[overall],
+        "determinative": False,
+        "combined_axes": combined_axes,
+        "scope_ko": (
+            "광고 문구ㆍ라벨 입력이 없어 수입 절차 축(품목명 대조)만 판정에 반영했습니다. "
+            "광고 문구를 넣으면 문구 축 판정을 따로 봅니다."
+            if combined_axes == ["import_procedure"] else
+            "광고 문구ㆍ국내 판매페이지ㆍ한글표시사항 중 입력한 축만 합산한 판정입니다. "
+            "수입 절차(신고ㆍ영업등록ㆍ심의) 축은 import_procedure 블록에 따로 표시하며 이 판정에 합산하지 않습니다."
+        ),
+        "axes_ko": {axis: VERDICT_LABEL_KO.get(str(axis_verdicts[axis]), "")
+                    for axis in ("ad_copy", "ecommerce", "labeling", "import_procedure")
+                    if axis_verdicts[axis]},
+        "note_ko": "광고·표시 검수는 문구·라벨 패턴 대조 결과이며, 최종 판단은 식약처 기준과 전문가 검토를 따릅니다.",
+    }
     result["findings"] = findings
     result["regulation_tags"] = tags_for_findings(findings)
 
     answer = result.setdefault("answer", {})
+    import_headline = str(((import_result or {}).get("answer") or {}).get("headline") or "")
     if ad_review.get("risk_high"):
-        answer["headline"] = "광고 문구에서 금지 위험 표현이 확인되었습니다. 문구를 수정하고 근거를 확인하세요."
+        headline = "광고 문구에서 금지 위험 표현이 확인되었습니다. 문구를 수정하고 근거를 확인하세요."
     elif commerce_block is not None and commerce_block.get("risk_high"):
-        answer["headline"] = "국내 판매페이지 기준에서 고위험 문구가 확인되었습니다(공정위ㆍ전자상거래법). 문구를 수정하세요."
+        headline = "국내 판매페이지 기준에서 고위험 문구가 확인되었습니다(공정위ㆍ전자상거래법). 문구를 수정하세요."
     elif label_check.get("missing"):
-        answer["headline"] = "한글표시사항 필수 항목의 누락 가능성이 있습니다. 라벨을 보완하세요."
-    guidance = answer.setdefault("guidance", [])
+        headline = "한글표시사항 필수 항목의 누락 가능성이 있습니다. 라벨을 보완하세요."
+    elif ad_copy and ad_review.get("risk_caution"):
+        headline = "광고 문구에 주의 표현이 있습니다. 실증자료와 심의 여부를 확인하세요."
+    elif ad_copy:
+        headline = "입력한 광고 문구에서는 유형별 금지 표현 패턴을 찾지 못했습니다(문구 기준)."
+    elif import_headline:
+        headline = import_headline
+    else:
+        headline = "한글표시사항 체크리스트를 대조했습니다. 광고 문구를 넣으면 표현 검수도 함께 합니다."
+    guidance: List[str] = []
     if ad_copy:
         guidance.extend(advertising.summarize(ad_review))
     if commerce_block is not None:
         guidance.extend(ecommerce.summarize(commerce_block, limit=3))
     if label_text or label_items:
         guidance.extend(labeling.summarize(label_check))
+    if import_result is not None:
+        for line in ((import_result.get("answer") or {}).get("guidance") or [])[:3]:
+            guidance.append("수입 절차 축(별도 판정): " + line)
     if not ad_copy:
         guidance.append("상세페이지·상품명 등 광고 문구를 ad_copy 로 넣으면 유형별 금지 표현을 함께 검수합니다.")
     if not label_text and not label_items:
         guidance.append("라벨 문구를 label_text 로 넣으면 필수 표시항목 누락을 대조합니다.")
+    answer["headline"] = headline
+    answer["guidance"] = guidance
 
     evidence = list(result.get("evidence") or [])
     seen = {(row.get("law"), row.get("article")) for row in evidence}
@@ -1809,17 +1973,39 @@ def tool_check_ad_labeling(args: Dict[str, Any], store: Store, client_id: str, t
         evidence.append(row)
     result["evidence"] = evidence
 
-    missing = [m for m in result.get("missing_information") or []]
-    if not ad_copy and "ad_copy" not in missing:
+    # 누락 정보는 광고ㆍ표시 축 기준으로만 적는다(수입 절차 축의 누락은 import_procedure 에 있다).
+    missing: List[str] = []
+    if not ad_copy:
         missing.append("ad_copy")
-    if not label_text and not label_items and "label_text" not in missing:
+    if not label_text and not label_items:
         missing.append("label_text")
     result["missing_information"] = missing
+    result["missing_information_detail"] = [
+        row for row in (result.get("missing_information_detail") or [])
+        if str(row.get("field") or "") in missing
+    ]
 
     result["ad_review"] = ad_review
     if commerce_block is not None:
         result["ecommerce_review"] = commerce_block
     result["labeling_check"] = label_check
+    result["import_procedure"] = import_block
+    result["axes"] = {
+        "ad_copy": {"verdict": axis_verdicts["ad_copy"], "finding_count": len(ad_findings),
+                    "axis_label_ko": "광고 문구(식약처 표시ㆍ광고)"} if ad_copy else None,
+        "ecommerce": {"verdict": axis_verdicts["ecommerce"],
+                      "finding_count": len(commerce_findings),
+                      "axis_label_ko": "국내 판매페이지(공정위)"} if commerce_block is not None else None,
+        "labeling": {"verdict": axis_verdicts["labeling"],
+                     "missing_count": len(label_check.get("missing") or []),
+                     "axis_label_ko": "한글표시사항"} if (label_text or label_items) else None,
+        "import_procedure": import_block,
+        "combined": {
+            "verdict": overall,
+            "included_axes": combined_axes,
+            "note_ko": "입력한 축만 합산합니다. 수입 절차 축은 합산하지 않고 따로 표시합니다.",
+        },
+    }
     result["ad_labeling"] = {
         "product_type": product_type,
         "product_type_label_ko": advertising.product_type_label(product_type),
@@ -1833,6 +2019,9 @@ def tool_check_ad_labeling(args: Dict[str, Any], store: Store, client_id: str, t
         "ecommerce_finding_count": len(commerce_findings),
         "ecommerce_risk_high": (commerce_block or {}).get("risk_high"),
         "ecommerce_risk_caution": (commerce_block or {}).get("risk_caution"),
+        "import_procedure_verdict": import_block.get("verdict"),
+        "import_procedure_state": import_block.get("state"),
+        "combined_axes": combined_axes,
         "combined_verdict": overall,
     }
     result["next_actions"] = (label_check.get("next_actions") or []) + list(result.get("next_actions") or [])[:2] + [
@@ -1840,6 +2029,14 @@ def tool_check_ad_labeling(args: Dict[str, Any], store: Store, client_id: str, t
         "국내 판매페이지(쿠팡ㆍ스마트스토어ㆍ자사몰)에 올릴 문구라면 CLNS Check의 ‘국내 판매페이지 문구 검수’로 가격ㆍ후기ㆍ청약철회 고지까지 함께 확인하세요.",
     ]
     apply_status(result)
+    # 표준 상태는 광고ㆍ표시 축(①~③) 기준이다. 수입 절차 축이 더 높은 판정이면 그 사실을 덧붙인다.
+    import_verdict = str(import_block.get("verdict") or "")
+    if import_verdict and (VERDICT_SEVERITY.get(import_verdict, 0) > VERDICT_SEVERITY.get(overall, 0)):
+        result["assessment_status_note_ko"] = (
+            str(result.get("assessment_status_note_ko") or "").strip()
+            + " 수입 절차 축은 별도로 ‘" + VERDICT_LABEL_KO.get(import_verdict, "") + "’ 판정입니다"
+            "(import_procedure 블록). 광고ㆍ표시 축 판정과 합산하지 않았습니다."
+        ).strip()
     return _envelope("check_ad_labeling", result)
 
 
@@ -2621,7 +2818,7 @@ def _inquiry_error(field: str, message: str) -> Dict[str, Any]:
     return {"ok": False, "error": "invalid_argument", "field": field, "message": message}
 
 
-def submit_inquiry(payload: Any, store: Store) -> Dict[str, Any]:
+def submit_inquiry(payload: Any, store: Store, alerter: Any = None) -> Dict[str, Any]:
     """`POST /v1/inquiry` — CLNS Pro 사전 신청·도입 문의 1건 접수.
 
     입력: `{contact, topic, message}`
@@ -2629,8 +2826,14 @@ def submit_inquiry(payload: Any, store: Store) -> Dict[str, Any]:
     - `topic` `clns_pro_batch` | `api_mcp` | `other` (필수)
     - `message` 선택 0~500자
 
-    성공 시 `{ok: true, id, received_at}` 만 돌려준다. 접수한 연락처를 응답에 되돌려주지 않고
-    (화면 재노출·로그 유출 방지), 문의 내용도 다른 공개 경로로 내보내지 않는다.
+    성공 시 `{ok: true, id, received_at, topic, delivery}` 만 돌려준다. 접수한 연락처를 응답에
+    되돌려주지 않고(화면 재노출·로그 유출 방지), 문의 내용도 다른 공개 경로로 내보내지 않는다.
+
+    유실 대비(0.5.3)
+    ---------------
+    DB 저장 뒤 **접수 저널 append**(`data/inquiries.jsonl`)와 **알림**(웹훅ㆍstdout 로그)을
+    수행하고, 그 상태를 `delivery` 로만 밝힌다(`journal`: ok/off/failed, `webhook`:
+    sent/skipped/failed). 알림이 실패해도 접수 자체는 성공으로 남긴다.
     """
     if not isinstance(payload, dict):
         return _inquiry_error("body", "요청 본문은 JSON 객체여야 합니다.")
@@ -2668,10 +2871,24 @@ def submit_inquiry(payload: Any, store: Store) -> Dict[str, Any]:
     message = _MESSAGE_CHARS_RE.sub("", message)
 
     record = store.record_inquiry(contact, topic, message)
+    delivery: Dict[str, Any] = {}
+    try:
+        from . import inquiry_alert
+
+        notify = alerter or inquiry_alert.alert
+        delivery = notify(record=record, topic=topic, contact=contact, message=message) or {}
+    except Exception:  # noqa: BLE001 - 알림 실패가 접수를 막지 않는다
+        delivery = {"journal": record.get("journal") or "unknown",
+                    "webhook": {"state": "failed"}}
     return {
         "ok": True,
         "id": record["id"],
         "received_at": record["received_at"],
         "topic": topic,
+        "delivery": {
+            "journal": str(delivery.get("journal") or record.get("journal") or "unknown"),
+            "webhook": str((delivery.get("webhook") or {}).get("state") or "unknown")
+            if isinstance(delivery.get("webhook"), dict) else "unknown",
+        },
         "note_ko": "남겨 주신 연락처로만 회신드립니다. 문의 내용은 통계·공개 화면에 쓰지 않습니다.",
     }

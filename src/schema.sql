@@ -166,6 +166,9 @@ CREATE TABLE inquiries (
     contact     TEXT NOT NULL,
     topic       TEXT NOT NULL CHECK (topic IN ('clns_pro_batch', 'api_mcp', 'other')),
     message     TEXT NOT NULL DEFAULT '',
-    received_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    received_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    -- 0.5.3: 접수 저널(data/inquiries.jsonl) → DB 복원 시 중복을 막는 멱등 키
+    fingerprint TEXT
 );
 CREATE INDEX idx_inquiries_received ON inquiries(received_at DESC);
+CREATE UNIQUE INDEX idx_inquiries_fingerprint ON inquiries(fingerprint);

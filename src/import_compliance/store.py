@@ -5,6 +5,7 @@ Postgres 이관 시 동일 스키마를 사용한다(src/schema.sql 참고).
 from __future__ import annotations
 
 import json
+import os
 import sqlite3
 import threading
 import time
@@ -14,6 +15,11 @@ from typing import Any, Dict, List, Optional, Tuple
 KST = timezone(timedelta(hours=9))
 FREE_MONTHLY_CALLS = 250
 DEFAULT_STALE_HOURS = 72
+
+# 한도 면제 티어. **유료 티어를 실제로 팔 때만** 서버가 검증한 키 발급 경로와 함께
+# 여기에 넣는다(0.5.3). 종전처럼 `tier != "free"` 를 면제로 처리하면 클라이언트가
+# `X-Tier: pro_waitlist` 헤더만 붙여도 무료 월 250회 한도를 우회할 수 있다.
+UNLIMITED_TIERS: frozenset = frozenset()
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS sources (
@@ -174,7 +180,8 @@ CREATE TABLE IF NOT EXISTS inquiries (
     contact     TEXT NOT NULL,              -- 이메일 또는 연락처(회신용)
     topic       TEXT NOT NULL,              -- clns_pro_batch | api_mcp | other
     message     TEXT NOT NULL DEFAULT '',
-    received_at TEXT NOT NULL
+    received_at TEXT NOT NULL,
+    fingerprint TEXT                        -- 저널 복원용 멱등 키(0.5.3)
 );
 CREATE INDEX IF NOT EXISTS idx_inquiries_received ON inquiries(received_at DESC);
 """
@@ -182,6 +189,20 @@ CREATE INDEX IF NOT EXISTS idx_inquiries_received ON inquiries(received_at DESC)
 
 class QuotaExceeded(RuntimeError):
     pass
+
+
+def inquiry_fingerprint(contact: str, topic: str, message: str, received_at: str,
+                        nonce: str = "") -> str:
+    """문의 1건의 멱등 키(저널 → DB 복원 시 중복을 막는다).
+
+    새 접수에는 `nonce`(나노초)를 섞어 **같은 초에 같은 내용으로 두 번 접수**돼도
+    유니크 인덱스에 부딪지 않게 한다. 저널에 적힌 값을 복원할 때는 nonce 없이 그대로 쓴다.
+    """
+    import hashlib
+
+    material = "\x1f".join([str(contact or ""), str(topic or ""), str(message or ""),
+                            str(received_at or ""), str(nonce or "")])
+    return hashlib.sha256(material.encode("utf-8")).hexdigest()[:32]
 
 
 def now_kst() -> datetime:
@@ -204,7 +225,7 @@ def snapshot_age_hours(stamp: str) -> float:
 
 
 class Store:
-    def __init__(self, path: str = ":memory:") -> None:
+    def __init__(self, path: str = ":memory:", inquiry_journal: Optional[str] = None) -> None:
         self.path = path
         # 웹 서버(ThreadingHTTPServer)가 같은 연결을 여러 스레드에서 쓰므로 재진입 가능한 락을 쓴다.
         self._lock = threading.RLock()
@@ -219,6 +240,31 @@ class Store:
                 pass
         self.conn.executescript(SCHEMA)
         self.conn.commit()
+        self._migrate()
+        # 문의 유실 대비 저널(0.5.3). 파일 DB 옆에 append-only JSONL 로 남긴다.
+        # :memory: 는 저널을 쓰지 않는다(테스트가 파일을 만들지 않게).
+        if inquiry_journal is None:
+            inquiry_journal = ("" if path == ":memory:" else
+                               os.path.join(os.path.dirname(os.path.abspath(path)),
+                                            "inquiries.jsonl"))
+        self.inquiry_journal = str(inquiry_journal or "")
+        self._journal_lock = threading.Lock()
+
+    def _migrate(self) -> None:
+        """이미 있는 파일 DB 에 0.5.3 컬럼을 더한다(없을 때만)."""
+        with self._lock:
+            columns = {row["name"] for row in self.conn.execute("PRAGMA table_info(inquiries)")}
+            if "fingerprint" not in columns:
+                self.conn.execute("ALTER TABLE inquiries ADD COLUMN fingerprint TEXT")
+            try:
+                self.conn.execute(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS idx_inquiries_fingerprint "
+                    "ON inquiries(fingerprint)")
+            except sqlite3.Error:
+                # 중복 키가 이미 있는 파일 DB 라면 유니크 인덱스는 건너뛰고,
+                # seed_inquiries 의 사전 조회로 멱등을 유지한다.
+                pass
+            self.conn.commit()
 
     def close(self) -> None:
         self.conn.close()
@@ -373,7 +419,12 @@ class Store:
         return int(row["used"]) if row else 0
 
     def consume_quota(self, client_id: str, tier: str = "free", limit: int = FREE_MONTHLY_CALLS) -> Dict[str, int]:
-        if tier != "free":
+        """무료 월 한도를 센다.
+
+        한도 면제는 `UNLIMITED_TIERS` 에 등록된 티어만 해당한다(현재는 비어 있다 =
+        모두 무료 한도 적용). 클라이언트가 보낸 티어 문자열만으로 한도를 면제하지 않는다.
+        """
+        if tier in UNLIMITED_TIERS:
             return {"used": 0, "limit": -1, "remaining": -1}
         period = now_kst().strftime("%Y-%m")
         used = self.quota_used(client_id, period)
@@ -478,16 +529,102 @@ class Store:
         """CLNS Pro 사전 신청·도입 문의 1건을 저장한다.
 
         연락처(`contact`)는 회신 목적으로만 보관한다. 공개 집계(usage_daily·/v1/stats)와
-        공개 응답에는 연락처·문의 본문을 넘기지 않는다.
+        공개 응답에는 연락처·문의 본문을 넘기지 않는다. DB 저장 뒤 접수 저널(0.5.3)에
+        한 줄을 남기고, 그 상태를 `record["journal"]`(ok/off/failed)로 돌려준다.
         """
         stamp = iso(now_kst())
+        fingerprint = inquiry_fingerprint(contact, topic, message, stamp, nonce=str(time.time_ns()))
         with self._lock:
             cur = self.conn.execute(
-                "INSERT INTO inquiries(contact, topic, message, received_at) VALUES (?,?,?,?)",
-                (contact, topic, message, stamp),
+                "INSERT INTO inquiries(contact, topic, message, received_at, fingerprint) VALUES (?,?,?,?,?)",
+                (contact, topic, message, stamp, fingerprint),
             )
             self.conn.commit()
-            return {"id": int(cur.lastrowid or 0), "received_at": stamp}
+            record: Dict[str, Any] = {"id": int(cur.lastrowid or 0), "received_at": stamp,
+                                      "fingerprint": fingerprint}
+        record["journal"] = self._append_inquiry_journal(record, contact, topic, message)
+        return record
+
+    def _append_inquiry_journal(self, record: Dict[str, Any], contact: str, topic: str,
+                                message: str) -> str:
+        """문의 1건을 append-only 저널에 남긴다(0.5.3).
+
+        저널은 `data/` 가 볼륨일 때 재기동 후 DB 복원의 원본이 되고, 운영자가 사본을
+        바로 읽을 수 있는 마지막 보루다. 실패는 접수를 막지 않고 상태로만 돌려준다.
+        """
+        path = self.inquiry_journal
+        if not path:
+            return "off"
+        line = json.dumps({"id": record.get("id"), "contact": contact, "topic": topic,
+                           "message": message, "received_at": record.get("received_at"),
+                           "fingerprint": record.get("fingerprint")}, ensure_ascii=False)
+        try:
+            with self._journal_lock:
+                directory = os.path.dirname(os.path.abspath(path))
+                if directory:
+                    os.makedirs(directory, exist_ok=True)
+                created = not os.path.exists(path)
+                with open(path, "a", encoding="utf-8") as handle:
+                    handle.write(line + "\n")
+                if created:
+                    try:
+                        os.chmod(path, 0o600)
+                    except OSError:
+                        pass
+        except OSError:
+            return "failed"
+        return "ok"
+
+    def read_inquiry_journal(self, path: Optional[str] = None) -> List[Dict[str, Any]]:
+        """저널을 읽는다(복원용). 깨진 줄은 건너뛴다."""
+        target = path if path is not None else self.inquiry_journal
+        if not target or not os.path.exists(target):
+            return []
+        rows: List[Dict[str, Any]] = []
+        try:
+            with open(target, encoding="utf-8") as handle:
+                for line in handle:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        row = json.loads(line)
+                    except ValueError:
+                        continue
+                    if isinstance(row, dict) and row.get("contact") and row.get("topic"):
+                        rows.append(row)
+        except OSError:
+            return []
+        return rows
+
+    def seed_inquiries(self, rows: List[Dict[str, Any]]) -> int:
+        """저널에서 복원한 문의를 DB 로 되돌린다(재배포로 DB 가 비었을 때).
+
+        `fingerprint` 기준 멱등 적재라 같은 파일을 여러 번 기동해도 중복되지 않는다.
+        """
+        written = 0
+        with self._lock:
+            for row in rows or []:
+                contact = str(row.get("contact") or "").strip()
+                topic = str(row.get("topic") or "").strip()
+                stamp = str(row.get("received_at") or "").strip()
+                if not contact or not topic or not stamp:
+                    continue
+                message = str(row.get("message") or "")
+                fingerprint = (str(row.get("fingerprint") or "").strip()
+                               or inquiry_fingerprint(contact, topic, message, stamp))
+                exists = self.conn.execute(
+                    "SELECT 1 FROM inquiries WHERE fingerprint=?", (fingerprint,)).fetchone()
+                if exists:
+                    continue
+                cur = self.conn.execute(
+                    "INSERT OR IGNORE INTO inquiries(contact, topic, message, received_at, fingerprint) "
+                    "VALUES (?,?,?,?,?)",
+                    (contact, topic, message, stamp, fingerprint),
+                )
+                written += 1 if cur.rowcount > 0 else 0
+            self.conn.commit()
+        return written
 
     def count_inquiries(self, since_day: Optional[str] = None) -> int:
         """문의 건수만 센다(선택: KST 날짜 하한 YYYY-MM-DD). 연락처·본문은 읽지 않는다."""
@@ -499,6 +636,23 @@ class Store:
         with self._lock:
             row = self.conn.execute(sql, params).fetchone()
         return int(row["c"])
+
+    def inquiry_topic_counts(self, since_day: Optional[str] = None) -> List[Dict[str, Any]]:
+        """문의 건수를 접수일ㆍ관심 항목별로 센다.
+
+        연락처ㆍ메모는 SELECT 하지 않는다(요약·알림에 개인정보가 흘러가지 않게).
+        """
+        sql = ("SELECT substr(received_at, 1, 10) AS day, topic, COUNT(*) AS count "
+               "FROM inquiries")
+        params: Tuple[Any, ...] = ()
+        if since_day:
+            sql += " WHERE received_at >= ?"
+            params = (f"{str(since_day)[:10]}T00:00:00",)
+        sql += " GROUP BY day, topic ORDER BY day, topic"
+        with self._lock:
+            rows = self.conn.execute(sql, params).fetchall()
+        return [{"day": str(row["day"] or ""), "topic": str(row["topic"] or ""),
+                 "count": int(row["count"] or 0)} for row in rows]
 
 
 class SourceGateway:

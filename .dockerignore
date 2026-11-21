@@ -28,6 +28,10 @@ snapshots/
 # 배포에 필요한 리콜 로컬 인덱스만 예외로 포함한다(공공데이터 가공물, 이용허락범위 제한 없음)
 !data/recalls.sqlite
 
+# 문의 저널은 이미지에 넣지 않는다 — 신청자 연락처가 평문으로 들어 있다(0.5.3)
+data/inquiries.jsonl
+inquiries.jsonl
+
 # 0원 영속화 시드(일일 스냅샷·익명 사용 통계)는 이미지에 넣어 기동 시 복원한다.
 !data/snapshots/
 !data/snapshots/*.json
