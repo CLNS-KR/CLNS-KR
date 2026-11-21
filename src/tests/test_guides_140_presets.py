@@ -151,7 +151,7 @@ class GuideCatalog140Test(unittest.TestCase):
 
     def test_catalog_version_and_count(self):
         meta = guides.catalog_meta()
-        self.assertEqual(meta["version"], "1.5.0")
+        self.assertEqual(meta["version"], "1.6.0")
         self.assertEqual(meta["verified_on"], "2026-11-21")
         self.assertGreaterEqual(meta["count"], 85)
         self.assertEqual(len({item["slug"] for item in self.items}), len(self.items))
@@ -429,7 +429,7 @@ class ServedGuidePagesTest(unittest.TestCase):
     def test_service_meta_reports_150(self):
         payload = call_tool("get_service_meta", {}, self.store)["result"]
         self.assertEqual(payload["guides"]["count"], len(guides.items()))
-        self.assertEqual(payload["guides"]["catalog_version"], "1.5.0")
+        self.assertEqual(payload["guides"]["catalog_version"], "1.6.0")
 
     def test_home_page_carries_preset_buttons(self):
         status, html = self.get("/")

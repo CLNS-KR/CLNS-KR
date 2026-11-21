@@ -478,7 +478,7 @@ class GuideTest(unittest.TestCase):
 
     def test_guide_count_matches_catalog(self):
         # 카탈로그 버전은 가이드를 추가할 때마다 여기서 함께 올린다(1.2.0: 롱테일 15종).
-        self.assertEqual(guides.catalog_meta()["version"], "1.5.0")
+        self.assertEqual(guides.catalog_meta()["version"], "1.6.0")
         self.assertGreaterEqual(len(guides.items()), 68)
 
 
@@ -513,7 +513,7 @@ class WebUiTest(unittest.TestCase):
 
 class VersionAndAnonymityTest(unittest.TestCase):
     def test_version_is_0_4_0(self):
-        self.assertEqual(__version__, "0.5.4")
+        self.assertEqual(__version__, "0.5.5")
         with open(os.path.join(ROOT, "server.json"), encoding="utf-8") as handle:
             manifest = json.load(handle)
         self.assertEqual(manifest["version"], __version__)
