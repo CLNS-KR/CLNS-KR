@@ -248,7 +248,8 @@ class PresetButtonsHtmlTest(unittest.TestCase):
         product_at = self.form.index('id="product"')
         self.assertLess(presets_at, product_at)
         self.assertIn('role="group"', self.form[max(0, presets_at - 60):presets_at + 160])
-        self.assertIn("대표 품목으로 1초 체험", self.form)
+        # 0.5.10: 첫 화면을 줄이면서 라벨을 '예시로 1초 체험' 으로 줄였다(버튼·동작은 그대로).
+        self.assertIn("예시로 1초 체험", self.form)
 
     def test_presets_are_mobile_friendly_and_labelled(self):
         self.assertIn(".presets button{", self.page)

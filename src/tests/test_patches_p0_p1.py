@@ -511,13 +511,17 @@ class PagePatchTest(unittest.TestCase):
         self.assertIn("입력한 품목: ' + esc(data.product)", self.page)
         self.assertNotIn("result.query ? result.query.text", self.page)
 
-    def test_mobile_tab_grid_prevents_tab_clipping(self):
+    def test_mobile_tab_row_prevents_tab_clipping(self):
+        """0.5.10: 탭을 첫 화면 위에서 빼고 보조 도구 한 줄로 내렸다.
+
+        2×2 그리드 대신 한 줄 가로 스크롤 + nowrap 으로 바꿔, 390px 에서도 탭 이름이
+        잘리거나 접히지 않는다.
+        """
         self.assertIn("@media (max-width:430px)", self.page)
         start = self.page.index("@media (max-width:430px)")
         block = self.page[start:start + 420]
-        self.assertIn("grid-template-columns:repeat(2,minmax(0,1fr))", block)
-        self.assertIn("white-space:normal", block)
-        self.assertIn("nav.tabs button .tab-ko{font-size:9.5px}", block)
+        self.assertIn("nav.tabs{display:flex; flex-wrap:nowrap; gap:6px; overflow-x:auto}", block)
+        self.assertIn("white-space:nowrap", block)
 
     def test_mcp_copy_matches_real_transport(self):
         self.assertIn("JSON-RPC 2.0", self.page)

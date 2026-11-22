@@ -15,6 +15,7 @@
 """
 from __future__ import annotations
 
+import json
 from html import escape
 
 from . import site_verification
@@ -105,15 +106,15 @@ PAGE_HTML = """<!doctype html>
 </script>
 <style>
 :root{
-  --bg:#f4f6fa; --card:#ffffff; --ink:#12161f; --ink-soft:#4c5566; --line:#dde3ec;
+  --bg:#f5f7fb; --card:#ffffff; --ink:#111827; --ink-soft:#5a6473; --line:#e2e7ef;
   /* --brand 는 글자·테두리용, --brand-fill 은 흰 글씨를 얹는 면(버튼·로고)용이다.
      다크 모드에서 --brand(#7ea6ff)에 흰 글씨를 얹으면 2.4:1 이라, 면은 더 진한 --brand-fill 로 칠한다. */
-  --brand:#1a4fd6; --brand-soft:#e8eefc; --brand-fill:#1a4fd6; --on-brand:#ffffff;
-  --ok:#0f7a4a; --ok-soft:#e4f6ec;
-  --warn:#9a5b00; --warn-soft:#fdf1dc;
-  --info:#1f5f9e; --info-soft:#e7f1fb;
-  --danger:#a4231f; --danger-soft:#fbe9e8;
-  --radius:14px;
+  --brand:#1a4fd6; --brand-soft:#eef3fe; --brand-fill:#1a4fd6; --on-brand:#ffffff;
+  --ok:#0f7a4a; --ok-soft:#e8f7ee;
+  --warn:#8a5200; --warn-soft:#fdf3e2;
+  --info:#1f5f9e; --info-soft:#eaf3fb;
+  --danger:#a4231f; --danger-soft:#fcecea;
+  --radius:16px;
 }
 @media (prefers-color-scheme: dark){
   :root{
@@ -131,100 +132,159 @@ html{-webkit-text-size-adjust:100%}
 body{
   margin:0; background:var(--bg); color:var(--ink);
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;
-  line-height:1.55; font-size:16px;
+  line-height:1.6; font-size:16px;
 }
 a{color:var(--brand); text-underline-offset:2px}
-.wrap{max-width:1000px; margin:0 auto; padding:0 16px 64px}
-header.top{display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:space-between;
-  padding:22px 0 14px; border-bottom:1px solid var(--line)}
-.brand{display:flex; gap:12px; align-items:center; min-width:0}
-.mark{width:38px;height:38px;border-radius:11px;background:var(--brand-fill);color:var(--on-brand);
-  display:flex;align-items:center;justify-content:center;font-weight:800;font-size:19px;flex:0 0 auto}
-.brand h1{margin:0; font-size:20px; letter-spacing:.14em; text-transform:uppercase}
+.wrap{max-width:720px; margin:0 auto; padding:0 16px 56px}
+header.top{display:flex; gap:12px; align-items:center; justify-content:space-between; padding:20px 0 12px}
+.brand{display:flex; gap:11px; align-items:center; min-width:0}
+.mark{width:40px;height:40px;border-radius:12px;background:var(--brand-fill); color:var(--on-brand);
+  display:flex;align-items:center;justify-content:center;font-weight:800;font-size:20px;flex:0 0 auto}
+.brand h1{margin:0; font-size:19px; letter-spacing:.14em; text-transform:uppercase}
 .brand p{margin:1px 0 0; font-size:12.5px; color:var(--ink-soft)}
-.brand p.sub-en{font-size:10.5px; letter-spacing:.1em; text-transform:uppercase}
+.brand p.sub-en{font-size:10px; letter-spacing:.1em; text-transform:uppercase}
 .brand p.slogan{font-size:12.5px; font-weight:600; color:var(--brand)}
-.badges{display:flex; gap:6px; flex-wrap:wrap}
-.pill{font-size:11.5px; font-weight:600; padding:4px 9px; border-radius:999px;
+.pill{font-size:11.5px; font-weight:600; padding:5px 10px; border-radius:999px;
   background:var(--brand-soft); color:var(--brand); border:1px solid transparent; white-space:nowrap}
 .pill.ghost{background:transparent; color:var(--ink-soft); border-color:var(--line)}
-nav.tabs{display:flex; gap:6px; padding:14px 0 0; overflow-x:auto; -webkit-overflow-scrolling:touch}
-nav.tabs button{
-  flex:0 0 auto; font:inherit; font-size:14px; font-weight:600; padding:9px 14px; cursor:pointer;
-  background:transparent; color:var(--ink-soft); border:1px solid transparent; border-radius:999px;
-}
-nav.tabs button[aria-selected="true"]{background:var(--card); color:var(--ink); border-color:var(--line);
-  box-shadow:0 1px 2px rgba(16,24,40,.06)}
-nav.tabs button .tab-ko{display:block; margin-top:1px; font-size:10.5px; font-weight:500;
-  color:var(--ink-soft); letter-spacing:0; text-transform:none}
-@media (max-width:680px){
-  nav.tabs button{font-size:12.5px; padding:8px 11px}
-  nav.tabs button .tab-ko{font-size:9.5px}
-}
-/* 390px 폭에서 탭이 잘리지 않게 2열로 정렬한다(0.5.1에서 4개 탭). */
-@media (max-width:430px){
-  nav.tabs{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px;
-    overflow:visible; padding-top:12px}
-  nav.tabs button{width:100%; font-size:11.5px; padding:8px 6px; line-height:1.25;
-    white-space:normal; word-break:keep-all; text-align:center}
-  nav.tabs button .tab-ko{font-size:9.5px}
-}
-nav.tabs button:focus-visible{outline:2px solid var(--brand); outline-offset:2px}
-main{padding-top:18px}
+main{padding-top:12px}
 section[hidden]{display:none}
 .card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
   padding:20px; box-shadow:0 1px 2px rgba(16,24,40,.04)}
-.card + .card{margin-top:14px}
-h2{font-size:16px; margin:0 0 4px; letter-spacing:-.2px}
-h3{font-size:14.5px; margin:18px 0 8px}
-.sub{margin:0 0 16px; color:var(--ink-soft); font-size:13px}
+.card + .card{margin-top:12px}
+h2{font-size:16px; margin:0 0 6px; letter-spacing:-.2px}
+h3{font-size:14px; margin:14px 0 6px}
+.sub{margin:0 0 12px; color:var(--ink-soft); font-size:13.5px}
 .lead{margin:8px 0 4px; font-size:14px; font-weight:700; color:var(--ink)}
-.grid{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px}
-.grid .full{grid-column:1 / -1}
-@media (max-width:680px){ .grid{grid-template-columns:1fr} }
-label.field, .field{display:block}
-.field > .lab{display:block; font-size:13px; font-weight:600; margin-bottom:5px}
-.field > .lab .req{color:var(--danger); margin-left:2px}
-.field > .lab .opt{color:var(--ink-soft); font-weight:500; margin-left:4px; font-size:11.5px}
+.sr{position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden;
+  clip:rect(0,0,0,0); white-space:nowrap; border:0}
+/* ---------- 첫 화면: 질문 하나 + 입력창 하나 + 버튼 하나 ---------- */
+.hero{padding:24px 22px}
+.hero-q{font-size:24px; line-height:1.32; margin:0 0 6px; letter-spacing:-.6px; color:var(--ink)}
+.hero-sub{margin:0 0 16px; font-size:14px; color:var(--ink-soft)}
+.hero-sub strong{color:var(--ink); font-weight:700}
+.hero-note{margin:10px 0 0; font-size:12px; color:var(--ink-soft)}
+.hero-note strong{color:var(--ink); font-weight:700}
+.searchrow{display:flex; gap:10px; align-items:stretch}
 input[type=text], select, textarea{
   width:100%; font:inherit; font-size:15px; color:var(--ink); background:var(--bg);
   border:1px solid var(--line); border-radius:10px; padding:11px 12px; appearance:none;
 }
+#product{flex:1 1 auto; min-width:0; font-size:16.5px; padding:15px 14px; border-radius:12px;
+  background:var(--card); border:1.5px solid var(--line)}
 textarea{resize:vertical; min-height:84px; line-height:1.5}
 select{background-image:none; cursor:pointer}
 input[type=text]:focus, select:focus, textarea:focus{outline:2px solid var(--brand); outline-offset:1px; border-color:transparent}
-.hint{display:block; margin-top:5px; font-size:11.5px; color:var(--ink-soft)}
-.seg{display:flex; gap:6px; flex-wrap:wrap}
-.seg label{position:relative; flex:1 1 0; min-width:74px}
-.seg input{position:absolute; opacity:0; width:1px; height:1px}
-.seg span{display:block; text-align:center; cursor:pointer; font-size:13.5px; font-weight:600;
-  padding:10px 6px; border:1px solid var(--line); border-radius:10px; background:var(--bg);
-  color:var(--ink-soft); user-select:none}
-.seg input:checked + span{background:var(--brand-soft); border-color:var(--brand); color:var(--brand)}
-.seg input:focus-visible + span{outline:2px solid var(--brand); outline-offset:2px}
-.presets{display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin:0 0 14px}
-.presets .plabel{font-size:12px; font-weight:600; color:var(--ink-soft); margin-right:2px}
-.presets button{font:inherit; font-size:13px; font-weight:600; color:var(--brand);
+#product:focus{outline:2px solid var(--brand); outline-offset:1px; border-color:transparent}
+button.primary{
+  font:inherit; font-size:15px; font-weight:700; color:var(--on-brand); background:var(--brand-fill);
+  border:0; border-radius:12px; padding:12px 20px; cursor:pointer; min-height:48px;
+}
+button.primary:hover{filter:brightness(1.06)}
+button.primary:disabled{opacity:.6; cursor:progress}
+button.primary.big{flex:0 0 auto; padding:0 22px; font-size:16.5px; min-height:54px}
+button.ghost{font:inherit; font-size:13px; font-weight:600; color:var(--ink-soft); background:transparent;
+  border:1px solid var(--line); border-radius:10px; padding:9px 13px; cursor:pointer}
+button.ghost:hover{border-color:var(--brand); color:var(--brand)}
+button.primary:focus-visible, button.ghost:focus-visible{outline:2px solid var(--brand); outline-offset:2px}
+/* 예시 칩 — 한 줄 가로 스크롤(390px 에서 줄바꿈으로 화면을 잡아먹지 않게) */
+.presets{display:flex; gap:7px; flex-wrap:nowrap; overflow-x:auto; overflow-y:hidden; align-items:center;
+  margin:0 0 14px; padding:2px 0 4px; -webkit-overflow-scrolling:touch; scrollbar-width:none}
+.presets::-webkit-scrollbar{display:none}
+.presets .plabel{flex:0 0 auto; font-size:12px; font-weight:700; color:var(--ink-soft); margin-right:2px}
+.presets button{flex:0 0 auto; font:inherit; font-size:13px; font-weight:600; color:var(--brand);
   background:var(--brand-soft); border:1px solid transparent; border-radius:999px;
   padding:9px 13px; cursor:pointer; min-height:38px; white-space:nowrap}
 .presets button:hover{border-color:var(--brand)}
 .presets button:focus-visible{outline:2px solid var(--brand); outline-offset:2px}
-.links{display:flex; flex-wrap:wrap; gap:10px; margin-top:4px}
-.links a{display:inline-block; padding:10px 13px; border:1px solid var(--line); border-radius:10px;
-  color:var(--ink); text-decoration:none; font-size:13px; font-weight:600}
-.links a:hover{border-color:var(--brand)}
-.links a:focus-visible{outline:2px solid var(--brand); outline-offset:2px}
-@media (max-width:430px){ .presets button{font-size:12.5px; padding:9px 11px} }
-.actions{display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:18px}
-button.primary{
-  font:inherit; font-size:15px; font-weight:700; color:var(--on-brand); background:var(--brand-fill);
-  border:0; border-radius:11px; padding:13px 22px; cursor:pointer; min-height:46px;
+@media (max-width:560px){
+  .hero{padding:20px 16px}
+  .hero-q{font-size:21px}
+  .searchrow{flex-direction:column}
+  button.primary.big{width:100%}
 }
-button.primary:disabled{opacity:.6; cursor:progress}
-button.ghost{font:inherit; font-size:13.5px; font-weight:600; color:var(--ink-soft); background:transparent;
-  border:1px solid var(--line); border-radius:10px; padding:10px 14px; cursor:pointer}
+/* ---------- 접기(details) ---------- */
+details{border:1px solid var(--line); border-radius:12px; padding:0; margin:10px 0 0; background:var(--bg)}
+details summary{cursor:pointer; padding:12px 14px; font-size:13.5px; font-weight:600; list-style:none}
+details summary::-webkit-details-marker{display:none}
+details summary::before{content:"+"; display:inline-block; width:16px; color:var(--brand); font-weight:800}
+details[open] summary::before{content:"-"}
+details .body{padding:0 14px 14px; font-size:13px; color:var(--ink-soft)}
+details .body p{margin:6px 0}
+details.more{background:transparent; border-style:dashed; margin-top:16px}
+details.more > summary{color:var(--ink-soft)}
+details.more > summary .opt{font-weight:500; color:var(--ink-soft); font-size:12px}
+details.more > .more-body{padding:2px 14px 14px}
+details.fold{background:var(--card); border-style:solid; border-radius:var(--radius); margin-top:12px;
+  padding:0; box-shadow:0 1px 2px rgba(16,24,40,.04)}
+details.fold > summary{padding:15px 20px; font-size:14.5px; font-weight:700; color:var(--ink)}
+details.fold > summary .sum-sub{display:block; margin-top:3px; padding-left:16px; font-size:12.5px; font-weight:500; color:var(--ink-soft)}
+details.fold > .fold-body{padding:0 20px 20px}
+@media (max-width:560px){
+  details.fold > summary{padding:14px 16px}
+  details.fold > .fold-body{padding:0 16px 16px}
+}
+/* ---------- 폼 필드 ---------- */
+.grid{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px}
+.grid .full{grid-column:1 / -1}
+@media (max-width:640px){ .grid{grid-template-columns:1fr} }
+label.field, .field{display:block}
+.field > .lab{display:block; font-size:12.5px; font-weight:600; margin-bottom:5px}
+.field > .lab .req{color:var(--danger); margin-left:2px}
+.field > .lab .opt{color:var(--ink-soft); font-weight:500; margin-left:4px; font-size:11.5px}
+.hint{display:block; margin-top:5px; font-size:11.5px; color:var(--ink-soft)}
+.seg{display:flex; gap:6px; flex-wrap:wrap}
+.seg label{position:relative; flex:1 1 0; min-width:70px}
+.seg input{position:absolute; opacity:0; width:1px; height:1px}
+.seg span{display:block; text-align:center; cursor:pointer; font-size:13px; font-weight:600;
+  padding:9px 6px; border:1px solid var(--line); border-radius:10px; background:var(--bg);
+  color:var(--ink-soft); user-select:none}
+.seg input:checked + span{background:var(--brand-soft); border-color:var(--brand); color:var(--brand)}
+.seg input:focus-visible + span{outline:2px solid var(--brand); outline-offset:2px}
+.actions{display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:14px}
+.more-actions{display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:14px}
 .note-inline{font-size:12px; color:var(--ink-soft)}
-#result, #hs-result{margin-top:16px}
+/* ---------- 보조 도구 탭(첫 화면 아래, 한 줄) ---------- */
+nav.tabs{display:flex; gap:6px; align-items:center; overflow-x:auto; margin-top:22px;
+  padding-top:16px; border-top:1px solid var(--line);
+  -webkit-overflow-scrolling:touch; scrollbar-width:none}
+nav.tabs::-webkit-scrollbar{display:none}
+nav.tabs .tabs-label{flex:0 0 auto; font-size:11.5px; font-weight:700; letter-spacing:.04em;
+  color:var(--ink-soft); margin-right:2px}
+nav.tabs button{flex:0 0 auto; font:inherit; font-size:13px; font-weight:600; padding:8px 12px;
+  cursor:pointer; background:var(--card); color:var(--ink-soft); border:1px solid var(--line);
+  border-radius:999px; white-space:nowrap}
+nav.tabs button[aria-selected="true"]{background:var(--brand-soft); color:var(--brand); border-color:var(--brand)}
+nav.tabs button:focus-visible{outline:2px solid var(--brand); outline-offset:2px}
+@media (max-width:430px){
+  nav.tabs{display:flex; flex-wrap:nowrap; gap:6px; overflow-x:auto}
+  nav.tabs button{font-size:12.5px; padding:8px 10px; white-space:nowrap}
+  nav.tabs .tabs-label{display:none}
+}
+/* ---------- 결과: 결론 요약 한 장 ---------- */
+#result, #hs-result, #label-result, #ec-result{margin-top:12px}
+.eyebrow{font-size:11.5px; font-weight:800; letter-spacing:.06em; color:var(--brand); margin:0 0 3px}
+.res-title{font-size:22px; line-height:1.35; margin:0 0 8px; letter-spacing:-.5px; color:var(--ink)}
+.res-title em{font-style:normal; color:var(--brand)}
+.res-meta{display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:14px}
+.vchip{font-size:12.5px; font-weight:700; padding:5px 10px; border-radius:999px;
+  background:var(--info-soft); color:var(--info); border:1px solid transparent}
+.vchip.v-check_likely{background:var(--warn-soft); color:var(--warn)}
+.vchip.v-info_needed{background:var(--info-soft); color:var(--info)}
+.vchip.v-low_risk{background:var(--ok-soft); color:var(--ok)}
+.sumgrid{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px}
+@media (max-width:640px){ .sumgrid{grid-template-columns:1fr} }
+.sumbox{background:var(--bg); border:1px solid var(--line); border-radius:12px; padding:12px 13px}
+.sumbox h3{font-size:12px; font-weight:800; letter-spacing:.03em; color:var(--ink-soft); margin:0 0 8px}
+.sumbox ul{margin:0; padding-left:16px; font-size:13px}
+.sumbox ul li{margin:2px 0}
+.sumbox p{margin:0 0 5px; font-size:13px}
+.chips{display:flex; flex-wrap:wrap; gap:6px}
+.chip{font-size:12.5px; font-weight:600; padding:4px 9px; border-radius:8px;
+  background:var(--card); border:1px solid var(--line); color:var(--ink)}
+.costline{display:flex; justify-content:space-between; gap:8px; margin:0 0 5px; font-size:12.5px; color:var(--ink-soft)}
+.costline strong{color:var(--ink); text-align:right}
+/* ---------- 판정·표·근거 ---------- */
 .verdict{border-radius:12px; padding:14px 16px; border:1px solid var(--line); background:var(--info-soft)}
 .verdict .code{font-size:12px; font-weight:700; letter-spacing:.02em; text-transform:uppercase; opacity:.85}
 .verdict .lab{font-size:19px; font-weight:800; letter-spacing:-.3px; margin:2px 0 2px; color:var(--ink)}
@@ -241,7 +301,7 @@ button.ghost{font:inherit; font-size:13.5px; font-weight:600; color:var(--ink-so
 .v-info_needed .lab{color:var(--info)}
 .v-low_risk{background:var(--ok-soft); border-color:var(--ok)}
 .v-low_risk .lab{color:var(--ok)}
-.meta-line{display:flex; gap:10px; flex-wrap:wrap; font-size:11.5px; color:var(--ink-soft); margin:10px 0 0}
+.meta-line{display:flex; gap:10px; flex-wrap:wrap; font-size:11.5px; color:var(--ink-soft); margin:12px 0 0}
 .meta-line code{font-size:11.5px}
 .tbl-wrap{overflow-x:auto; border:1px solid var(--line); border-radius:10px; margin-top:8px}
 table{width:100%; border-collapse:collapse; font-size:13px; min-width:520px}
@@ -257,17 +317,6 @@ ol.steps{margin:8px 0 0; padding-left:20px; font-size:13.5px}
 ol.steps li{margin:4px 0}
 ul.plain{margin:6px 0 0; padding-left:18px; font-size:13.5px}
 ul.plain li{margin:4px 0}
-details{border:1px solid var(--line); border-radius:10px; padding:0; margin:8px 0 0; background:var(--bg)}
-details summary{cursor:pointer; padding:11px 13px; font-size:13.5px; font-weight:600; list-style:none}
-details summary::-webkit-details-marker{display:none}
-details summary::before{content:"+"; display:inline-block; width:16px; color:var(--brand); font-weight:800}
-details[open] summary::before{content:"-" }
-details .body{padding:0 13px 13px; font-size:13px; color:var(--ink-soft)}
-details .body p{margin:6px 0}
-details.card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:0; margin-top:14px; box-shadow:0 1px 2px rgba(16,24,40,.04)}
-details.card > summary{padding:16px 20px; font-size:15px; font-weight:700; color:var(--ink)}
-details.card > summary .sum-sub{display:block; margin-top:3px; padding-left:16px; font-size:12.5px; font-weight:400; color:var(--ink-soft)}
-details.card .card-body{padding:0 20px 20px}
 .tag{display:inline-block; font-size:11px; font-weight:700; padding:2px 7px; border-radius:6px;
   background:var(--brand-soft); color:var(--brand); margin-right:5px}
 .tag.ok{background:var(--ok-soft); color:var(--ok)}
@@ -286,23 +335,29 @@ details.card .card-body{padding:0 20px 20px}
 pre{background:var(--bg); border:1px solid var(--line); border-radius:10px; padding:12px;
   overflow-x:auto; font-size:12.5px; line-height:1.5; margin:8px 0 0}
 code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
-footer{margin-top:30px; padding-top:16px; border-top:1px solid var(--line); font-size:12px; color:var(--ink-soft)}
-footer p{margin:6px 0}
-footer strong{color:var(--ink)}
+/* ---------- 공유·자매 서비스·문의·푸터 ---------- */
 .sharebar{display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:12px}
-.sharebar button{
-  font:inherit; font-size:13px; font-weight:700; color:var(--brand); background:var(--brand-soft);
-  border:1px solid transparent; border-radius:10px; padding:9px 13px; cursor:pointer;
-}
+.sharebar button{font:inherit; font-size:13px; font-weight:700; color:var(--brand); background:var(--brand-soft);
+  border:1px solid transparent; border-radius:10px; padding:9px 13px; cursor:pointer}
 .sharebar button:hover{border-color:var(--brand)}
 .sharebar button:focus-visible{outline:2px solid var(--brand); outline-offset:2px}
 .sharebar .copied{font-size:12.5px; font-weight:700; color:var(--ok)}
-.card.inquiry{margin-top:14px; padding:16px 18px; background:var(--card)}
-.card.inquiry h2{font-size:15px}
-.card.inquiry .sub{margin:0 0 12px; font-size:12.5px}
-.card.inquiry .hint{font-size:11.5px}
-.sr{position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden;
-  clip:rect(0,0,0,0); white-space:nowrap; border:0}
+.links{display:flex; flex-wrap:wrap; gap:8px; margin-top:4px}
+.links a{display:inline-block; padding:9px 12px; border:1px solid var(--line); border-radius:10px;
+  color:var(--ink); text-decoration:none; font-size:13px; font-weight:600; background:var(--card)}
+.links a:hover{border-color:var(--brand); color:var(--brand)}
+.links a:focus-visible{outline:2px solid var(--brand); outline-offset:2px}
+section.siblings{margin-top:22px; padding-top:14px; border-top:1px solid var(--line)}
+section.siblings h2{font-size:12px; font-weight:800; letter-spacing:.03em; color:var(--ink-soft);
+  margin:0 0 8px; text-transform:none}
+section.siblings .links{margin-top:0}
+.card.inquiry{margin-top:14px; padding:0}
+.card.inquiry h2{font-size:14.5px}
+footer{margin-top:26px; padding-top:16px; border-top:1px solid var(--line); font-size:12px; color:var(--ink-soft)}
+footer p{margin:6px 0}
+footer strong{color:var(--ink)}
+footer .links{margin:10px 0}
+footer details{margin-top:10px}
 </style>
 </head>
 <body>
@@ -316,233 +371,191 @@ footer strong{color:var(--ink)}
         <p class="slogan">Clearance, simplified.</p>
       </div>
     </div>
-    <div class="badges">
-      <span class="pill">결제 없음</span>
-      <span class="pill ghost">회원가입 없음</span>
-      <span class="pill ghost" id="quota-pill">무료 한도 확인 중</span>
-    </div>
+    <span class="pill ghost" id="quota-pill">무료 한도 확인 중</span>
   </header>
 
-  <nav class="tabs" role="tablist" aria-label="화면 선택">
-    <button type="button" role="tab" id="tabbtn-check" aria-controls="tab-check" aria-selected="true" data-tab="check">CLNS Check<span class="tab-ko">통합 리스크 체크</span></button>
-    <button type="button" role="tab" id="tabbtn-label" aria-controls="tab-label" aria-selected="false" data-tab="label">CLNS Label<span class="tab-ko">한글표시사항 체크</span></button>
-    <button type="button" role="tab" id="tabbtn-hs" aria-controls="tab-hs" aria-selected="false" data-tab="hs">CLNS Intelligence<span class="tab-ko">HS·법령·리콜</span></button>
-    <button type="button" role="tab" id="tabbtn-api" aria-controls="tab-api" aria-selected="false" data-tab="api">CLNS API &amp; MCP<span class="tab-ko">개발자 연결</span></button>
-  </nav>
-
   <main>
-    <!-- ================= 리스크 체크 ================= -->
+    <!-- ================= 1. 첫 화면: 질문 하나 ================= -->
     <section id="tab-check" role="tabpanel" aria-labelledby="tabbtn-check">
-      <div class="card">
-        <h2>CLNS Check</h2>
-        <p class="sub">수입·반입 전 10초 통합 체크 · 품목명만 넣어도 규제·의약품·리콜을 한 번에 확인합니다. <strong>의약품·영양제</strong>는 식약처 허가정보·DUR·e약은요·마약류 오남용 정보를 실시간으로 함께 조회합니다. 결과는 확정 판정이 아니라 <strong>확인할 항목의 목록</strong>입니다.</p>
+      <div class="card hero">
+        <h2 class="hero-q">무엇을 수입·판매하시나요?</h2>
+        <p class="hero-sub">품목 이름만 적으면 <strong>KC 인증·식약처 신고·세관장확인·리콜</strong>까지, 확인할 것을 한 번에 정리합니다.</p>
         <form id="check-form" novalidate>
           <div class="presets" role="group" aria-label="대표 품목으로 바로 체험">
-            <span class="plabel">대표 품목으로 1초 체험</span>
+            <span class="plabel">예시로 1초 체험</span>
             <button type="button" class="preset" id="preset-melatonin" data-preset="melatonin">멜라토닌 직구</button>
             <button type="button" class="preset" id="preset-dog-treat" data-preset="dog-treat">강아지 간식</button>
             <button type="button" class="preset" id="preset-cosmetics" data-preset="cosmetics">수입 화장품</button>
             <button type="button" class="preset" id="preset-earbuds" data-preset="earbuds">블루투스 이어폰</button>
             <button type="button" class="preset" id="preset-kids-clothes" data-preset="kids-clothes">유아용 의류</button>
           </div>
-          <div class="grid">
-            <label class="field full" for="product">
-              <span class="lab">품목명<span class="req">*</span></span>
-              <input type="text" id="product" name="product" maxlength="80" autocomplete="off"
-                     placeholder="예: 중국산 블루투스 스피커, 비타민 D3, 멜라토닌, 유아용 원목 완구">
-              <span class="hint">제품명·성분명·용도를 적으면 관련 규제(전파·식약처·의약품·어린이제품)를 자동으로 찾아 판정합니다.</span>
-            </label>
+          <div class="searchrow">
+            <label class="sr" for="product">품목명</label>
+            <input type="text" id="product" name="product" maxlength="80" autocomplete="off"
+                   placeholder="예: 중국산 무선이어폰, 일본 과자, 강아지 간식">
+            <button type="submit" class="primary big" id="check-submit">규제·인증 확인</button>
+          </div>
+          <p class="hero-note">결제 없음 · 회원가입 없음 · 결과는 확정 판정이 아니라 <strong>확인할 항목의 목록</strong>이며 법적 효력이 없습니다.</p>
+          <p class="hint" id="form-note" aria-live="polite"></p>
 
-            <label class="field" for="hs">
-              <span class="lab">HS 코드<span class="opt">선택</span></span>
-              <input type="text" id="hs" name="hs" maxlength="10" inputmode="numeric" autocomplete="off"
-                     placeholder="10자리 (예: 8518220000)">
-              <span class="hint">10자리를 넣으면 관세청 세관장확인대상물품을 실시간 조회합니다(6자리는 요건 판정에 부족).</span>
-            </label>
-
-            <label class="field" id="rra-wrap" for="rra" hidden>
-              <span class="lab">적합성평가 번호<span class="opt">선택</span></span>
-              <input type="text" id="rra" name="rra" maxlength="40" autocomplete="off"
-                     placeholder="예: R-LARN-00-0210">
-              <span class="hint">전파 적합성평가는 번호가 있어야 실시간 조회됩니다(국립전파연구원, 키 불필요).</span>
-            </label>
-
-            <label class="field" for="origin">
-              <span class="lab">원산지<span class="opt">선택</span></span>
-              <select id="origin" name="origin">
-                <option value="">선택 안 함</option>
-                <option value="중국">중국</option>
-                <option value="미국">미국</option>
-                <option value="일본">일본</option>
-                <option value="베트남">베트남</option>
-                <option value="대만">대만</option>
-                <option value="태국">태국</option>
-                <option value="인도네시아">인도네시아</option>
-                <option value="인도">인도</option>
-                <option value="독일">독일</option>
-                <option value="멕시코">멕시코</option>
-                <option value="기타">기타</option>
-              </select>
-            </label>
-
-            <div class="field">
-              <span class="lab">무선·블루투스 송신 기능</span>
-              <div class="seg" role="radiogroup" aria-label="무선·블루투스 송신 기능">
-                <label><input type="radio" name="wire" value="unknown" checked><span>모름</span></label>
-                <label><input type="radio" name="wire" value="yes"><span>있음</span></label>
-                <label><input type="radio" name="wire" value="no"><span>없음</span></label>
-              </div>
-              <span class="hint">있음이면 전파법 적합성평가(적합인증·적합등록) 쟁점이 붙습니다.</span>
-            </div>
-
-            <div class="field">
-              <span class="lab">어린이 대상 제품</span>
-              <div class="seg" role="radiogroup" aria-label="어린이 대상 제품">
-                <label><input type="radio" name="child" value="no" checked><span>아니오</span></label>
-                <label><input type="radio" name="child" value="yes"><span>예</span></label>
-              </div>
-              <span class="hint">만 13세 이하 사용 제품이면 어린이제품 안전관리 쟁점을 함께 봅니다.</span>
-            </div>
-
-            <label class="field" for="kind">
-              <span class="lab">품목군<span class="opt">선택</span></span>
-              <select id="kind" name="kind">
-                <option value="">자동 판단</option>
-                <option value="food">식품</option>
-                <option value="health_functional">건강기능식품</option>
-                <option value="cosmetics">화장품</option>
-                <option value="drug">의약품·영양제</option>
-                <option value="food_contact">식품용 기구·용기·포장</option>
-                <option value="electronics">전자·생활용품</option>
-                <option value="feed">반려동물 사료·간식</option>
-              </select>
-              <span class="hint">화장품·의약품·식품을 고르거나 품목명에 적으면 추가 대조 항목이 자동으로 열립니다.</span>
-            </label>
-
-            <div class="field full">
-              <span class="lab">수입 목적</span>
-              <div class="seg" role="radiogroup" aria-label="수입 목적">
-                <label><input type="radio" name="purpose" value="resale" checked><span>판매·유통</span></label>
-                <label><input type="radio" name="purpose" value="self_use"><span>자가소비·휴대 반입</span></label>
-              </div>
-              <span class="hint">판매 목적이면 표시·인증·영업등록 요건이 함께 걸립니다. 자가소비는 개인 반입 면제 범위(6병 기준 등)를 따집니다.</span>
-            </div>
-
-            <div class="field full" id="drug-fields-wrap" hidden>
+          <details class="more">
+            <summary>세부 조건 선택 <span class="opt">(선택 — 넣으면 더 정확해집니다)</span></summary>
+            <div class="more-body">
               <div class="grid">
-                <div class="field">
-                  <span class="lab">반입 경로</span>
-                  <div class="seg" role="radiogroup" aria-label="반입 경로">
-                    <label><input type="radio" name="drug-channel" value="carry" checked><span>휴대 반입</span></label>
-                    <label><input type="radio" name="drug-channel" value="online"><span>해외직구</span></label>
-                    <label><input type="radio" name="drug-channel" value="unknown"><span>모름</span></label>
-                  </div>
-                  <span class="hint">직구는 6병 기준 자가사용 반입이 허용되지 않는 경로입니다.</span>
-                </div>
-                <label class="field" for="drug-qty">
-                  <span class="lab">수량·단위<span class="opt">선택</span></span>
-                  <div style="display:flex;gap:8px">
-                    <input type="text" id="drug-qty" name="drug-qty" maxlength="3" inputmode="numeric" autocomplete="off" placeholder="예: 2" style="flex:1">
-                    <select id="drug-unit" name="drug-unit" style="width:92px">
-                      <option value="병">병</option>
-                      <option value="정">정</option>
-                      <option value="캡슐">캡슐</option>
-                      <option value="개">개</option>
-                    </select>
-                  </div>
-                  <span class="hint">자가사용 인정기준(6병·3개월 복용량)과 대조합니다.</span>
+                <label class="field" for="hs">
+                  <span class="lab">HS 코드<span class="opt">선택</span></span>
+                  <input type="text" id="hs" name="hs" maxlength="10" inputmode="numeric" autocomplete="off"
+                         placeholder="10자리 (예: 8518220000)">
+                  <span class="hint">10자리를 넣으면 관세청 세관장확인대상물품을 실시간 조회합니다.</span>
                 </label>
-                <label class="field" for="drug-rx">
-                  <span class="lab">처방전 유무<span class="opt">선택</span></span>
-                  <select id="drug-rx" name="drug-rx">
-                    <option value="unknown">모름</option>
-                    <option value="yes">있음</option>
-                    <option value="no">없음</option>
+
+                <label class="field" for="origin">
+                  <span class="lab">원산지<span class="opt">선택</span></span>
+                  <select id="origin" name="origin">
+                    <option value="">선택 안 함</option>
+                    <option value="중국">중국</option>
+                    <option value="미국">미국</option>
+                    <option value="일본">일본</option>
+                    <option value="베트남">베트남</option>
+                    <option value="대만">대만</option>
+                    <option value="태국">태국</option>
+                    <option value="인도네시아">인도네시아</option>
+                    <option value="인도">인도</option>
+                    <option value="독일">독일</option>
+                    <option value="멕시코">멕시코</option>
+                    <option value="기타">기타</option>
                   </select>
                 </label>
-              </div>
-            </div>
 
-            <div class="field full">
-              <details id="ad-onestop-wrap">
-                <summary>상세페이지·광고·라벨 문구 함께 검수하기 <span class="opt" style="font-weight:500;color:var(--ink-soft)">(선택 · 원스톱)</span></summary>
-                <div class="body" style="padding-top:10px">
+                <label class="field" for="kind">
+                  <span class="lab">품목군<span class="opt">선택</span></span>
+                  <select id="kind" name="kind">
+                    <option value="">자동 판단</option>
+                    <option value="food">식품</option>
+                    <option value="health_functional">건강기능식품</option>
+                    <option value="cosmetics">화장품</option>
+                    <option value="drug">의약품·영양제</option>
+                    <option value="food_contact">식품용 기구·용기·포장</option>
+                    <option value="electronics">전자·생활용품</option>
+                    <option value="feed">반려동물 사료·간식</option>
+                  </select>
+                  <span class="hint">화장품·의약품·식품을 고르면 추가 대조 항목이 열립니다.</span>
+                </label>
+
+                <div class="field">
+                  <span class="lab">수입 목적</span>
+                  <div class="seg" role="radiogroup" aria-label="수입 목적">
+                    <label><input type="radio" name="purpose" value="resale" checked><span>판매·유통</span></label>
+                    <label><input type="radio" name="purpose" value="self_use"><span>자가소비</span></label>
+                  </div>
+                </div>
+
+                <div class="field">
+                  <span class="lab">무선·블루투스 송신</span>
+                  <div class="seg" role="radiogroup" aria-label="무선·블루투스 송신 기능">
+                    <label><input type="radio" name="wire" value="unknown" checked><span>모름</span></label>
+                    <label><input type="radio" name="wire" value="yes"><span>있음</span></label>
+                    <label><input type="radio" name="wire" value="no"><span>없음</span></label>
+                  </div>
+                  <span class="hint">있음이면 전파법 적합성평가 쟁점이 붙습니다.</span>
+                </div>
+
+                <div class="field">
+                  <span class="lab">어린이 대상 제품</span>
+                  <div class="seg" role="radiogroup" aria-label="어린이 대상 제품">
+                    <label><input type="radio" name="child" value="no" checked><span>아니오</span></label>
+                    <label><input type="radio" name="child" value="yes"><span>예</span></label>
+                  </div>
+                </div>
+
+                <label class="field" id="rra-wrap" for="rra" hidden>
+                  <span class="lab">적합성평가 번호<span class="opt">선택</span></span>
+                  <input type="text" id="rra" name="rra" maxlength="40" autocomplete="off"
+                         placeholder="예: R-LARN-00-0210">
+                  <span class="hint">번호가 있어야 국립전파연구원 실시간 조회가 됩니다.</span>
+                </label>
+
+                <div class="field full" id="drug-fields-wrap" hidden>
                   <div class="grid">
-                    <div class="field full">
-                      <span class="lab">기능성 여부</span>
-                      <div class="seg" role="radiogroup" aria-label="기능성 여부">
-                        <label><input type="radio" name="ad-functional" value="unknown" checked><span>모름</span></label>
-                        <label><input type="radio" name="ad-functional" value="yes"><span>기능성(심사·보고 완료)</span></label>
-                        <label><input type="radio" name="ad-functional" value="no"><span>일반 제품</span></label>
+                    <div class="field">
+                      <span class="lab">반입 경로</span>
+                      <div class="seg" role="radiogroup" aria-label="반입 경로">
+                        <label><input type="radio" name="drug-channel" value="carry" checked><span>휴대 반입</span></label>
+                        <label><input type="radio" name="drug-channel" value="online"><span>해외직구</span></label>
+                        <label><input type="radio" name="drug-channel" value="unknown"><span>모름</span></label>
                       </div>
                     </div>
-                    <label class="field full" for="ad-copy-onestop">
-                      <span class="lab">상세페이지·광고 문구<span class="opt">선택</span></span>
-                      <textarea id="ad-copy-onestop" name="ad-copy-onestop" rows="3" maxlength="4000"
-                                placeholder="예: 먹기만 하면 100% 다이어트! 면역력 강화·암 예방"></textarea>
-                      <span class="hint">식약처 과대광고 검수와 함께, 공정거래위원회 표시광고법·전자상거래법 기준(허위 정가·마감임박, 체험단 대가성 미표기, 청약철회 제한, 배송·품절 책임 회피, 최저가·1위, 구독·자동결제, 가격·해지 다크패턴)도 같이 봅니다. 국내 셀러는 상세페이지 문구만 붙여넣어도 됩니다.</span>
+                    <label class="field" for="drug-qty">
+                      <span class="lab">수량·단위<span class="opt">선택</span></span>
+                      <div style="display:flex;gap:8px">
+                        <input type="text" id="drug-qty" name="drug-qty" maxlength="3" inputmode="numeric" autocomplete="off" placeholder="예: 2" style="flex:1">
+                        <select id="drug-unit" name="drug-unit" style="width:92px">
+                          <option value="병">병</option>
+                          <option value="정">정</option>
+                          <option value="캡슐">캡슐</option>
+                          <option value="개">개</option>
+                        </select>
+                      </div>
+                      <span class="hint">자가사용 인정기준(6병·3개월 복용량)과 대조합니다.</span>
                     </label>
-                    <label class="field full" for="ad-label-onestop">
-                      <span class="lab">라벨·한글표시사항 문구<span class="opt">선택</span></span>
-                      <textarea id="ad-label-onestop" name="ad-label-onestop" rows="2" maxlength="4000"
-                                placeholder="예: 제품명 비타민D3 / 내용량 60정 / 원료명 … / 소비기한 2027.03.15"></textarea>
-                      <span class="hint">포장에 적힌 항목을 옮기면 필수 한글표시사항 누락을 대조합니다.</span>
+                    <label class="field" for="drug-rx">
+                      <span class="lab">처방전 유무<span class="opt">선택</span></span>
+                      <select id="drug-rx" name="drug-rx">
+                        <option value="unknown">모름</option>
+                        <option value="yes">있음</option>
+                        <option value="no">없음</option>
+                      </select>
                     </label>
                   </div>
                 </div>
-              </details>
+
+                <label class="field full" id="cosmetic-ingredients-wrap" for="cosmetic-ingredients-onestop" hidden>
+                  <span class="lab">화장품 전성분<span class="opt">선택 · 배합금지/한도 대조</span></span>
+                  <textarea id="cosmetic-ingredients-onestop" name="cosmetic-ingredients-onestop" rows="2" maxlength="4000"
+                            placeholder="예: Water, Hydroquinone, Salicylic Acid, Phenoxyethanol (쉼표 또는 줄바꿈 구분)"></textarea>
+                  <span class="hint">화장품·속눈썹영양제라면 전성분(한글·INCI)을 넣어 배합금지·한도 성분을 함께 확인하세요.</span>
+                </label>
+
+                <div class="field full">
+                  <details id="ad-onestop-wrap">
+                    <summary>상세페이지·광고·라벨 문구 함께 검수하기 <span class="opt">(선택)</span></summary>
+                    <div class="body" style="padding-top:10px">
+                      <div class="grid">
+                        <div class="field full">
+                          <span class="lab">기능성 여부</span>
+                          <div class="seg" role="radiogroup" aria-label="기능성 여부">
+                            <label><input type="radio" name="ad-functional" value="unknown" checked><span>모름</span></label>
+                            <label><input type="radio" name="ad-functional" value="yes"><span>기능성(심사·보고 완료)</span></label>
+                            <label><input type="radio" name="ad-functional" value="no"><span>일반 제품</span></label>
+                          </div>
+                        </div>
+                        <label class="field full" for="ad-copy-onestop">
+                          <span class="lab">상세페이지·광고 문구<span class="opt">선택</span></span>
+                          <textarea id="ad-copy-onestop" name="ad-copy-onestop" rows="3" maxlength="4000"
+                                    placeholder="예: 먹기만 하면 100% 다이어트! 면역력 강화·암 예방"></textarea>
+                          <span class="hint">식약처 과대광고와 함께 공정거래위원회 표시광고법·전자상거래법 기준도 같이 봅니다.</span>
+                        </label>
+                        <label class="field full" for="ad-label-onestop">
+                          <span class="lab">라벨·한글표시사항 문구<span class="opt">선택</span></span>
+                          <textarea id="ad-label-onestop" name="ad-label-onestop" rows="2" maxlength="4000"
+                                    placeholder="예: 제품명 비타민D3 / 내용량 60정 / 원료명 … / 소비기한 2027.03.15"></textarea>
+                          <span class="hint">포장에 적힌 항목을 옮기면 필수 한글표시사항 누락을 대조합니다.</span>
+                        </label>
+                      </div>
+                    </div>
+                  </details>
+                </div>
+              </div>
+
+              <div class="more-actions">
+                <button type="button" class="ghost" id="check-demo">예시로 채워 보기</button>
+                <button type="button" class="ghost" id="check-demo-shop">국내 판매페이지 예시</button>
+                <button type="button" class="ghost" id="check-demo-feed">반려동물 사료 예시</button>
+                <button type="button" class="ghost" id="check-reset">입력 지우기</button>
+              </div>
             </div>
-
-            <label class="field full" id="cosmetic-ingredients-wrap" for="cosmetic-ingredients-onestop" hidden>
-              <span class="lab">화장품 전성분<span class="opt">선택 · 배합금지/한도 대조</span></span>
-              <textarea id="cosmetic-ingredients-onestop" name="cosmetic-ingredients-onestop" rows="2" maxlength="4000"
-                        placeholder="예: Water, Hydroquinone, Salicylic Acid, Phenoxyethanol (쉼표 또는 줄바꿈 구분)"></textarea>
-              <span class="hint">화장품·속눈썹영양제·스킨케어라면 전성분(한글·INCI)을 넣어 배합금지·한도 성분을 함께 확인하세요.</span>
-            </label>
-          </div>
-
-          <div class="actions">
-            <button type="submit" class="primary" id="check-submit">리스크 체크</button>
-            <button type="button" class="ghost" id="check-demo">예시로 채워 보기</button>
-            <button type="button" class="ghost" id="check-demo-shop">국내 판매페이지 예시</button>
-            <button type="button" class="ghost" id="check-demo-feed">반려동물 사료 예시</button>
-            <button type="button" class="ghost" id="check-reset">입력 지우기</button>
-            <span class="note-inline" id="form-note" aria-live="polite"></span>
-          </div>
+          </details>
         </form>
-      </div>
-
-      <div class="card" id="ec-only-card">
-        <h2>국내 판매페이지 문구만 빠르게 검수</h2>
-        <p class="sub">수입 요건 없이 상세페이지 문구만 넣어도 됩니다. 공정거래위원회 표시광고법·전자상거래법 기준으로 위험 문구와 빠진 고지를 확인합니다. 입력한 문구는 저장하지 않습니다.</p>
-        <label class="field full" for="ec-copy">
-          <span class="lab">상세페이지 문구<span class="req">*</span></span>
-          <textarea id="ec-copy" rows="3" maxlength="8000"
-                    placeholder="예: 정가 39,000원 → 오늘만 19,900원! 단순변심 환불 불가 / 체험단으로 선정되어 직접 써봤어요"></textarea>
-          <span class="hint">가격·후기·청약철회·배송·구독 안내를 페이지에 적힌 그대로 붙여넣으세요. 고지 항목(상호·연락처·판매자 신고번호·청약철회·배송)까지 함께 대조합니다.</span>
-        </label>
-        <div class="grid">
-          <label class="field" for="ec-channel">
-            <span class="lab">판매 채널<span class="opt">선택</span></span>
-            <select id="ec-channel">
-              <option value="own">자사몰</option>
-              <option value="smartstore">네이버 스마트스토어</option>
-              <option value="coupang">쿠팡</option>
-              <option value="other">기타(오픈마켓·SNS 커머스)</option>
-            </select>
-          </label>
-        </div>
-        <div class="actions">
-          <button type="button" class="primary" id="ec-submit">판매페이지 검수</button>
-          <button type="button" class="ghost" id="ec-demo">예시로 채워 보기</button>
-          <span class="note-inline" id="ec-note" aria-live="polite"></span>
-        </div>
-        <div id="ec-result" aria-live="polite"></div>
-        <div class="sharebar" id="ec-share" hidden>
-          <button type="button" id="ec-copy-summary">결과 요약 복사</button>
-          <button type="button" id="ec-copy-link">공유 링크 복사</button>
-          <span class="copied" id="ec-share-note" role="status" aria-live="polite"></span>
-        </div>
       </div>
 
       <div id="result" aria-live="polite"></div>
@@ -551,20 +564,64 @@ footer strong{color:var(--ink)}
         <button type="button" id="result-copy-link">공유 링크 복사</button>
         <span class="copied" id="result-share-note" role="status" aria-live="polite"></span>
       </div>
+
+      <details class="card fold" id="ec-only-card">
+        <summary>국내 판매페이지 문구만 빠르게 검수</summary>
+        <div class="fold-body">
+          <p class="sub">수입 요건 없이 상세페이지 문구만 넣어도 됩니다. 공정거래위원회 표시광고법·전자상거래법 기준으로 위험 문구와 빠진 고지를 확인합니다. 입력한 문구는 저장하지 않습니다.</p>
+          <label class="field full" for="ec-copy">
+            <span class="lab">상세페이지 문구<span class="req">*</span></span>
+            <textarea id="ec-copy" rows="3" maxlength="8000"
+                      placeholder="예: 정가 39,000원 → 오늘만 19,900원! 단순변심 환불 불가 / 체험단으로 선정되어 직접 써봤어요"></textarea>
+            <span class="hint">가격·후기·청약철회·배송·구독 안내를 페이지에 적힌 그대로 붙여넣으세요. 판매자 정보 고지 항목까지 함께 대조합니다.</span>
+          </label>
+          <div class="grid">
+            <label class="field" for="ec-channel">
+              <span class="lab">판매 채널<span class="opt">선택</span></span>
+              <select id="ec-channel">
+                <option value="own">자사몰</option>
+                <option value="smartstore">네이버 스마트스토어</option>
+                <option value="coupang">쿠팡</option>
+                <option value="other">기타(오픈마켓·SNS 커머스)</option>
+              </select>
+            </label>
+          </div>
+          <div class="actions">
+            <button type="button" class="primary" id="ec-submit">판매페이지 검수</button>
+            <button type="button" class="ghost" id="ec-demo">예시로 채워 보기</button>
+            <span class="note-inline" id="ec-note" aria-live="polite"></span>
+          </div>
+          <div id="ec-result" aria-live="polite"></div>
+          <div class="sharebar" id="ec-share" hidden>
+            <button type="button" id="ec-copy-summary">결과 요약 복사</button>
+            <button type="button" id="ec-copy-link">공유 링크 복사</button>
+            <span class="copied" id="ec-share-note" role="status" aria-live="polite"></span>
+          </div>
+        </div>
+      </details>
     </section>
+
+    <!-- ================= 보조 도구: 한 줄 탭 ================= -->
+    <nav class="tabs" role="tablist" aria-label="다른 조회 도구">
+      <span class="tabs-label">다른 도구</span>
+      <button type="button" role="tab" id="tabbtn-check" aria-controls="tab-check" aria-selected="true" data-tab="check" title="CLNS Check · 통합 리스크 체크">규제·인증</button>
+      <button type="button" role="tab" id="tabbtn-label" aria-controls="tab-label" aria-selected="false" data-tab="label" title="CLNS Label · 한글표시사항">한글표시사항</button>
+      <button type="button" role="tab" id="tabbtn-hs" aria-controls="tab-hs" aria-selected="false" data-tab="hs" title="CLNS Intelligence · HS·법령·리콜">HS·리콜</button>
+      <button type="button" role="tab" id="tabbtn-api" aria-controls="tab-api" aria-selected="false" data-tab="api" title="CLNS API &amp; MCP">API·MCP</button>
+    </nav>
 
     <!-- ================= 한글표시사항(라벨) ================= -->
     <section id="tab-label" role="tabpanel" aria-labelledby="tabbtn-label" hidden>
       <div class="card">
-        <h2>CLNS Label — 수입품 한글표시사항 1초 체크</h2>
-        <p class="sub">수입품 포장의 <strong>한글표시사항(라벨링)</strong>을 품목군별 법정 항목과 대조합니다. 라벨 문구를 붙여넣으면 빠진 항목을 짚고, 비워 두면 <strong>체크리스트와 흔한 과태료 사례</strong>를 보여 줍니다. 결과는 <strong>확인할 항목의 목록</strong>이며 표시의 적법을 확정하지 않습니다.</p>
+        <h2>한글표시사항 체크</h2>
+        <p class="sub">수입품 포장의 한글표시사항을 품목군별 법정 항목과 대조합니다. 라벨 문구를 붙여넣으면 빠진 항목을 짚고, 비워 두면 체크리스트와 흔한 과태료 사례를 보여 줍니다.</p>
         <form id="label-form" novalidate>
           <div class="presets" role="group" aria-label="한글라벨 예시로 체험">
-            <span class="plabel">예시로 1초 체크</span>
-            <button type="button" id="label-preset-cosmetics" data-label-preset="cosmetics">수입 화장품 라벨</button>
-            <button type="button" id="label-preset-food" data-label-preset="general_food">수입식품 라벨</button>
-            <button type="button" id="label-preset-kc" data-label-preset="kc_electronics">KC 가전 라벨</button>
-            <button type="button" id="label-preset-pet" data-label-preset="pet_food">수입 사료 라벨</button>
+            <span class="plabel">예시로 체험</span>
+            <button type="button" id="label-preset-cosmetics" data-label-preset="cosmetics">수입 화장품</button>
+            <button type="button" id="label-preset-food" data-label-preset="general_food">수입식품</button>
+            <button type="button" id="label-preset-kc" data-label-preset="kc_electronics">KC 가전</button>
+            <button type="button" id="label-preset-pet" data-label-preset="pet_food">수입 사료</button>
           </div>
           <div class="grid">
             <label class="field" for="label-group">
@@ -579,42 +636,48 @@ footer strong{color:var(--ink)}
                 <option value="pet_food">반려동물 사료·간식</option>
                 <option value="general_goods">일반 공산품</option>
               </select>
-              <span class="hint">품목군마다 근거 법령과 필수 항목이 다릅니다.</span>
-            </label>
-            <label class="field" for="label-imported">
-              <span class="lab">수입 제품 여부</span>
-              <select id="label-imported" name="label-imported">
-                <option value="yes">수입 제품</option>
-                <option value="no">국내 제조</option>
-                <option value="unknown">모름</option>
-              </select>
-            </label>
-            <label class="field" for="label-channel">
-              <span class="lab">유통 경로<span class="opt">선택</span></span>
-              <select id="label-channel" name="label-channel">
-                <option value="direct">직수입·직판</option>
-                <option value="agency">구매대행</option>
-                <option value="parallel_import">병행수입</option>
-                <option value="online">온라인 판매</option>
-                <option value="unknown">모름</option>
-              </select>
-              <span class="hint">구매대행·병행수입이면 고지·표시 항목이 추가됩니다(KC).</span>
-            </label>
-            <label class="field" for="label-animal-origin">
-              <span class="lab">사료 동물성 원료<span class="opt">사료만</span></span>
-              <select id="label-animal-origin" name="label-animal-origin">
-                <option value="unknown">모름·해당 없음</option>
-                <option value="yes">반추동물 유래 포함</option>
-                <option value="no">없음</option>
-              </select>
-            </label>
-            <label class="field full" for="label-text">
-              <span class="lab">라벨·한글표시사항 문구<span class="opt">선택 — 넣으면 대조</span></span>
-              <textarea id="label-text" name="label-text" rows="4" maxlength="4000"
-                        placeholder="포장에 적힌 항목을 그대로 옮겨 주세요. 예: 제품명 수분 크림 / 상호 (주)예시 / 전성분 정제수, 글리세린 / 용량 50mL / 제조번호 A1B2 / 사용기한 2027.12.31 / 가격 29,000원 / 주의사항 …"></textarea>
-              <span class="hint">항목을 찾지 못한 것은 '입력에 없다'는 뜻이며, 실제 포장에 없다는 확정이 아닙니다. 라벨 사진 인식은 하지 않습니다.</span>
             </label>
           </div>
+          <label class="field" for="label-text">
+            <span class="lab">라벨·한글표시사항 문구<span class="opt">선택 — 넣으면 대조</span></span>
+            <textarea id="label-text" name="label-text" rows="4" maxlength="4000"
+                      placeholder="포장에 적힌 항목을 그대로 옮겨 주세요. 예: 제품명 수분 크림 / 상호 (주)예시 / 전성분 정제수, 글리세린 / 용량 50mL / 제조번호 A1B2 / 사용기한 2027.12.31 / 가격 29,000원 / 주의사항 …"></textarea>
+            <span class="hint">항목을 찾지 못한 것은 '입력에 없다'는 뜻이며, 실제 포장에 없다는 확정이 아닙니다. 라벨 사진 인식은 하지 않습니다.</span>
+          </label>
+          <details class="more">
+            <summary>수입 경로·사료 조건 <span class="opt">(선택)</span></summary>
+            <div class="more-body">
+              <div class="grid">
+                <label class="field" for="label-imported">
+                  <span class="lab">수입 제품 여부</span>
+                  <select id="label-imported" name="label-imported">
+                    <option value="yes">수입 제품</option>
+                    <option value="no">국내 제조</option>
+                    <option value="unknown">모름</option>
+                  </select>
+                </label>
+                <label class="field" for="label-channel">
+                  <span class="lab">유통 경로<span class="opt">선택</span></span>
+                  <select id="label-channel" name="label-channel">
+                    <option value="direct">직수입·직판</option>
+                    <option value="agency">구매대행</option>
+                    <option value="parallel_import">병행수입</option>
+                    <option value="online">온라인 판매</option>
+                    <option value="unknown">모름</option>
+                  </select>
+                  <span class="hint">구매대행·병행수입이면 고지·표시 항목이 추가됩니다(KC).</span>
+                </label>
+                <label class="field" for="label-animal-origin">
+                  <span class="lab">사료 동물성 원료<span class="opt">사료만</span></span>
+                  <select id="label-animal-origin" name="label-animal-origin">
+                    <option value="unknown">모름·해당 없음</option>
+                    <option value="yes">반추동물 유래 포함</option>
+                    <option value="no">없음</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+          </details>
           <div class="actions">
             <button type="submit" class="primary" id="label-submit">한글라벨 체크</button>
             <button type="button" class="ghost" id="label-reset">입력 지우기</button>
@@ -630,29 +693,32 @@ footer strong{color:var(--ink)}
       </div>
     </section>
 
-    <!-- ================= HS 조회 ================= -->
+    <!-- ================= HS·리콜 조회 ================= -->
     <section id="tab-hs" role="tabpanel" aria-labelledby="tabbtn-hs" hidden>
       <div class="card">
-        <h2>CLNS Intelligence</h2>
-        <p class="sub">HS·법령·리콜 위험 분석 · HS 10자리(품목코드)로 세관장확인대상물품을 조회합니다. 조회 0건은 "요건 없음"이 아니라 "조회되지 않음"입니다.</p>
+        <h2>HS·리콜 조회</h2>
+        <p class="sub">HS 10자리(품목코드)로 세관장확인대상물품을 조회합니다. 조회 0건은 "요건 없음"이 아니라 "조회되지 않음"입니다.</p>
         <form id="hs-form" novalidate>
-          <div class="grid">
-            <label class="field" for="hs-code">
-              <span class="lab">HS 10자리<span class="req">*</span></span>
-              <input type="text" id="hs-code" name="hs-code" maxlength="10" inputmode="numeric"
-                     autocomplete="off" placeholder="예: 8518220000">
-              <span class="hint">숫자 10자리만 입력하세요. 6·8자리는 요건 판정에 부족합니다.</span>
-            </label>
-            <label class="field" for="hs-direction">
-              <span class="lab">구분</span>
-              <select id="hs-direction" name="hs-direction">
-                <option value="import">수입</option>
-                <option value="export">수출</option>
-              </select>
-            </label>
+          <div class="searchrow">
+            <label class="sr" for="hs-code">HS 10자리</label>
+            <input type="text" id="hs-code" name="hs-code" maxlength="10" inputmode="numeric"
+                   autocomplete="off" placeholder="HS 10자리 (예: 8518220000)">
+            <button type="submit" class="primary big" id="hs-submit">요건 조회</button>
           </div>
+          <p class="hint">숫자 10자리만 입력하세요. 6·8자리는 요건 판정에 부족합니다.</p>
+          <details class="more">
+            <summary>구분 <span class="opt">(수출입, 선택)</span></summary>
+            <div class="more-body">
+              <label class="field" for="hs-direction">
+                <span class="lab">구분</span>
+                <select id="hs-direction" name="hs-direction">
+                  <option value="import">수입</option>
+                  <option value="export">수출</option>
+                </select>
+              </label>
+            </div>
+          </details>
           <div class="actions">
-            <button type="submit" class="primary" id="hs-submit">요건 조회</button>
             <button type="button" class="ghost" id="hs-demo">예시로 채워 보기</button>
             <span class="note-inline" id="hs-note" aria-live="polite"></span>
           </div>
@@ -664,116 +730,128 @@ footer strong{color:var(--ink)}
     <!-- ================= 개발자 ================= -->
     <section id="tab-api" role="tabpanel" aria-labelledby="tabbtn-api" hidden>
       <div class="card">
-        <h2>CLNS API &amp; MCP</h2>
+        <h2>API &amp; MCP</h2>
         <p class="sub">외부 AI·서비스 연결용 한국 규제 API &amp; MCP · 같은 엔진을 JSON API와 MCP 툴 목록으로 노출합니다. 인증키·결제 없이 무료 베타로 운영합니다.</p>
-        <div class="tbl-wrap">
-          <table>
-            <thead><tr><th>메서드</th><th>경로</th><th>설명</th></tr></thead>
-            <tbody>
-              <tr><td>GET</td><td><code>/</code></td><td>이 화면(사람용 웹 UI)</td></tr>
-              <tr><td>GET</td><td><code>/healthz</code></td><td>헬스체크</td></tr>
-              <tr><td>GET</td><td><code>/v1/meta</code></td><td>코퍼스 버전·판정 등급·무료 한도</td></tr>
-              <tr><td>POST</td><td><code>/mcp</code> · <code>/v1/mcp</code></td><td>MCP JSON-RPC 2.0 (initialize·tools/list·tools/call·ping)</td></tr>
-              <tr><td>GET</td><td><code>/.well-known/mcp/server-card.json</code></td><td>MCP 서버 카드(인증 없음·툴 15종 스키마)</td></tr>
-              <tr><td>GET</td><td><code>/v1/mcp</code></td><td>MCP 툴 매니페스트(툴 15종, 사람이 읽는 JSON)</td></tr>
-              <tr><td>GET</td><td><code>/guides/</code> · <code>/guides/{slug}</code></td><td>질문형·규제별 가이드(서버 렌더 HTML)</td></tr>
-              <tr><td>GET</td><td><code>/v1/trends</code></td><td>일일 스냅샷 기반 리콜·행정처분 시계열 추이</td></tr>
-              <tr><td>GET</td><td><code>/robots.txt</code> · <code>/llms.txt</code> · <code>/sitemap.xml</code></td><td>검색·AI 크롤러용 공개 파일</td></tr>
-              <tr><td>POST</td><td><code>/v1/tools/assess_import_case</code></td><td>종합 판정(웹 UI가 호출)</td></tr>
-              <tr><td>POST</td><td><code>/v1/tools/assess_import_risk</code></td><td>종합 판정(동일 툴 별칭)</td></tr>
-              <tr><td>POST</td><td><code>/v1/tools/lookup_hs_requirements</code></td><td>HS 10자리 세관장확인 요건</td></tr>
-              <tr><td>POST</td><td><code>/v1/tools/check_kc_certification</code></td><td>KC 인증 유형</td></tr>
-              <tr><td>POST</td><td><code>/v1/tools/check_food_cosmetics</code></td><td>식품·화장품·건기식 요건</td></tr>
-              <tr><td>POST</td><td><code>/v1/tools/check_drug_import</code></td><td>의약품·영양제 금지성분·반입 제한</td></tr>
-              <tr><td>POST</td><td><code>/v1/tools/check_ad_labeling</code></td><td>과대광고·한글표시사항 검수</td></tr>
-              <tr><td>POST</td><td><code>/v1/tools/check_korean_labeling</code></td><td>품목군별 한글표시사항(라벨) 1초 체크</td></tr>
-              <tr><td>POST</td><td><code>/v1/tools/check_feed_import</code></td><td>반려동물 사료·간식 수입 요건</td></tr>
-              <tr><td>POST</td><td><code>/v1/tools/check_ecommerce_compliance</code></td><td>국내 판매페이지 공정위·전자상거래법 검수</td></tr>
-              <tr><td>POST</td><td><code>/v1/tools/lookup_mfds_disposition</code></td><td>식약처 행정처분 이력</td></tr>
-              <tr><td>POST</td><td><code>/v1/tools/lookup_recall</code></td><td>국내 리콜 이력 (2022-07-26 기준 과거 색인)</td></tr>
-              <tr><td>POST</td><td><code>/v1/tools/get_legal_basis</code></td><td>근거 조항</td></tr>
-              <tr><td>POST</td><td><code>/v1/tools/get_compliance_trends</code></td><td>리콜·행정처분 시계열 추이</td></tr>
-              <tr><td>POST</td><td><code>/v1/tools/explain_trap</code></td><td>함정 케이스 해설</td></tr>
-              <tr><td>POST</td><td><code>/v1/inquiry</code></td><td>CLNS Pro 사전 신청·도입 문의(비쿼터, 회신용 연락처만 보관). 선택 필드 <code>cohort</code>(별칭 <code>source</code>)로 무료 베타·소개 유입 태그(<code>beta_pilot</code>, <code>citechart</code> 등 40자)를 함께 보낼 수 있습니다</td></tr>
-              <tr><td>POST</td><td><code>/v1/tools/get_service_meta</code></td><td>서비스·티어 정보</td></tr>
-            </tbody>
-          </table>
-        </div>
-        <h3>호출 예시</h3>
         <pre><code>curl -s -X POST <span class="base-slot">https://&lt;your-host&gt;</span>/v1/tools/assess_import_case \\
   -H 'Content-Type: application/json' \\
   -d '{"query":"중국산 블루투스 스피커를 수입해 판매","facts":{"rf_tx":"yes","purpose":"resale"}}'</code></pre>
-        <p class="sub" style="margin-top:10px">응답에는 판정(<code>verdict</code>), 확인 항목(<code>answer.guidance</code>), 근거 법령·시행일·원문 URL(<code>evidence</code>), 면책(<code>disclaimer</code>)이 항상 함께 들어갑니다. 원본 공공 API 응답은 재전송하지 않고 결합·정규화한 결과만 돌려줍니다.</p>
-        <h3>MCP 연결</h3>
-        <p class="sub">MCP 클라이언트는 <code><span class="base-slot">https://&lt;your-host&gt;</span>/mcp</code>에 JSON-RPC 2.0으로 붙습니다(같은 경로가 <code>/v1/mcp</code>에도 있습니다). <code>initialize</code> → <code>notifications/initialized</code> → <code>tools/list</code> → <code>tools/call</code> 순서로 동작하며, 응답은 <code>application/json</code> 한 덩어리입니다(SSE 스트리밍은 제공하지 않습니다). 인증은 필요 없고, 서버 카드는 <code>/.well-known/mcp/server-card.json</code>에 있습니다.</p>
-        <div class="actions">
-          <a class="ghost" href="/v1/mcp" target="_blank" rel="noopener" style="text-decoration:none;padding:10px 14px">툴 매니페스트 열기</a>
-          <a class="ghost" href="/.well-known/mcp/server-card.json" target="_blank" rel="noopener" style="text-decoration:none;padding:10px 14px">서버 카드 열기</a>
-          <a class="ghost" href="/v1/meta" target="_blank" rel="noopener" style="text-decoration:none;padding:10px 14px">/v1/meta 열기</a>
+        <p class="sub" style="margin-top:10px">응답에는 판정(<code>verdict</code>), 확인 항목(<code>answer.guidance</code>), 근거 법령·시행일·원문 URL(<code>evidence</code>), 면책(<code>disclaimer</code>)이 항상 함께 들어갑니다.</p>
+        <p class="sub">MCP 클라이언트는 <code><span class="base-slot">https://&lt;your-host&gt;</span>/mcp</code>에 JSON-RPC 2.0으로 붙습니다(같은 경로가 <code>/v1/mcp</code>에도 있습니다). <code>initialize</code> → <code>tools/list</code> → <code>tools/call</code> 순서로 동작합니다.</p>
+        <div class="links">
+          <a href="/v1/mcp" target="_blank" rel="noopener">툴 매니페스트</a>
+          <a href="/.well-known/mcp/server-card.json" target="_blank" rel="noopener">서버 카드</a>
+          <a href="/v1/meta" target="_blank" rel="noopener">/v1/meta</a>
         </div>
+        <details class="more">
+          <summary>엔드포인트 전체 보기 <span class="opt">(툴 15종)</span></summary>
+          <div class="more-body">
+            <div class="tbl-wrap">
+              <table>
+                <thead><tr><th>메서드</th><th>경로</th><th>설명</th></tr></thead>
+                <tbody>
+                  <tr><td>GET</td><td><code>/</code></td><td>이 화면(사람용 웹 UI)</td></tr>
+                  <tr><td>GET</td><td><code>/healthz</code></td><td>헬스체크</td></tr>
+                  <tr><td>GET</td><td><code>/v1/meta</code></td><td>코퍼스 버전·판정 등급·무료 한도</td></tr>
+                  <tr><td>POST</td><td><code>/mcp</code> · <code>/v1/mcp</code></td><td>MCP JSON-RPC 2.0 (initialize·tools/list·tools/call·ping)</td></tr>
+                  <tr><td>GET</td><td><code>/.well-known/mcp/server-card.json</code></td><td>MCP 서버 카드(인증 없음·툴 15종 스키마)</td></tr>
+                  <tr><td>GET</td><td><code>/v1/mcp</code></td><td>MCP 툴 매니페스트(툴 15종, 사람이 읽는 JSON)</td></tr>
+                  <tr><td>GET</td><td><code>/guides/</code> · <code>/guides/{slug}</code></td><td>질문형·규제별 가이드(서버 렌더 HTML)</td></tr>
+                  <tr><td>GET</td><td><code>/v1/trends</code></td><td>일일 스냅샷 기반 리콜·행정처분 시계열 추이</td></tr>
+                  <tr><td>GET</td><td><code>/robots.txt</code> · <code>/llms.txt</code> · <code>/sitemap.xml</code></td><td>검색·AI 크롤러용 공개 파일</td></tr>
+                  <tr><td>POST</td><td><code>/v1/tools/assess_import_case</code></td><td>종합 판정(웹 UI가 호출)</td></tr>
+                  <tr><td>POST</td><td><code>/v1/tools/assess_import_risk</code></td><td>종합 판정(동일 툴 별칭)</td></tr>
+                  <tr><td>POST</td><td><code>/v1/tools/lookup_hs_requirements</code></td><td>HS 10자리 세관장확인 요건</td></tr>
+                  <tr><td>POST</td><td><code>/v1/tools/check_kc_certification</code></td><td>KC 인증 유형</td></tr>
+                  <tr><td>POST</td><td><code>/v1/tools/check_food_cosmetics</code></td><td>식품·화장품·건기식 요건</td></tr>
+                  <tr><td>POST</td><td><code>/v1/tools/check_drug_import</code></td><td>의약품·영양제 금지성분·반입 제한</td></tr>
+                  <tr><td>POST</td><td><code>/v1/tools/check_ad_labeling</code></td><td>과대광고·한글표시사항 검수</td></tr>
+                  <tr><td>POST</td><td><code>/v1/tools/check_korean_labeling</code></td><td>품목군별 한글표시사항(라벨) 1초 체크</td></tr>
+                  <tr><td>POST</td><td><code>/v1/tools/check_feed_import</code></td><td>반려동물 사료·간식 수입 요건</td></tr>
+                  <tr><td>POST</td><td><code>/v1/tools/check_ecommerce_compliance</code></td><td>국내 판매페이지 공정위·전자상거래법 검수</td></tr>
+                  <tr><td>POST</td><td><code>/v1/tools/lookup_mfds_disposition</code></td><td>식약처 행정처분 이력</td></tr>
+                  <tr><td>POST</td><td><code>/v1/tools/lookup_recall</code></td><td>국내 리콜 이력 (2022-07-26 기준 과거 색인)</td></tr>
+                  <tr><td>POST</td><td><code>/v1/tools/get_legal_basis</code></td><td>근거 조항</td></tr>
+                  <tr><td>POST</td><td><code>/v1/tools/get_compliance_trends</code></td><td>리콜·행정처분 시계열 추이</td></tr>
+                  <tr><td>POST</td><td><code>/v1/tools/explain_trap</code></td><td>함정 케이스 해설</td></tr>
+                  <tr><td>POST</td><td><code>/v1/inquiry</code></td><td>CLNS Pro 사전 신청·도입 문의(비쿼터, 회신용 연락처만 보관)</td></tr>
+                  <tr><td>POST</td><td><code>/v1/tools/get_service_meta</code></td><td>서비스·티어 정보</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </details>
       </div>
     </section>
 
     <!-- ================= 같이 쓰는 서비스 ================= -->
-    <section class="card" id="siblings" aria-labelledby="siblings-title">
+    <section class="siblings" id="siblings" aria-labelledby="siblings-title">
       <h2 id="siblings-title">같이 쓰는 서비스</h2>
-      <p class="sub">같은 팀이 무료로 운영하는 두 도구입니다. 세 서비스 모두 회원가입·결제가 없고,
-      판정은 각 기관이 공개한 원본 자료로만 합니다.</p>
       <div class="links">
-        <a href="https://grnt-kr.onrender.com/" target="_blank" rel="noopener noreferrer"><strong>GRNT</strong> — 개인·창업 지원금 판정기</a>
-        <a href="https://frnc.onrender.com/" target="_blank" rel="noopener noreferrer"><strong>FRNC</strong> — 프랜차이즈 창업 리스크 체크</a>
+        <a href="https://grnt-kr.onrender.com/" target="_blank" rel="noopener noreferrer"><strong>GRNT</strong> 지원금 판정기</a>
+        <a href="https://frnc.onrender.com/" target="_blank" rel="noopener noreferrer"><strong>FRNC</strong> 프랜차이즈 창업 리스크 체크</a>
       </div>
     </section>
   </main>
 
   <!-- ================= CLNS Pro 사전 신청 · 도입 문의 ================= -->
-  <section class="card inquiry" id="inquiry" aria-labelledby="inquiry-title">
-    <h2 id="inquiry-title">CLNS Pro 사전 신청 · 도입 문의</h2>
-    <p class="sub">엑셀/CSV 일괄 검수와 API·MCP 연동은 준비 중입니다. 필요하시면 남겨 주세요. 확인 후 남기신 연락처로만 회신드리며, 며칠 걸릴 수 있습니다.</p>
-    <form id="inquiry-form" novalidate>
-      <div class="grid">
-        <label class="field" for="inquiry-topic">
-          <span class="lab">관심 항목</span>
-          <select id="inquiry-topic" name="inquiry-topic">
-            <option value="clns_pro_batch">CLNS Pro · 엑셀/CSV 일괄 검수</option>
-            <option value="api_mcp">API · MCP 연동</option>
-            <option value="other">그 외 문의</option>
-          </select>
-        </label>
-        <label class="field" for="inquiry-contact">
-          <span class="lab">이메일 또는 연락처 <span class="req">*</span></span>
-          <input type="text" id="inquiry-contact" name="inquiry-contact" maxlength="120"
-                 autocomplete="off" placeholder="회신받을 이메일이나 연락처"
-                 aria-describedby="inquiry-contact-hint">
-          <span class="hint" id="inquiry-contact-hint">회신 목적으로만 저장합니다.</span>
-        </label>
-        <label class="field full" for="inquiry-message">
-          <span class="lab">메모 <span class="opt">선택</span></span>
-          <textarea id="inquiry-message" name="inquiry-message" rows="2" maxlength="500"
-                    placeholder="다루는 품목 수, 연동하려는 서비스 등 편하게 적어 주세요."></textarea>
-        </label>
-      </div>
-      <div class="actions">
-        <button type="submit" class="primary" id="inquiry-submit">사전 신청 보내기</button>
-        <span class="note-inline" id="inquiry-note" role="status" aria-live="polite"></span>
-      </div>
-      <p class="hint">이 폼에서 받은 연락처는 이 문의에 회신하는 데만 쓰고, 통계·공개 화면에는 넣지 않습니다.</p>
-    </form>
-  </section>
+  <details class="card fold inquiry" id="inquiry">
+    <summary>CLNS Pro 사전 신청 · 도입 문의</summary>
+    <div class="fold-body">
+      <p class="sub">엑셀/CSV 일괄 검수와 API·MCP 연동은 준비 중입니다. 필요하시면 남겨 주세요. 확인 후 남기신 연락처로만 회신드리며, 며칠 걸릴 수 있습니다.</p>
+      <form id="inquiry-form" novalidate>
+        <div class="grid">
+          <label class="field" for="inquiry-topic">
+            <span class="lab">관심 항목</span>
+            <select id="inquiry-topic" name="inquiry-topic">
+              <option value="clns_pro_batch">CLNS Pro · 엑셀/CSV 일괄 검수</option>
+              <option value="api_mcp">API · MCP 연동</option>
+              <option value="other">그 외 문의</option>
+            </select>
+          </label>
+          <label class="field" for="inquiry-contact">
+            <span class="lab">이메일 또는 연락처 <span class="req">*</span></span>
+            <input type="text" id="inquiry-contact" name="inquiry-contact" maxlength="120"
+                   autocomplete="off" placeholder="회신받을 이메일이나 연락처"
+                   aria-describedby="inquiry-contact-hint">
+            <span class="hint" id="inquiry-contact-hint">회신 목적으로만 저장합니다.</span>
+          </label>
+          <label class="field full" for="inquiry-message">
+            <span class="lab">메모 <span class="opt">선택</span></span>
+            <textarea id="inquiry-message" name="inquiry-message" rows="2" maxlength="500"
+                      placeholder="다루는 품목 수, 연동하려는 서비스 등 편하게 적어 주세요."></textarea>
+          </label>
+        </div>
+        <div class="actions">
+          <button type="submit" class="primary" id="inquiry-submit">사전 신청 보내기</button>
+          <span class="note-inline" id="inquiry-note" role="status" aria-live="polite"></span>
+        </div>
+        <p class="hint">이 폼에서 받은 연락처는 이 문의에 회신하는 용도로만 저장하고, 통계·공개 화면에는 쓰지 않습니다.</p>
+      </form>
+    </div>
+  </details>
 
   <footer>
-    <p><strong>CLNS</strong></p>
-    <p>PRODUCT COMPLIANCE INTELLIGENCE · KOREA</p>
-    <p>Clearance, simplified.</p>
-    <p>무료 베타 · 결제 없음 · 회원가입 없음</p>
-    <p><strong>품목별 수입 요건:</strong> <a href="/p/">선풍기·보조배터리·오메가3·선크림 등 35개 품목의 요건·인증·함정을 정리한 무료 체크 페이지</a></p>
-    <p><strong>질문형 가이드:</strong> <a href="/guides/">영양제 6병, 면세 한도 150/200달러, KC·전파 인증, 한글표시사항, 과대광고 금지 표현, 단순변심 환불 불가 문구, 체험단 대가성 표시, 스마트스토어 상표권, 어린이제품 KC, 직구 전자제품 1인 1대 전파인증 예외, 화장품 미백·주름 문구, 목록통관 배제 품목, 향수 60mL·와인 직구, 콘택트렌즈·유모차 KC, 원두·차 수입신고, 구매대행 청약철회 등 자주 묻는 질문 __GUIDE_COUNT__개에 근거 법령으로 답한 페이지</a></p>
-    <p><strong>면책:</strong> 본 결과는 사전 참고용입니다. 법적 효력이 없으며, 최종 법적 판단과 통관·인증 가능 여부는 관세사, 관세청, 국가기술표준원·인증기관, 식품의약품안전처 등 소관 기관의 확인이 필요합니다. 본 서비스는 관세사법상 관세 상담·대리 업무를 수행하지 않습니다.</p>
-    <p><strong>데이터:</strong> 관세청·식품의약품안전처·산업통상부 국가기술표준원·과학기술정보통신부 국립전파연구원·법제처 공공데이터를 활용합니다. 의약품 성분은 마약류 관리에 관한 법률 시행령 별표 1~8을 로컬 사전으로 만들어 대조하고, 식약처 의약품 제품 허가정보·DUR·e약은요·마약류 오남용 정보 API는 2026-11-21 활용승인 후 실시간으로 함께 조회합니다. 원본을 그대로 중계하지 않고 결합·정규화한 판정만 제공하며, 조회 실패나 개정 지연 시 캐시 시점을 밝히고 판정을 "추가 정보 필요"로 낮춥니다.</p>
-    <p><strong>같이 쓰는 서비스:</strong> <a href="https://grnt-kr.onrender.com/" target="_blank" rel="noopener noreferrer">GRNT 지원금 판정기</a> · <a href="https://frnc.onrender.com/" target="_blank" rel="noopener noreferrer">FRNC 프랜차이즈 창업 리스크 체크</a></p>
-    <p><strong>개인정보:</strong> 품목 조회에는 이름·연락처·이메일·사업자 정보를 받지 않습니다. 위 'CLNS Pro 사전 신청·도입 문의'에 남긴 연락처는 회신하는 용도로만 저장하고, 통계·공개 화면에는 쓰지 않습니다. 입력한 품목 정보(품목명·HS·원산지 등)는 판정 이력에 익명으로 저장될 수 있습니다. 상호·주소 등 식별 정보는 입력하지 마세요.</p>
-    <p>© 2026 CLNS · 익명 운영 무료 베타 · <span id="version">v__VERSION__</span></p>
-    <p><strong>고지:</strong> <a href="/privacy">개인정보 처리방침</a> · <a href="/terms">이용약관</a> · <a href="/about">서비스 소개</a></p>
+    <p><strong>CLNS</strong> · PRODUCT COMPLIANCE INTELLIGENCE · KOREA · Clearance, simplified.</p>
+    <p>무료 베타 · 결제 없음 · 회원가입 없음 · <span id="version">v__VERSION__</span></p>
+    <div class="links">
+      <a href="/p/">품목별 수입 요건 35개</a>
+      <a href="/guides/">질문형 가이드 __GUIDE_COUNT__개</a>
+      <a href="/about">서비스 소개</a>
+      <a href="/privacy">개인정보 처리방침</a>
+      <a href="/terms">이용약관</a>
+      <a href="https://grnt-kr.onrender.com/" target="_blank" rel="noopener noreferrer">GRNT 지원금 판정기</a>
+      <a href="https://frnc.onrender.com/" target="_blank" rel="noopener noreferrer">FRNC 프랜차이즈 리스크 체크</a>
+    </div>
+    <details>
+      <summary>면책 · 데이터 출처 · 개인정보 안내</summary>
+      <div class="body">
+        <p><strong>면책:</strong> 본 결과는 사전 참고용입니다. 법적 효력이 없으며, 최종 법적 판단과 통관·인증 가능 여부는 관세사, 관세청, 국가기술표준원·인증기관, 식품의약품안전처 등 소관 기관의 확인이 필요합니다. 본 서비스는 관세사법상 관세 상담·대리 업무를 수행하지 않습니다.</p>
+        <p><strong>데이터:</strong> 관세청·식품의약품안전처·산업통상부 국가기술표준원·과학기술정보통신부 국립전파연구원·법제처 공공데이터를 활용합니다. 의약품 성분은 마약류 관리에 관한 법률 시행령 별표 1~8을 로컬 사전으로 만들어 대조하고, 식약처 의약품 제품 허가정보·DUR·e약은요·마약류 오남용 정보 API는 2026-11-21 활용승인 후 실시간으로 함께 조회합니다. 원본을 그대로 중계하지 않고 결합·정규화한 판정만 제공하며, 조회 실패나 개정 지연 시 캐시 시점을 밝히고 판정을 "추가 정보 필요"로 낮춥니다.</p>
+        <p><strong>가이드 목록:</strong> 영양제 6병, 면세 한도 150/200달러, KC·전파 인증, 한글표시사항, 과대광고 금지 표현, 단순변심 환불 불가 문구, 체험단 대가성 표시, 스마트스토어 상표권, 어린이제품 KC, 직구 전자제품 1인 1대 전파인증 예외, 화장품 미백·주름 문구, 목록통관 배제 품목, 향수 60mL·와인 직구, 콘택트렌즈·유모차 KC, 원두·차 수입신고, 구매대행 청약철회 등 자주 묻는 질문 __GUIDE_COUNT__개에 근거 법령으로 답했습니다. <a href="/guides/">전체 보기</a></p>
+        <p><strong>개인정보:</strong> 품목 조회에는 이름·연락처·이메일·사업자 정보를 받지 않습니다. 'CLNS Pro 사전 신청·도입 문의'에 남긴 연락처는 회신하는 용도로만 저장하고, 통계·공개 화면에는 쓰지 않습니다. 입력한 품목 정보(품목명·HS·원산지 등)는 판정 이력에 익명으로 저장될 수 있습니다. 상호·주소 등 식별 정보는 입력하지 마세요.</p>
+        <p>© 2026 CLNS · 익명 운영 무료 베타</p>
+      </div>
+    </details>
   </footer>
 </div>
 
@@ -1009,8 +1087,10 @@ footer strong{color:var(--ink)}
       (sub ? '<p class="sub">' + esc(sub) + '</p>' : '') + inner + '</div>';
   }
   function sectionCollapsible(title, inner, summaryText, sub){
-    return '<div class="card"><details><summary>' + esc(title) + (summaryText ? ' · ' + esc(summaryText) : '') + '</summary>' +
-      '<div class="body">' + (sub ? '<p class="sub">' + esc(sub) + '</p>' : '') + inner + '</div></details></div>';
+    // 접힌 카드 하나로 그린다(카드 안에 또 테두리를 넣지 않는다).
+    return '<details class="card fold"><summary>' + esc(title) +
+      (summaryText ? '<span class="sum-sub">' + esc(summaryText) + '</span>' : '') + '</summary>' +
+      '<div class="fold-body">' + (sub ? '<p class="sub">' + esc(sub) + '</p>' : '') + inner + '</div></details>';
   }
   function emptyBox(msg){ return '<div class="empty">' + esc(msg) + '</div>'; }
   function table(headers, rows){
@@ -1025,16 +1105,124 @@ footer strong{color:var(--ink)}
     return '<div class="tbl-wrap"><table><thead><tr>' + head + '</tr></thead><tbody>' + body + '</tbody></table></div>';
   }
 
-  function checklist(result){
+  // ---------- 결론 요약(0.5.10) ----------
+  // 첫 결과 화면은 "이 상품, 핵심 체크리스트 N가지" 한 장으로 시작한다.
+  // 필수 인증·주의할 점·예상 비용·기간만 펼쳐 두고, 나머지 상세는 접힌 카드로 내린다.
+  var TAG_LABELS_KO = __TAG_LABELS__;
+  function tagLabel(tag){
+    var label = TAG_LABELS_KO[text(tag)];
+    return label ? label : "";
+  }
+  function summaryTags(result){
+    var tags = [];
+    function add(list){
+      (list || []).forEach(function(t){ if (t && tags.indexOf(t) === -1) tags.push(t); });
+    }
+    add(result.regulation_tags);
+    if (!tags.length) (result.findings || []).forEach(function(f){ add(f.regulation_tags); });
+    return tags;
+  }
+  function summaryCerts(result){
+    var tags = summaryTags(result);
+    // 한글표시사항은 거의 모든 수입품에 공통으로 걸리는 항목이라 인증 줄 맨 뒤로 보낸다.
+    tags.sort(function(a, b){
+      return (a === "KOREAN_LABELING" ? 1 : 0) - (b === "KOREAN_LABELING" ? 1 : 0);
+    });
+    var out = [];
+    tags.forEach(function(t){
+      var label = tagLabel(t);
+      if (label && out.indexOf(label) === -1) out.push(label);
+    });
+    return out.slice(0, 4);
+  }
+  // 제목의 "N가지"는 아래에 접혀 있는 체크리스트 항목 수와 정확히 같아야 한다.
+  function summaryCheckCount(result){
+    return checklistItems(result).length;
+  }
+  function summaryCautions(result){
+    var out = [];
+    (result.findings || []).forEach(function(f){
+      if (f.verdict === "low_risk") return;
+      var line = text(f.issue_ko || f.title);
+      if (line && out.indexOf(line) === -1) out.push(line);
+    });
+    return out.slice(0, 3);
+  }
+  function shortValue(value){
+    // "10% (과세가격 + 관세 합산액의 10%)" 처럼 괄호 설명이 붙은 값은 앞부분만 쓴다.
+    var v = text(value);
+    var cut = v.indexOf(" (");
+    if (cut > 0) v = v.slice(0, cut);
+    return v.length > 20 ? v.slice(0, 19) + "…" : v;
+  }
+  function summaryCostRows(result){
+    var tf = result.tariff_fta || {};
+    var rows = [];
+    if (tf.base_rate_hint) rows.push({ k: "예상 관세", v: shortValue(tf.base_rate_hint) });
+    if (tf.vat_rate) rows.push({ k: "부가세", v: shortValue(tf.vat_rate) });
+    if (!rows.length) rows.push({ k: "예상 관세", v: "HS 10자리 입력 시 조회" });
+    // 인증 심사·통관 소요는 제품·시험기관마다 달라 숫자로 단정하지 않는다(지어내지 않는다).
+    rows.push({ k: "인증·통관 비용·기간", v: "기관별로 다름" });
+    return rows;
+  }
+  function resultSummaryCard(result, data){
+    var v = result.verdict || {};
+    var total = summaryCheckCount(result);
+    var certs = summaryCerts(result);
+    var cautions = summaryCautions(result);
+    var costRows = summaryCostRows(result);
+    var title = total > 0
+      ? "이 상품, 핵심 체크리스트 <em>" + esc(String(total)) + "</em>가지"
+      : "이 상품, 사전 점검상 걸리는 항목 없음";
+    var certInner = certs.length
+      ? '<div class="chips">' + certs.map(function(c){ return '<span class="chip">' + esc(c) + "</span>"; }).join("") + "</div>"
+      : '<p class="note-inline">입력에서 인증 대상 신호를 찾지 못했습니다. 품목명을 조금 더 구체적으로 적으면 정확해집니다.</p>';
+    var cautionInner = cautions.length
+      ? "<ul>" + cautions.map(function(c){ return "<li>" + esc(c) + "</li>"; }).join("") + "</ul>"
+      : '<p class="note-inline">따로 짚을 만한 위험 신호는 없습니다. 다만 표시·통관 확인은 남습니다.</p>';
+    var costInner = costRows.map(function(row){
+      return '<p class="costline"><span>' + esc(row.k) + "</span><strong>" + esc(row.v) + "</strong></p>";
+    }).join("");
+    return '<div class="card">' +
+      '<p class="eyebrow">사전 점검 결과</p>' +
+      '<h2 class="res-title">' + title + "</h2>" +
+      '<div class="res-meta"><span class="vchip v-' + esc(v.code) + '">' + esc(v.label_ko || "-") + "</span>" +
+        '<span class="note-inline">입력한 품목: ' + esc(data.product) + "</span></div>" +
+      '<div class="sumgrid">' +
+        '<div class="sumbox"><h3>필수 인증</h3>' + certInner + "</div>" +
+        '<div class="sumbox"><h3>주의할 점</h3>' + cautionInner + "</div>" +
+        '<div class="sumbox"><h3>예상 비용·기간</h3>' + costInner + "</div>" +
+      "</div>" +
+      '<details class="more"><summary>확인할 항목과 다음 할 일 <span class="opt">(' + esc(String(total)) + "가지)</span></summary>" +
+        '<div class="more-body">' + checklist(result) + "</div></details>" +
+      provenanceLine(result) +
+      "</div>";
+  }
+
+  function checklistItems(result){
     var items = [];
-    (result.next_actions || []).forEach(function(a){ items.push(a); });
+    (result.next_actions || []).forEach(function(a){ if (a) items.push(a); });
+    var askedInFindings = false;
     (result.findings || []).forEach(function(f){
       (f.missing_inputs || []).forEach(function(m){
-        items.push("추가 확인 필요: " + (m.prompt || m.field));
+        var label = (m && typeof m === "object" && m.prompt) ? m.prompt : fieldKo(m && m.field ? m.field : m);
+        items.push("추가 확인 필요: " + label);
+        askedInFindings = true;
       });
     });
+    // 쟁점별로 물어본 항목이 없을 때만 표준 입력 항목을 더한다.
+    // 같은 입력을 두 이름(예: battery_type / '배터리 종류')으로 두 번 세면 제목의 개수가 부풀려진다.
+    if (!askedInFindings){
+      (result.missing_information || []).forEach(function(m){
+        items.push("추가 확인 필요: " + fieldKo(m));
+      });
+    }
     var uniq = [];
     items.forEach(function(x){ if (x && uniq.indexOf(x) === -1) uniq.push(x); });
+    return uniq;
+  }
+  function checklist(result){
+    var uniq = checklistItems(result);
     if (!uniq.length) return emptyBox("따로 확인할 항목이 제시되지 않았습니다. 다만 이 결과는 사전 참고용입니다.");
     return '<ul class="check">' + uniq.map(function(x){ return "<li>" + esc(x) + "</li>"; }).join("") + '</ul>';
   }
@@ -1716,21 +1904,16 @@ footer strong{color:var(--ink)}
       return Promise.all([Promise.resolve(result), Promise.resolve(hsResult), Promise.resolve(recall), mfdsP, Promise.resolve(adResult), Promise.resolve(drugResult)]);
     }).then(function(res){
       var result = res[0], hsResult = res[1], recall = res[2], mfds = res[3], adResult = res[4], drugResult = res[5];
-      var html = "";
-      html += '<div class="card">' +
-        '<h2>판정 결과</h2>' +
-        '<p class="sub">입력한 품목: ' + esc(data.product) + '</p>' +
-        verdictBlock(result.verdict, result) +
-        provenanceLine(result) +
-        '<h3>판정 요지</h3>' + guidanceBlock(result) +
-        '<h3>확인 필요 체크리스트</h3>' + checklist(result) +
-        '</div>';
+      // 0.5.10: 첫 결과는 결론 요약 한 장. 나머지는 모두 접힌 카드로 내린다.
+      var html = resultSummaryCard(result, data);
+      html += sectionCollapsible("판정 요지", verdictBlock(result.verdict, result) + guidanceBlock(result),
+        "종합 판정과 안내 보기");
 
       var fCount = (result.findings || []).length;
-      html += section("쟁점 요약 " + String(fCount) + "건", findingsTable(result.findings),
-        "각 쟁점의 상세 설명과 오해 포인트는 아래에서 눌러 펼쳐 볼 수 있습니다.");
       if (fCount > 0) {
-        html += sectionCollapsible("쟁점 상세 설명", findingsDetail(result.findings), String(fCount) + "건 상세 펼쳐 보기");
+        html += sectionCollapsible("쟁점 " + String(fCount) + "건 자세히",
+          findingsTable(result.findings) + findingsDetail(result.findings), "표·해설 펼쳐 보기",
+          "각 쟁점의 판정 이유와 흔한 오해는 펼쳐서 확인하세요.");
       }
 
       if (result.cosmetic_screening) {
@@ -1746,7 +1929,8 @@ footer strong{color:var(--ink)}
       }
 
       if (result.tariff_fta) {
-        html += section("관세율·FTA 원산지 가이드", tariffFtaBlock(result.tariff_fta),
+        html += sectionCollapsible("관세율·FTA 원산지", tariffFtaBlock(result.tariff_fta),
+          shortValue(result.tariff_fta.base_rate_hint || "예상 범위"),
           result.tariff_fta.disclaimer || "");
       }
 
@@ -1755,6 +1939,7 @@ footer strong{color:var(--ink)}
       if (drugScreen) {
         var drugMatches = (drugScreen.matches || []).length;
         if (drugMatches > 0 || drugMode) {
+          // 금지 성분·반입 기준이 실제로 걸리면 접지 않고 바로 보여 준다.
           html += section("의약품·성분 및 반입 기준 대조", drugScreenBlock(drugScreen, drugCheck),
             "마약류·원료물질 목록은 마약류 관리에 관한 법률 시행령 별표 1~8, 자가사용 기준은 수입통관 사무처리에 관한 고시 별표 11 기준입니다.");
         }
@@ -1762,9 +1947,10 @@ footer strong{color:var(--ink)}
 
       var drugLive = (drugResult && !drugResult.__error && drugResult.drug_live) || result.drug_live;
       if (drugLive) {
-        html += section("식약처 의약품 실시간 대조" + (drugLive.search_term ? " — " + drugLive.search_term : ""),
+        html += sectionCollapsible("식약처 의약품 실시간 대조" + (drugLive.search_term ? " — " + drugLive.search_term : ""),
           drugLiveBlock(drugLive),
-          "2026-11-21 활용승인된 식약처 의약품 API 4종(제품 허가정보·DUR·e약은요·마약류 오남용 정보) 실시간 조회 결과입니다.");
+          "허가정보·DUR·e약은요·마약류 오남용 정보",
+          "2026-11-21 활용승인된 식약처 의약품 API 4종 실시간 조회 결과입니다.");
       }
 
       var hsDigits = data.hs ? data.hs.length : 0;
@@ -1777,15 +1963,14 @@ footer strong{color:var(--ink)}
         : (customs && customs.state === "live"
             ? "HS " + data.hs + " 실시간 조회 결과입니다."
             : "HS " + data.hs + " 기준입니다. 아래에 실시간 조회 결과 또는 실패 사유가 표시됩니다.");
-      if (hsDigits === 10 || (customs && customs.state === "live")) {
-        html += section("세관장확인 요건 (관세청)", customsInner, customsSub);
-      } else {
-        html += sectionCollapsible("세관장확인 요건 (관세청)", customsInner, "HS 10자리 미입력");
-      }
+      var customsSummary = (customs && customs.state === "live")
+        ? "요건 " + String((customs.requirements || []).length) + "종 조회"
+        : (hsDigits === 10 ? "HS " + data.hs : "HS 10자리 미입력");
+      html += sectionCollapsible("세관장확인 요건 (관세청)", customsInner, customsSummary, customsSub);
 
       if (result.rra_conformity_live){
-        html += section("전파 적합성평가 (국립전파연구원)", rraBlock(result.rra_conformity_live),
-          "인증·등록번호 1건 단위 조회 결과입니다. 모델명 일치는 별도로 대조해야 합니다.");
+        html += sectionCollapsible("전파 적합성평가 (국립전파연구원)", rraBlock(result.rra_conformity_live),
+          "인증번호 1건 조회", "인증·등록번호 1건 단위 조회 결과입니다. 모델명 일치는 별도로 대조해야 합니다.");
       }
 
       if (mfds){
@@ -1794,8 +1979,9 @@ footer strong{color:var(--ink)}
           ((fi.import_history && fi.import_history.match_count) || 0) +
           ((fi.non_compliant && fi.non_compliant.match_count) || 0);
         if (mfdsTotal > 0 || mfds.__error) {
-          html += section("식약처 수입 이력", mfds.__error ? emptyBox("식약처 조회 실패: " + mfds.__error) : mfdsBlock(mfds.food_import_live),
-            "제품DB·수입신고·검사부적합 이력을 참고용으로 보여줍니다.");
+          html += sectionCollapsible("식약처 수입 이력",
+            mfds.__error ? emptyBox("식약처 조회 실패: " + mfds.__error) : mfdsBlock(mfds.food_import_live),
+            "일치 " + String(mfdsTotal) + "건", "제품DB·수입신고·검사부적합 이력을 참고용으로 보여줍니다.");
         } else {
           html += sectionCollapsible("식약처 수입 이력", mfdsBlock(mfds.food_import_live), "조회 일치 0건");
         }
@@ -1806,7 +1992,8 @@ footer strong{color:var(--ink)}
         : recallBlock(recall && recall.recall);
       var recallCount = (recall && recall.recall && recall.recall.match_count) || 0;
       if (recallCount > 0) {
-        html += section("로컬 리콜 참고 (국표원 · 2022-07-26 기준)", recallInner,
+        html += sectionCollapsible("로컬 리콜 참고 (국표원 · 2022-07-26 기준)", recallInner,
+          "일치 " + String(recallCount) + "건",
           "2023-08-09 배포본 기준 과거 이력입니다 — 2022-07-26 이후 리콜은 포함되지 않습니다. 최신 리콜은 제품안전정보센터에서 확인하세요.");
       } else {
         html += sectionCollapsible("로컬 리콜 참고 (국표원 · 2022-07-26 기준)", recallInner, "일치 0건 (2022-07-26 까지 색인 · 최신 리콜 미포함)");
@@ -1821,22 +2008,24 @@ footer strong{color:var(--ink)}
 
       if (adResult) {
         if (adResult.__error) {
-          html += section("원스톱 광고·라벨 검수", emptyBox("광고·라벨 검수 실패: " + adResult.__error));
+          html += sectionCollapsible("원스톱 광고·라벨 검수", emptyBox("광고·라벨 검수 실패: " + adResult.__error), "검수 실패");
         } else {
           var adRev = adResult.ad_review || {};
           var adLbl = adResult.labeling_check || {};
           if (adCopy) {
-            html += section("원스톱 광고 문구 검수", adFindingsBlock(adRev),
+            html += sectionCollapsible("원스톱 광고 문구 검수", adFindingsBlock(adRev),
+              "지적 " + String((adRev.findings || []).length) + "건",
               "위험도 ‘높음’은 문구 수정 없이는 금지 유형에 해당할 수 있는 표현, ‘주의’는 실증·심의 확인이 필요한 표현입니다.");
             html += sectionCollapsible("같은 문구의 유형별 판단", categoryCompareBlock(adRev.category_comparison),
               "유형별 허용 범위 비교 펼쳐 보기");
           }
           if (adCopy && adResult.ecommerce_review) {
             var ecRev = adResult.ecommerce_review;
-            html += section("국내 판매페이지 검수 (공정거래위원회)",
+            html += sectionCollapsible("국내 판매페이지 검수 (공정거래위원회)",
               '<p class="sub">쿠팡·스마트스토어·자사몰에 올릴 때 걸리는 표시광고법·전자상거래법 위험 문구입니다. ' +
               esc(ecRev.risk_summary_ko || "") + ' · 근거 확인 ' + esc(ecRev.checked_on || "") + '</p>' +
               ecommerceFindingsBlock(ecRev),
+              "지적 " + String((ecRev.findings || []).length) + "건",
               "가격(허위 정가·마감임박), 후기(뒷광고), 청약철회·환불 제한, 배송·품절 책임 회피, 인증·수상, 최저가·1위, " +
               "구독·자동결제, 가격·해지 다크패턴, 위약금, 보장 문구를 공정위 기준으로 대조합니다. " +
               "판매자 정보·거래조건 고지 항목까지 보려면 ‘국내 판매페이지 문구만 빠르게 검수’에 상세페이지 전체를 넣으세요.");
@@ -1846,7 +2035,8 @@ footer strong{color:var(--ink)}
             }
           }
           if (adLabel) {
-            html += section("한글표시사항 라벨 체크", labelChecklistBlock(adLbl),
+            html += sectionCollapsible("한글표시사항 라벨 체크", labelChecklistBlock(adLbl),
+              "필수 " + String(adLbl.required_count || 0) + "항목 중 " + String(adLbl.present_count || 0) + "항목 확인",
               "누락은 입력한 텍스트에서 항목을 찾지 못했다는 뜻입니다. 세부 서식은 고시를 확인하세요.");
           }
         }
@@ -1876,7 +2066,7 @@ footer strong{color:var(--ink)}
         '<p class="note-inline" style="margin-top:10px">잠시 후 다시 시도해 주세요. 계속 실패하면 HS 10자리 조회 탭만 따로 이용해 보세요.</p></div>';
     }).then(function(){
       submitBtn.disabled = false;
-      submitBtn.textContent = "리스크 체크";
+      submitBtn.textContent = "규제·인증 확인";
     });
   });
 
@@ -1968,7 +2158,7 @@ footer strong{color:var(--ink)}
     if (adOnestop) adOnestop.value = "KC 인증 완료, 초저지연 완벽 호환 — 무료 체험 이벤트!";
     if (adOnestopWrap) adOnestopWrap.open = true;
     syncConditionalFields();
-    formNote.textContent = "예시를 채웠습니다. '리스크 체크'를 눌러 원스톱 검수를 확인해 보세요.";
+    formNote.textContent = "예시를 채웠습니다. '규제·인증 확인'을 누르면 원스톱 검수까지 함께 봅니다.";
   });
 
   var demoShop = document.getElementById("check-demo-shop");
@@ -1985,7 +2175,7 @@ footer strong{color:var(--ink)}
       if (adShop) adShop.value = "정가 39,000원 → 오늘만 19,900원 (49% 할인)! 마감 임박! | 체험단으로 선정되어 직접 써봤어요. 국내 최저가! | 단순변심 환불 불가, 포장 개봉 시 교환·반품 불가";
       if (adOnestopWrap) adOnestopWrap.open = true;
       syncConditionalFields();
-      formNote.textContent = "국내 셀러 상세페이지 예시를 채웠습니다. '리스크 체크'를 누르면 식약처 광고 검수와 공정위·전자상거래법 검수를 함께 봅니다.";
+      formNote.textContent = "국내 셀러 상세페이지 예시를 채웠습니다. '규제·인증 확인'을 누르면 식약처 광고 검수와 공정위·전자상거래법 검수를 함께 봅니다.";
     });
   }
 
@@ -2000,7 +2190,7 @@ footer strong{color:var(--ink)}
       document.getElementById("kind").value = "feed";
       var pr3 = form.querySelector('input[name="purpose"][value="resale"]'); if (pr3) pr3.checked = true;
       syncConditionalFields();
-      formNote.textContent = "반려동물 사료 예시를 채웠습니다. '리스크 체크'를 누르면 사료관리법·동물검역 확인 항목과 세관장확인 요건을 함께 봅니다.";
+      formNote.textContent = "반려동물 사료 예시를 채웠습니다. '규제·인증 확인'을 누르면 사료관리법·동물검역 확인 항목과 세관장확인 요건을 함께 봅니다.";
     });
   }
 
@@ -2137,6 +2327,11 @@ footer strong{color:var(--ink)}
     if (location.hash !== "#" + key){
       try { history.replaceState(null, "", "#" + key); } catch(e){}
     }
+    // 보조 도구로 바꾸면 화면 맨 위부터 다시 읽게 한다(첫 화면의 긴 결과 아래에서 열리지 않도록).
+    // quickjs 테스트 스텁에는 scrollTo 가 없으므로 있는지 먼저 확인한다.
+    if (key !== "check" && typeof window.scrollTo === "function"){
+      try { window.scrollTo(0, 0); } catch(e){}
+    }
   }
   buttons.forEach(function(btn){
     btn.addEventListener("click", function(){ showTab(btn.getAttribute("data-tab")); });
@@ -2199,7 +2394,7 @@ footer strong{color:var(--ink)}
     if (filled){
       showTab("check");
       syncConditionalFields();
-      formNote.textContent = "공유 링크의 품목·구분·원산지를 채웠습니다. 내용을 확인하고 '리스크 체크'를 눌러 주세요.";
+      formNote.textContent = "공유 링크의 품목·구분·원산지를 채웠습니다. 내용을 확인하고 '규제·인증 확인'을 눌러 주세요.";
     }
   } catch (e) {}
 
@@ -2433,9 +2628,33 @@ footer strong{color:var(--ink)}
 """
 
 
+def regulation_tag_labels() -> dict:
+    """규제 태그 표준 어휘(`standards.REGULATION_TAGS`)의 한국어 라벨을 돌려준다.
+
+    첫 화면의 '필수 인증' 줄은 finding 의 `regulation_tags`(예: `RF_CONFORMITY`)를
+    그대로 보여 주지 않고 이 라벨로 바꿔 쓴다. 라벨을 페이지에 하드코딩하면 표준 어휘를
+    늘릴 때 화면만 낡으므로, 렌더 시점에 한 곳에서 읽어 넣는다.
+    """
+    try:
+        from .standards import REGULATION_TAGS
+
+        return {code: str((row or {}).get("label_ko") or "") for code, row in REGULATION_TAGS.items()}
+    except Exception:  # noqa: BLE001 - 라벨 사전 문제가 첫 화면을 막지 않게
+        return {}
+
+
+def _tag_labels_js() -> str:
+    """JS 객체 리터럴로 넣을 태그 라벨 JSON(스크립트 조기 종료 방지)."""
+    payload = json.dumps(regulation_tag_labels(), ensure_ascii=False, sort_keys=True)
+    return (payload.replace("<", "\\u003c")
+            .replace("\u2028", "\\u2028")
+            .replace("\u2029", "\\u2029"))
+
+
 def render_page(service_name: str = SERVICE_NAME, version: str = SERVICE_VERSION) -> str:
     """웹 UI HTML을 돌려준다(외부 자원 없음, 익명 서비스명만 사용)."""
     page = PAGE_HTML.replace("__VERSION__", version)
+    page = page.replace("__TAG_LABELS__", _tag_labels_js())
     # 가이드 수는 카탈로그에서 읽는다(하드코딩하면 가이드를 추가할 때마다 어긋난다).
     try:
         from . import guides

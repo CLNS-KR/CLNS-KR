@@ -513,7 +513,7 @@ class WebUiTest(unittest.TestCase):
 
 class VersionAndAnonymityTest(unittest.TestCase):
     def test_version_is_0_4_0(self):
-        self.assertEqual(__version__, "0.5.9")
+        self.assertEqual(__version__, "0.5.10")
         with open(os.path.join(ROOT, "server.json"), encoding="utf-8") as handle:
             manifest = json.load(handle)
         self.assertEqual(manifest["version"], __version__)
