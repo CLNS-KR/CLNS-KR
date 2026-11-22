@@ -690,7 +690,7 @@ footer strong{color:var(--ink)}
               <tr><td>POST</td><td><code>/v1/tools/check_feed_import</code></td><td>반려동물 사료·간식 수입 요건</td></tr>
               <tr><td>POST</td><td><code>/v1/tools/check_ecommerce_compliance</code></td><td>국내 판매페이지 공정위·전자상거래법 검수</td></tr>
               <tr><td>POST</td><td><code>/v1/tools/lookup_mfds_disposition</code></td><td>식약처 행정처분 이력</td></tr>
-              <tr><td>POST</td><td><code>/v1/tools/lookup_recall</code></td><td>국내 리콜 이력</td></tr>
+              <tr><td>POST</td><td><code>/v1/tools/lookup_recall</code></td><td>국내 리콜 이력 (2022-07-26 기준 과거 색인)</td></tr>
               <tr><td>POST</td><td><code>/v1/tools/get_legal_basis</code></td><td>근거 조항</td></tr>
               <tr><td>POST</td><td><code>/v1/tools/get_compliance_trends</code></td><td>리콜·행정처분 시계열 추이</td></tr>
               <tr><td>POST</td><td><code>/v1/tools/explain_trap</code></td><td>함정 케이스 해설</td></tr>
@@ -1176,15 +1176,19 @@ footer strong{color:var(--ink)}
 
   function recallBlock(recall){
     if (!recall) return "";
+    // 색인 기준일을 표 머리에 바로 보이게 둔다 — "최신 리콜 미포함"을 접힌 안내문에서만 읽지 않게.
+    var asOf = recall.coverage_label_ko
+      ? '<p class="note-inline" style="margin-top:8px"><strong>' + esc(recall.coverage_label_ko) + "</strong></p>"
+      : "";
     var head = "";
     if (recall.state === "source_unavailable"){
-      return emptyBox(recall.note_ko || "리콜 데이터 소스가 연결되지 않았습니다.") +
+      return asOf + emptyBox(recall.note_ko || "리콜 데이터 소스가 연결되지 않았습니다.") +
         (recall.official_url ? '<p class="note-inline" style="margin-top:8px"><a href="' + esc(recall.official_url) + '" target="_blank" rel="noopener noreferrer">제품안전정보센터에서 직접 확인</a></p>' : "");
     }
     var rows = (recall.matches || []).map(function(m){
       return { name: m.product_name, model: m.model, brand: m.brand, type: m.recall_type, hazard: m.hazard_type, date: m.registered_on };
     });
-    head = table([["제품명", "name"], ["모델명", "model"], ["브랜드", "brand"], ["리콜종류", "type"], ["위해유형", "hazard"], ["등록일", "date"]], rows);
+    head = asOf + table([["제품명", "name"], ["모델명", "model"], ["브랜드", "brand"], ["리콜종류", "type"], ["위해유형", "hazard"], ["등록일", "date"]], rows);
     if (!rows.length) head += emptyBox("이 키워드로 일치한 리콜 이력이 없습니다. 0건은 리콜 이력 없음을 뜻하지 않습니다.");
     var cov = recall.coverage || {};
     if (recall.note_ko) head += '<p class="note-inline" style="margin-top:8px">' + esc(recall.note_ko) + "</p>";
@@ -1802,10 +1806,10 @@ footer strong{color:var(--ink)}
         : recallBlock(recall && recall.recall);
       var recallCount = (recall && recall.recall && recall.recall.match_count) || 0;
       if (recallCount > 0) {
-        html += section("로컬 리콜 참고 (국표원)", recallInner,
-          "2023-08-09 배포본 기준 과거 이력입니다. 최신 리콜은 제품안전정보센터에서 확인하세요.");
+        html += section("로컬 리콜 참고 (국표원 · 2022-07-26 기준)", recallInner,
+          "2023-08-09 배포본 기준 과거 이력입니다 — 2022-07-26 이후 리콜은 포함되지 않습니다. 최신 리콜은 제품안전정보센터에서 확인하세요.");
       } else {
-        html += sectionCollapsible("로컬 리콜 참고 (국표원)", recallInner, "일치 0건 (과거 스냅샷)");
+        html += sectionCollapsible("로컬 리콜 참고 (국표원 · 2022-07-26 기준)", recallInner, "일치 0건 (2022-07-26 까지 색인 · 최신 리콜 미포함)");
       }
 
       if (result.feed_check && result.feed_check.is_feed) {

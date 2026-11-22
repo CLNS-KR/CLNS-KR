@@ -512,7 +512,7 @@ def seed_snapshots(store: Store, seed_dir: str = "") -> Dict[str, Any]:
     """
     directory = seed_dir or DEFAULT_SEED_DIR
     result: Dict[str, Any] = {"seed_dir": directory, "days": [], "skipped": [],
-                              "unreadable": [], "rows": 0, "counts": {}}
+                              "unreadable": [], "counts_only": [], "rows": 0, "counts": {}}
     if not os.path.isdir(directory):
         return result
     for name in sorted(os.listdir(directory)):
@@ -534,8 +534,14 @@ def seed_snapshots(store: Store, seed_dir: str = "") -> Dict[str, Any]:
             result["unreadable"].append(name)
             continue
         items = payload.get("items") or {}
-        if not isinstance(items, dict) or not items:
-            result["unreadable"].append(name)
+        if not isinstance(items, dict):
+            items = {}
+        if not items:
+            # `origin="backfilled"` 재구성 파일(2026-10-23~11-19)과 과거 형식의 요약 파일은
+            # 항목이 없어 시드로 복원할 수 없다. 이는 **오류가 아니라** 설계상 복원 대상이
+            # 아닌 참고용 파일이다(과거 날짜의 누적 상태를 이벤트 날짜로 다시 만든 것).
+            # `unreadable` 로 분류하면 점검할 때 진짜 손상된 파일과 구분할 수 없다.
+            result["counts_only"].append(day)
             continue
         if _has_day(store, day):
             result["skipped"].append(day)
@@ -645,6 +651,7 @@ def seed_persistence(store: Store, seed_dir: str = "", usage_path: str = "") -> 
         "seeded_days": list(snap.get("days") or []),
         "skipped_days": list(snap.get("skipped") or []),
         "unreadable_files": list(snap.get("unreadable") or []),
+        "counts_only_days": list(snap.get("counts_only") or []),
         "seeded_rows": int(snap.get("rows") or 0),
         "usage": usage_info,
     }
@@ -660,6 +667,7 @@ def persistence_status() -> Dict[str, Any]:
     info.setdefault("seed_dir", DEFAULT_SEED_DIR)
     info.setdefault("seeded_days", [])
     info.setdefault("skipped_days", [])
+    info.setdefault("counts_only_days", [])
     info.setdefault("seeded_rows", 0)
     knowledge = {
         "mode": "repo_seed + sqlite",
@@ -667,6 +675,13 @@ def persistence_status() -> Dict[str, Any]:
         "seed_present": bool(info.get("seeded_days") or info.get("skipped_days")),
         "seeded_days": info.get("seeded_days") or [],
         "snapshot_days_skipped": info.get("skipped_days") or [],
+        # 2026-10-23~11-19 의 `origin="backfilled"` 요약 파일 — 실관측이 아니고 항목이
+        # 없어 복원 대상이 아니다. 손상된 파일(unreadable)과 구분해 밝힌다.
+        "counts_only_days": info.get("counts_only_days") or [],
+        "counts_only_note_ko": (
+            "`origin=\"backfilled\"` 로 표시된 과거 재구성 파일입니다(이벤트 날짜로 되살린 누적 "
+            "건수만 있고 항목이 없음). 실제 관측분이 아니며 시드 복원·전일 대비 계산에 쓰지 않습니다."
+        ),
         "seeded_rows": info.get("seeded_rows") or 0,
         "seeded_at": info.get("seeded_at"),
         "usage_seed": info.get("usage") or {},

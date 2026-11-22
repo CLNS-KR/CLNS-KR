@@ -21,6 +21,8 @@ snapshots/
 # 서버가 기동할 때 이 파일을 DB 로 복원한다(데이터 없으면 재배포 때 시계열이 사라진다).
 !data/snapshots/
 !data/snapshots/*.json
+# 스냅샷 폴더 설명(origin 백필/실관측 구분)은 문서라 함께 커밋한다.
+!data/snapshots/*.md
 !data/usage/
 !data/usage/*.json
 

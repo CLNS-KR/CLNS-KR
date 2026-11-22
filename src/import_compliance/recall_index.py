@@ -29,6 +29,12 @@ FILE_DOWNLOAD_URL = (
 )
 USER_AGENT = "Mozilla/5.0 (compatible; clns-kr/0.1; +local-index)"
 
+# 로컬 리콜 인덱스의 기준일. 15040696 은 2023-08-09 배포본에서 갱신이 멈춰 등록일 마지막이
+# 2022-07-26 이다. 조회 결과·웹 화면·문서 어디에서든 이 날짜를 드러내 최신 리콜로 오해하지
+# 않게 한다("기준일표시": 0.5.9).
+INDEX_AS_OF = "2022-07-26"
+INDEX_AS_OF_LABEL_KO = "과거 색인(2022-07-26 기준) · 최신 리콜 미포함"
+
 DATASETS: Dict[str, Dict[str, str]] = {
     "15040696": {
         "name_ko": "산업통상부_국가기술표준원_제품안전_국내리콜정보",
@@ -232,6 +238,7 @@ def summary(store: Store) -> Dict[str, Any]:
     ).fetchone()
     stats = store.conn.execute("SELECT COUNT(*) AS n, MIN(year) AS lo, MAX(year) AS hi FROM recall_stats").fetchone()
     item_count = int(row["n"] or 0)
+    as_of = str(row["hi"] or INDEX_AS_OF)
     return {
         "items": item_count,
         "first_registered_on": row["lo"],
@@ -240,8 +247,13 @@ def summary(store: Store) -> Dict[str, Any]:
         "stats_rows": int(stats["n"] or 0),
         "stats_years": [stats["lo"], stats["hi"]] if stats["n"] else [],
         "dataset": "15040696" if item_count else None,
+        # 색인이 멈춘 기준일과 '최신 리콜 미포함' 여부를 값으로도 준다(문장을 읽지 않아도 보이게).
+        "index_as_of": as_of,
+        "latest_included": False,
+        "coverage_label_ko": INDEX_AS_OF_LABEL_KO,
         "coverage_note_ko": (
-            "국내리콜 파일데이터는 2023-08-09 배포본(등록일 2019-10~2022-07)으로 갱신이 멈춘 정적 스냅샷입니다. "
+            "국내리콜 파일데이터는 2023-08-09 배포본으로 갱신이 멈춘 정적 스냅샷입니다"
+            f"(등록일 2019-10~{as_of}). {as_of} 이후 리콜은 포함되지 않습니다. "
             "0건은 '리콜 이력 없음'을 뜻하지 않으며, 최신 리콜은 제품안전정보센터에서 확인해야 합니다."
         ),
     }

@@ -101,7 +101,7 @@ def llms_txt(base: Optional[str] = None) -> str:
 - [HS 10자리 세관장확인 요건]({root}/v1/tools/lookup_hs_requirements): POST. `{{"hs_code": "8414519000"}}`
 - [식품·화장품·기구용기 요건]({root}/v1/tools/check_food_cosmetics): POST. `{{"product_name": "오메가3", "kind": "health_functional"}}`
 - [KC·전파 적합성평가]({root}/v1/tools/check_kc_certification): POST. `{{"product_name": "블루투스 스피커", "rf_tx": "yes", "rra_cert_no": "R-LARN-00-0210"}}`
-- [국내 리콜 이력]({root}/v1/tools/lookup_recall): POST. `{{"product_name": "전지"}}`
+- [국내 리콜 이력]({root}/v1/tools/lookup_recall): POST. `{{"product_name": "전지"}}` — **2022-07-26 기준 과거 색인**입니다(최신 리콜 미포함, 국표원 15040696 정적 배포본). 최신 리콜은 제품안전정보센터(safetykorea.kr) 확인 필요
 - [의약품·영양제 금지성분]({root}/v1/tools/check_drug_import): POST. `{{"product_name": "졸피뎀", "channel": "online", "quantity": 30}}` — 마약류·원료물질·국내 전용 성분과 자가사용 인정기준(6병·3개월분)을 대조
 - [한글표시사항(라벨) 체크]({root}/v1/tools/check_korean_labeling): POST. `{{"product_type": "kc_electronics", "label_text": "KC 마크 / 안전확인신고번호 XU12345-20001"}}` — 화장품·식품/건기식·전기/생활용품 KC·반려동물 사료·일반 공산품 5개 품목군의 법정 표시항목 체크리스트와 라벨 문구 누락, 흔한 과태료 사례(한글 스티커 훼손·전성분 누락·소비기한/제조일자 혼동·KC 표시 누락·원산지 미표시)를 근거 조문과 함께 반환
 - [과대광고·한글표시사항 검수]({root}/v1/tools/check_ad_labeling): POST. `{{"product_type": "general_food", "ad_copy": "먹기만 하면 100% 다이어트, 항암 효과", "label_text": "제품명 … 소비기한 …"}}` — 유형별 금지 표현과 필수 표시항목 누락을 대조
@@ -117,7 +117,7 @@ def llms_txt(base: Optional[str] = None) -> str:
 - 판정 등급은 `check_likely`(확인 가능성 높음) / `info_needed`(추가 정보 필요) / `low_risk`(현재 정보상 가능성 낮음) 세 가지이며 확정 판단이 아니다.
 - 조회 0건은 "요건 없음"이 아니라 "조회되지 않음"이다. HS 10자리·입력 표기 차이로도 0건이 나온다.
 - 전파 적합성평가는 인증·등록번호로만 실시간 조회되며(`rra_conformity`), 번호가 없으면 국립전파연구원 조회 화면에서 모델명으로 확인해야 한다.
-- 리콜 데이터는 2023-08-09 배포본(등록일 2019-10~2022-07) 정적 스냅샷이라 최신 리콜은 반영되지 않는다.
+- 리콜 데이터는 2023-08-09 배포본(등록일 2019-10~2022-07-26) 정적 스냅샷이라 최신 리콜은 반영되지 않는다(응답의 `index_as_of`·`coverage_label_ko` 가 이 기준일을 밝힌다).
 - 실시간 조회 결과가 7일 TTL 캐시에서 나온 경우 `state: "cached_fallback"` 과 `age_hours` 로 캐시 시점을 밝힌다.
 - 의약품 성분은 마약류 관리에 관한 법률 시행령 별표 1~8에서 생성한 로컬 사전으로 대조한다. 시행령 별표에 없다고 마약류가 아니라고 단정할 수 없으며(임시마약류 지정·개정 시차), 2026-11-21 활용승인된 식약처 의약품 허가정보·e약은요·DUR·마약류 오남용 정보 API 결과를 함께 보여 준다(조회 실패는 상태로 밝힌다).
 - 한글표시사항 체크는 입력한 라벨 문구에서 항목의 존재만 대조한다. 항목을 찾지 못한 것은 입력에 없다는 뜻이며, 전항목 확인이 라벨의 적법성을 확정하지 않는다(라벨 사진 인식은 하지 않는다).

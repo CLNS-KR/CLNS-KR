@@ -1115,12 +1115,19 @@ def tool_lookup_recall(args: Dict[str, Any], store: Store, client_id: str, tier:
                 "query_keywords": keywords,
                 "state": "local_index" if matches else "local_index_no_match",
                 "fresh": False,
+                # 색인이 멈춘 기준일을 응답 최상위에 바로 보이게 둔다 — 이 숫자만 보고 '리콜 없음'이나
+                # '최신 리콜 확인됨'으로 읽히지 않게 하기 위함이다(0.5.9).
+                "index_as_of": local["index_as_of"],
+                "latest_included": False,
+                "coverage_label_ko": local["coverage_label_ko"],
                 "match_count": len(matches),
                 "matches": matches,
                 "coverage": {
                     "items": local["items"],
                     "first_registered_on": local["first_registered_on"],
                     "last_registered_on": local["last_registered_on"],
+                    "index_as_of": local["index_as_of"],
+                    "latest_included": False,
                     "loaded_at": local["loaded_at"],
                     "dataset": "산업통상부_국가기술표준원_제품안전_국내리콜정보(data.go.kr 15040696, 이용허락범위 제한 없음)",
                 },
@@ -1128,6 +1135,10 @@ def tool_lookup_recall(args: Dict[str, Any], store: Store, client_id: str, tier:
                 "note_ko": local["coverage_note_ko"],
                 "official_url": "https://www.safetykorea.kr",
             },
+            "basis_note_ko": (
+                f"국내 리콜 조회는 {local['index_as_of']} 기준 과거 색인입니다 — 최신 리콜은 포함되지 않습니다. "
+                "최신 리콜은 국가기술표준원 제품안전정보센터(safetykorea.kr)에서 직접 확인하세요."
+            ),
             "disclaimer_ko": "본 조회는 사전 참고용이며, 리콜 여부의 최종 확인은 제품안전정보센터 및 제조·수입사 책임입니다.",
         })
     gateway = SourceGateway(store)
@@ -1144,7 +1155,9 @@ def tool_lookup_recall(args: Dict[str, Any], store: Store, client_id: str, tier:
                 "brand": brand,
                 "model": model,
                 "state": "source_unavailable",
-                "note_ko": "실시간 리콜정보 소스가 연결되지 않아 조회 결과를 제공할 수 없습니다. 국가기술표준원 제품안전정보센터에서 모델명으로 직접 확인이 필요합니다.",
+                "latest_included": None,
+                "coverage_label_ko": "로컬 과거 색인 미적재 · 실시간 소스 미연결",
+                "note_ko": "실시간 리콜정보 소스가 연결되지 않아 조회 결과를 제공할 수 없습니다. 로컬 과거 색인(2022-07-26 기준)도 적재되지 않았습니다. 국가기술표준원 제품안전정보센터에서 모델명으로 직접 확인이 필요합니다.",
                 "official_url": "https://www.safetykorea.kr",
                 "data_source": "산업통상부 국가기술표준원_제품 안전인증 및 리콜 정보(data.go.kr 15116894, 이용허락범위 제한 없음)",
             },
@@ -2673,7 +2686,7 @@ TOOL_DEFS: List[Dict[str, Any]] = [    {
     {
         "name": "lookup_recall",
         "title_ko": "리콜 이력 조회",
-        "description_ko": "브랜드·모델명·제품명으로 국내 리콜 이력을 조회합니다. 로컬 인덱스(국표원 15040696) 우선, 없으면 소스 미연결을 그대로 알립니다.",
+        "description_ko": "브랜드·모델명·제품명으로 국내 리콜 이력을 조회합니다. 로컬 인덱스(국표원 15040696, 2022-07-26 기준 과거 색인 — 최신 리콜 미포함) 우선, 없으면 소스 미연결을 그대로 알립니다.",
         "handler": tool_lookup_recall,
         "input_schema": {
             "type": "object",

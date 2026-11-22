@@ -451,6 +451,7 @@ class PersistenceTest(unittest.TestCase):
         self.assertEqual(count, 2)
 
     def test_seed_skips_summary_only_exports(self):
+        """요약만 있는 파일(과거 형식·backfilled)은 오류가 아니라 복원 대상 아님으로 센다(0.5.9)."""
         store = self._store()
         folder = tempfile.mkdtemp(prefix="clns-snap-")
         path = os.path.join(folder, "2026-11-18.json")
@@ -458,7 +459,8 @@ class PersistenceTest(unittest.TestCase):
             json.dump({"day": "2026-11-18", "counts": {"recall": 1}}, handle)
         result = snapshots.seed_snapshots(store, folder)
         self.assertEqual(result["days"], [])
-        self.assertEqual(result["unreadable"], ["2026-11-18.json"])
+        self.assertEqual(result["counts_only"], ["2026-11-18"])
+        self.assertEqual(result["unreadable"], [])
 
     def test_missing_seed_dir_is_not_an_error(self):
         store = self._store()
@@ -559,13 +561,13 @@ class PersistenceTest(unittest.TestCase):
 
 class VersionAndAnonymityTest(unittest.TestCase):
     def test_version_is_0_5_1(self):
-        self.assertEqual(__version__, "0.5.8")
+        self.assertEqual(__version__, "0.5.9")
         with open(os.path.join(ROOT, "server.json"), encoding="utf-8") as handle:
             manifest = json.load(handle)
         self.assertEqual(manifest["version"], __version__)
         self.assertEqual(web_ui.SERVICE_VERSION, __version__)
         with open(os.path.join(ROOT, "Dockerfile"), encoding="utf-8") as handle:
-            self.assertIn('org.opencontainers.image.version="0.5.8"', handle.read())
+            self.assertIn('org.opencontainers.image.version="0.5.9"', handle.read())
 
     def test_trap_25_entry_has_no_personal_data(self):
         from import_compliance.corpus import load_corpus

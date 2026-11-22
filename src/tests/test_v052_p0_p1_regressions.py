@@ -534,12 +534,12 @@ class TypoAndToolTableTest(unittest.TestCase):
 
 class VersionSyncTest(unittest.TestCase):
     def test_version_bumped_and_synced(self):
-        self.assertEqual(__version__, "0.5.8")
-        self.assertEqual(web_ui.SERVICE_VERSION, "0.5.8")
+        self.assertEqual(__version__, "0.5.9")
+        self.assertEqual(web_ui.SERVICE_VERSION, "0.5.9")
         with open(os.path.join(ROOT, "server.json"), encoding="utf-8") as handle:
-            self.assertEqual(json.load(handle)["version"], "0.5.8")
+            self.assertEqual(json.load(handle)["version"], "0.5.9")
         with open(os.path.join(ROOT, "Dockerfile"), encoding="utf-8") as handle:
-            self.assertIn('org.opencontainers.image.version="0.5.8"', handle.read())
+            self.assertIn('org.opencontainers.image.version="0.5.9"', handle.read())
 
 
 if __name__ == "__main__":

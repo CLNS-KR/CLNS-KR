@@ -465,7 +465,7 @@ TOOL_ONE_LINE_KO: Dict[str, str] = {
     "lookup_hs_requirements": "HS 10자리로 세관장확인 요건·기관·확인시점 조회",
     "check_kc_certification": "전기용품 KC·전지·전파 적합성평가 중 무엇이 걸리는지 판정",
     "check_food_cosmetics": "식품·건강기능식품·화장품·기구용기 요건 판정(위생용품은 assess_import_case)",
-    "lookup_recall": "브랜드·모델·품목군으로 국내 리콜 이력 조회",
+    "lookup_recall": "브랜드·모델·품목군으로 국내 리콜 이력 조회(2022-07-26 기준 과거 색인)",
     "get_legal_basis": "근거 법령 조문 요지·시행일·원문 URL 조회",
     "explain_trap": "이 페이지의 함정 케이스 해설(오답·정답·근거)",
     "check_ad_labeling": "상세페이지·라벨 문구를 식약처 광고 기준으로 검수",

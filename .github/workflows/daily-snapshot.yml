@@ -7,6 +7,10 @@
 #   (`python -m import_compliance.snapshots --seed`, 서버는 자동 수행).
 #   익명 사용 통계(`/v1/stats`)도 같은 방식으로 `data/usage/stats.json` 에 보관한다.
 #
+#   2026-10-23~11-19 의 `origin: "backfilled"` 요약 파일(항목 없음)은 서버 복원 대상이
+#   아니다(읽을 때 `counts_only` 로 분류 — `data/snapshots/README.md` 참조). 실관측분만
+#   `--include-items` 로 항목을 넣어 커밋한다.
+#
 # 시간
 #   0 19 * * * (UTC) = 04:00 KST. 트래픽이 가장 적은 시각.
 #

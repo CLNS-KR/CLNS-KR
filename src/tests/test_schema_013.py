@@ -56,16 +56,16 @@ def assess_once(query: str, facts=None) -> dict:
 
 class VersionTest(unittest.TestCase):
     def test_package_version_is_0_2_0(self):
-        self.assertEqual(__version__, "0.5.8")
+        self.assertEqual(__version__, "0.5.9")
         # 엔진 버전이 0.3.0 으로 올라가도 응답 스키마 0.1.3 의 필드 계약은 그대로 둔다
         # (0.2.0 이후 추가된 ad_review·labeling_check·disposition_lookup·trends 는 블록 추가뿐, 기존 필드 삭제·의미 변경이 없다).
         self.assertEqual(SCHEMA_VERSION, "0.1.3")
-        self.assertEqual(web_ui.SERVICE_VERSION, "0.5.8")
+        self.assertEqual(web_ui.SERVICE_VERSION, "0.5.9")
 
     def test_dockerfile_version_is_0_2_0(self):
         with open(os.path.join(ROOT, "Dockerfile"), encoding="utf-8") as handle:
             docker = handle.read()
-        self.assertIn('org.opencontainers.image.version="0.5.8"', docker)
+        self.assertIn('org.opencontainers.image.version="0.5.9"', docker)
 
     def test_response_reports_schema_version(self):
         result = assess_once("중국산 과자를 구매대행으로 들여와 판매")
